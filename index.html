@@ -130,6 +130,28 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
 
 /* Communication manual */
 .manualTagGrid{display:grid;grid-template-columns:260px 1fr;gap:13px;align-items:start}.manualTagList{background:#fff;border:1px solid var(--line);border-radius:20px;padding:12px;display:grid;gap:8px;box-shadow:var(--shadow2)}.manualTagBtn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:11px 12px;text-align:left;cursor:pointer;font-weight:900;color:#344054;display:flex;justify-content:space-between;gap:8px;align-items:center}.manualTagBtn:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}.manualTagBtn.active{background:#101828;color:#fff;border-color:#101828}.manualTagBtn small{font-size:11px;font-weight:900;color:inherit;opacity:.72}.manualScriptGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.manualCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow2)}.manualCard h3{margin:0 0 6px;font-size:15px}.manualCard .manualMeta{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}.manualCard pre{white-space:pre-wrap;word-break:break-word;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:11px;line-height:1.65;font:13px/1.65 inherit;color:#344054;margin:0 0 10px}.manualActions{display:flex;gap:8px;flex-wrap:wrap}.manualAddGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.manualAddGrid .field,.manualAddGridFull .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.manualAddGrid .field span,.manualAddGridFull .field span{color:var(--muted)}.manualAddGrid input,.manualAddGrid select,.manualAddGridFull textarea{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 10px;color:var(--ink)}.manualAddGridFull{margin-top:10px}.manualAddGridFull textarea{width:100%;min-height:140px;resize:vertical}.manualHintBox{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:13px;line-height:1.7;color:#344054}.manualTemplateTags{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.manualTagPill{display:inline-flex;border-radius:999px;padding:5px 9px;background:#f2f4f7;color:#475467;font-size:12px;font-weight:850}@media(max-width:980px){.manualTagGrid{grid-template-columns:1fr}.manualAddGrid{grid-template-columns:1fr}}
+
+
+/* Todo list and rider contacts */
+.reasonLibraryBox.reasonHidden{display:none}
+.todoFormGrid,.contactFormGrid{display:grid;grid-template-columns:1.4fr .75fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.todoFormGrid .field,.contactFormGrid .field,.todoToolbar .field,.contactToolbar .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}
+.todoFormGrid .field span,.contactFormGrid .field span,.todoToolbar .field span,.contactToolbar .field span{color:var(--muted)}
+.todoToolbar,.contactToolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:12px}
+.todoStats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
+.todoCountdown{font-weight:950}.todoCountdown.ok{color:var(--green)}.todoCountdown.warn{color:var(--amber)}.todoCountdown.bad{color:var(--red)}
+.todoDoneRow td{color:#98a2b3;text-decoration:none;background:#fcfcfd}
+.todoDoneRow .todoTaskText{text-decoration:line-through}
+.todoActionBtn{box-shadow:none;padding:6px 9px;font-size:12px}
+.contactMiniBtn,.contactIdLink{border:0;background:#eff6ff;color:#2563eb;border-radius:999px;padding:2px 7px;font-weight:900;cursor:pointer;font-size:12px;margin-left:3px}
+.contactMiniBtn:hover,.contactIdLink:hover{text-decoration:underline;background:#dbeafe}
+.contactModal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.46);align-items:center;justify-content:center;padding:18px}
+.contactModal.show{display:flex}
+.contactCard{width:min(480px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 26px 86px rgba(16,24,40,.25);padding:18px}
+.contactCardHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.contactCardHead h2{margin:0;font-size:18px}.contactInfoGrid{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:12px}.contactInfoGrid b{color:#475467}.contactPhone{font-size:22px;font-weight:950;color:#101828}.contactActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:900px){.todoFormGrid,.contactFormGrid{grid-template-columns:1fr}.todoStats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.todoStats{grid-template-columns:1fr}.contactInfoGrid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -177,11 +199,13 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
     </div>
     <nav class="sideNav nav" aria-label="主菜单">
       <button class="active" data-tab="overview"><span class="menuIcon">📊</span><span class="menuLabel">总览</span></button>
+      <button data-tab="todoList"><span class="menuIcon">📝</span><span class="menuLabel">待办事项</span></button>
       <button data-tab="problems"><span class="menuIcon">⚠️</span><span class="menuLabel">问题骑手</span></button>
       <button data-tab="compare"><span class="menuIcon">🧩</span><span class="menuLabel">多人对比</span></button>
       <button data-tab="diagnosis"><span class="menuIcon">📈</span><span class="menuLabel">趋势诊断</span></button>
       <button data-tab="followup"><span class="menuIcon">✅</span><span class="menuLabel">跟进闭环</span></button>
       <button data-tab="communicationManual"><span class="menuIcon">💬</span><span class="menuLabel">沟通手册</span></button>
+      <button data-tab="riderContacts"><span class="menuIcon">☎️</span><span class="menuLabel">骑手通讯录</span></button>
       <button data-tab="weeklyReport"><span class="menuIcon">🗞️</span><span class="menuLabel">站长周报</span></button>
       <button data-tab="profile"><span class="menuIcon">👤</span><span class="menuLabel">单骑手追踪</span></button>
     </nav>
@@ -304,6 +328,7 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
         <div class="sub">先配置“待联系人群”，再批量选择骑手更新处理状态、负责人、变化原因、下一步日期和备注；跟进记录会同步存档到 Supabase，重新登录后仍可查看。</div>
       </div>
       <div class="chips">
+        <button class="btn small" id="toggleReasonLibraryBtn">打开变化原因库</button>
         <button class="btn small" id="exportFollowupBtn">导出跟进表</button>
         <button class="btn small" id="clearDoneFollowupBtn">隐藏已改善</button>
       </div>
@@ -318,7 +343,7 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
     </div>
     <div class="followRuleNote" id="followRuleHint">当前待联系人群：问题骑手，不限制跑单量。</div>
 
-    <div class="reasonLibraryBox">
+    <div class="reasonLibraryBox reasonHidden" id="reasonLibraryBox">
       <div class="head">
         <div>
           <h3>变化原因备注库</h3>
@@ -371,6 +396,47 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
 </section>
 
 
+<section id="todoList" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2>待办事项</h2><div class="sub">记录本周任务，避免遗漏；可设置截止日期时间、查看倒计时，并勾选是否完成。数据会同步保存到 Supabase。</div></div>
+      <div class="inlineActions"><button class="btn small" id="refreshTodoBtn">刷新待办</button></div>
+    </div>
+    <div class="todoFormGrid">
+      <label class="field"><span>任务</span><input id="todoTaskInp" placeholder="例如：联系 W69 跑单下滑骑手" /></label>
+      <label class="field"><span>截止日期时间</span><input id="todoDueInp" type="datetime-local" /></label>
+      <button class="btn primary" id="addTodoBtn">新增任务</button>
+    </div>
+    <div class="todoStats" id="todoStats"></div>
+    <div class="tableWrap"><table id="todoTable"></table></div>
+  </div>
+</section>
+
+<section id="riderContacts" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2>骑手通讯录</h2><div class="sub">维护骑手 ID 与手机号；看板中出现的骑手 ID 可点击查看手机号信息。数据会上传并更新到 Supabase。</div></div>
+      <div class="inlineActions"><button class="btn small" id="refreshContactsBtn">刷新通讯录</button></div>
+    </div>
+    <div class="contactFormGrid">
+      <label class="field"><span>骑手 ID</span><input id="contactIdInp" placeholder="例如：294937" /></label>
+      <label class="field"><span>手机号</span><input id="contactPhoneInp" placeholder="例如：04xxxxxxxx" /></label>
+      <button class="btn primary" id="saveContactBtn">保存 / 更新</button>
+      <label class="field"><span>骑手姓名（可选）</span><input id="contactNameInp" placeholder="可自动按 ID 匹配看板姓名" /></label>
+      <label class="field"><span>备注（可选）</span><input id="contactNoteInp" placeholder="例如：常用号码 / WhatsApp" /></label>
+      <div class="inlineActions"><button class="btn" id="clearContactFormBtn">清空</button></div>
+    </div>
+    <div class="contactToolbar">
+      <label class="field" style="min-width:260px"><span>搜索 ID / 姓名 / 手机号</span><input id="contactSearchInp" placeholder="输入关键词" /></label>
+      <div class="inlineActions">
+        <button class="btn" id="downloadContactTplBtn">下载通讯录模版</button>
+        <button class="btn" id="importContactBtn">导入 CSV</button>
+        <input id="contactFileInp" type="file" accept=".csv,.tsv,.txt" hidden />
+      </div>
+    </div>
+    <div class="tableWrap"><table id="contactsTable"></table></div>
+  </div>
+</section>
 
 
 <section id="communicationManual" class="tab">
@@ -467,6 +533,13 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
   </div>
 </section>
 </main>
+</div>
+<div class="contactModal" id="contactModal">
+  <div class="contactCard">
+    <div class="contactCardHead"><div><h2>骑手手机号信息</h2><div class="sub" id="contactModalSub">按骑手 ID 查询通讯录</div></div><button class="btn small" id="closeContactModalBtn">关闭</button></div>
+    <div class="contactInfoGrid" id="contactInfoGrid"></div>
+    <div class="contactActions"><button class="btn" id="editContactFromModalBtn">去通讯录维护</button></div>
+  </div>
 </div><button class="accountFloatBtn" id="accountFloatBtn" type="button">🔐 账号管理</button><div class="toast" id="toast"></div>
 <script>
 const metrics=[{key:'orders',label:'跑单量',short:'跑单',unit:'单',drop:.2,min:10},{key:'income',label:'总收入',short:'收入',unit:'$',drop:.2,min:50},{key:'hourly',label:'时薪',short:'时薪',unit:'$/h',drop:.15,min:2},{key:'duration',label:'背单时长',short:'背单',unit:'h',drop:.2,min:3}];
@@ -476,6 +549,12 @@ const issueDefs=[['all','全部问题'],['ordersDrop','跑单下降'],['incomeDr
 let raw=[],meta={rowCount:0,riderCount:0,cycles:[],sourceFile:'未导入',imported:false},rows=[],cycles=[],recMap=new Map(),riderMap=new Map(),riders=[];
 const state={cycle:'',compare:'',metric:'orders',search:'',tab:'overview',issue:'all',risk:'all',selected:null,action:'all',dropMetric:'all',activity:'all',minScore:0,sort:'score',compareRiders:[],followStatus:'all',diagnosisLookback:'4',diagnosisMetric:'orders',hideImproved:false,followReviewMetric:'orders'};
 const byId=id=>document.getElementById(id);
+const TODO_TABLE='station_weekly_todos';
+const CONTACT_TABLE='rider_contacts';
+let weeklyTodos=[];
+let riderContacts={};
+let riderContactsLoaded=false;
+let contactModalCurrentId='';
 const CLOUD_CONFIG={
   // ① 到 Supabase → Project Settings → API 复制 Project URL，粘贴到下面。
   url:'https://pxgfvdcajbkviijayemo.supabase.co',
@@ -545,6 +624,8 @@ async function loadCloudData(){
     };
     rebuildData(false);
     refreshControls();
+    await loadWeeklyTodos();
+    await loadRiderContacts();
     renderAll();
     if(status)status.textContent=`已从 Supabase 读取 ${raw.length} 行 · ${riders.length} 名骑手 · ${cycles.length} 个周期`;
     if(!raw.length)toast('Supabase 表已连接，但没有识别到有效数据');
@@ -836,7 +917,7 @@ function analyze(c=state.cycle,comp=state.compare){
   return{items};
 }
 function filteredProblems(){let items=analyze().items.filter(x=>x.score>0);if(state.issue!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.issue));if(state.risk==='high')items=items.filter(x=>x.level==='high');if(state.risk==='mid')items=items.filter(x=>x.level==='mid');if(state.action!=='all')items=items.filter(x=>x.action===state.action);if(state.dropMetric!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.dropMetric+'Drop'));if(state.activity==='activeCur')items=items.filter(x=>x.curAct);if(state.activity==='lost')items=items.filter(x=>x.preAct&&!x.curAct);if(state.activity==='new')items=items.filter(x=>x.curAct&&!x.preAct);if(state.activity==='both')items=items.filter(x=>x.curAct&&x.preAct);items=items.filter(x=>x.score>=state.minScore);const drop=(x,k)=>Math.max(0,val(x.pre,k)-val(x.cur,k));const pctDrop=(x,k)=>val(x.pre,k)>0?drop(x,k)/val(x.pre,k):0;items.sort((a,b)=>{if(state.sort==='ordersAmt')return drop(b,'orders')-drop(a,'orders');if(state.sort==='ordersPct')return pctDrop(b,'orders')-pctDrop(a,'orders');if(state.sort==='incomeAmt')return drop(b,'income')-drop(a,'income');if(state.sort==='hourlyPct')return pctDrop(b,'hourly')-pctDrop(a,'hourly');if(state.sort==='durationAmt')return drop(b,'duration')-drop(a,'duration');return b.score-a.score});return items}
-function renderAll(){renderBadge();renderWeekStrip();renderKpis();renderOverview();renderProblems();renderCompare();renderDiagnosis();renderFollowup();renderStationWeeklyReport();renderProfile();drawCharts()}
+function renderAll(){renderBadge();renderWeekStrip();renderKpis();renderOverview();renderProblems();renderCompare();renderDiagnosis();renderFollowup();renderTodoList();renderStationWeeklyReport();renderCommunicationManual();renderRiderContacts();renderProfile();drawCharts();setTimeout(decorateRiderIds,0)}
 function renderBadge(){byId('dataBadge').textContent=rows.length?`${meta.sourceFile||'已导入'} · ${rows.length}行 · ${riders.length}骑手 · ${cycles.length}周`:'暂无数据'}
 function renderWeekStrip(){const el=byId('weekStrip');if(!rows.length){el.innerHTML='<div class="noDataBox" style="grid-column:1/-1"><b>暂无数据</b>登录后系统会自动读取 Supabase 云表；也可以点击“刷新云数据”。</div>';return}el.innerHTML=cycles.map(c=>{const a=aggregate(c);return `<div class="weekCard ${c===state.cycle?'active':''}" data-cycle="${esc(c)}"><b>${esc(c)}</b><div class="miniGrid"><span>骑手 <strong>${a.active}</strong></span><span>跑单 <strong>${fmt(a.orders,'orders')}</strong></span><span>收入 <strong>${fmt(a.income,'income')}</strong></span><span>时薪 <strong>${fmt(a.hourly,'hourly')}</strong></span></div></div>`}).join('');el.querySelectorAll('.weekCard').forEach(x=>x.onclick=()=>{state.cycle=x.dataset.cycle;const idx=cycles.indexOf(state.cycle);state.compare=cycles[Math.max(0,idx-1)]||state.cycle;refreshControls();renderAll()})}
 function renderKpis(){const el=byId('kpiGrid');if(!rows.length){el.innerHTML='';return}const cur=aggregate(state.cycle),pre=aggregate(state.compare);const list=[['活跃骑手',cur.active,pre.active,'orders'],['跑单量',cur.orders,pre.orders,'orders'],['总收入',cur.income,pre.income,'income'],['综合时薪',cur.hourly,pre.hourly,'hourly']];el.innerHTML=list.map(([lab,cv,pv,k])=>`<div class="kpi"><div class="label">${lab}</div><div class="value">${fmt(cv,k)}</div>${deltaHTML(cv,pv,k)}</div>`).join('')}
@@ -902,8 +983,40 @@ const diagMetric=byId('diagnosisMetricSel');if(diagMetric)diagMetric.onchange=e=
 const diagLook=byId('diagnosisLookbackSel');if(diagLook)diagLook.onchange=e=>{state.diagnosisLookback=e.target.value;renderDiagnosis();drawDiagnosis()};
 const diagSearch=byId('diagnosisSearchInp');if(diagSearch)diagSearch.oninput=()=>renderDiagnosis();
 const exportDiag=byId('exportDiagnosisBtn');if(exportDiag)exportDiag.onclick=exportDiagnosis;
-window.addEventListener('resize',()=>drawCharts());bindStationReportControls();bindCommunicationManualControls()}
-function selectTab(tab){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='communicationManual')renderCommunicationManual();drawCharts()}function openProfile(id){state.selected=id;selectTab('profile');refreshControls();renderProfile();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
+const toggleReason=byId('toggleReasonLibraryBtn');if(toggleReason)toggleReason.onclick=()=>{const box=byId('reasonLibraryBox');if(box){box.classList.toggle('reasonHidden');toggleReason.textContent=box.classList.contains('reasonHidden')?'打开变化原因库':'隐藏变化原因库'}};window.addEventListener('resize',()=>drawCharts());bindStationReportControls();bindCommunicationManualControls();bindTodoControls();bindRiderContactControls()}
+
+
+function currentWeekKey(d=new Date()){
+  const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=date.getUTCDay()||7;date.setUTCDate(date.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  const week=Math.ceil((((date-yearStart)/86400000)+1)/7);
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+function formatDateTimeLocal(iso){if(!iso)return'-';const d=new Date(iso);if(Number.isNaN(d.getTime()))return'-';return d.toLocaleString('zh-CN',{hour12:false})}
+function toDatetimeLocalValue(iso){if(!iso)return'';const d=new Date(iso);if(Number.isNaN(d.getTime()))return'';const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function countdownText(iso){if(!iso)return{txt:'未设置',cls:'warn'};const t=new Date(iso).getTime();if(Number.isNaN(t))return{txt:'时间无效',cls:'bad'};const diff=t-Date.now();const abs=Math.abs(diff);const d=Math.floor(abs/86400000),h=Math.floor(abs%86400000/3600000),m=Math.floor(abs%3600000/60000);if(diff<0)return{txt:`已超时 ${d?d+'天':''}${h}小时${m}分`,cls:'bad'};if(diff<86400000)return{txt:`剩余 ${h}小时${m}分`,cls:'warn'};return{txt:`剩余 ${d}天${h}小时`,cls:'ok'}}
+async function loadWeeklyTodos(){try{const client=getCloudClient();const {data,error}=await client.from(TODO_TABLE).select('*').order('is_done',{ascending:true}).order('due_at',{ascending:true});if(error)throw error;weeklyTodos=data||[]}catch(e){console.warn('load todos failed',e);weeklyTodos=safeGet('station_weekly_todos_local',[])}}
+function renderTodoList(){const table=byId('todoTable');if(!table)return;const week=currentWeekKey();const list=(weeklyTodos||[]).filter(x=>(x.week_key||week)===week).sort((a,b)=>(a.is_done===b.is_done?0:a.is_done?1:-1)||String(a.due_at||'').localeCompare(String(b.due_at||'')));const total=list.length,done=list.filter(x=>x.is_done).length,overdue=list.filter(x=>!x.is_done&&x.due_at&&new Date(x.due_at)<new Date()).length;const next=list.filter(x=>!x.is_done&&x.due_at).sort((a,b)=>new Date(a.due_at)-new Date(b.due_at))[0];const stats=byId('todoStats');if(stats)stats.innerHTML=[['本周任务',total,`周期：${week}`,'blue'],['已完成',done,`完成率 ${total?Math.round(done/total*100):0}%`,'green'],['已超时',overdue,'请优先处理','red'],['最近截止',next?formatDateTimeLocal(next.due_at):'暂无','未完成任务中最近一项','amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n" style="font-size:${typeof x[1]==='number'?'24px':'16px'}">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');if(!list.length){table.innerHTML='<tr><td class="empty">本周暂无待办任务。请在上方新增任务。</td></tr>';return}let html='<thead><tr><th>完成</th><th>任务</th><th>截止日期时间</th><th>离完成时间倒计时</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';list.forEach(t=>{const cd=countdownText(t.due_at);html+=`<tr class="${t.is_done?'todoDoneRow':''}"><td><input class="rowCheck" type="checkbox" data-todo-done="${esc(t.id)}" ${t.is_done?'checked':''}></td><td><b class="todoTaskText">${esc(t.task||'未命名任务')}</b><div class="mini">${esc(t.week_key||week)}</div></td><td>${formatDateTimeLocal(t.due_at)}</td><td><span class="todoCountdown ${cd.cls}">${esc(cd.txt)}</span></td><td><span class="mini">${formatDateTimeLocal(t.updated_at||t.created_at)}</span></td><td><button class="btn danger todoActionBtn" data-todo-delete="${esc(t.id)}">删除</button></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-todo-done]').forEach(el=>el.onchange=e=>toggleTodoDone(e.target.dataset.todoDone,e.target.checked));table.querySelectorAll('[data-todo-delete]').forEach(btn=>btn.onclick=()=>deleteTodo(btn.dataset.todoDelete))}
+async function addTodo(){const task=(byId('todoTaskInp')?.value||'').trim();const dueVal=byId('todoDueInp')?.value||'';if(!task){toast('请填写任务内容');return}const payload={task,due_at:dueVal?new Date(dueVal).toISOString():null,is_done:false,week_key:currentWeekKey(),updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()};try{const client=getCloudClient();const {data,error}=await client.from(TODO_TABLE).insert(payload).select('*').single();if(error)throw error;weeklyTodos.push(data);byId('todoTaskInp').value='';byId('todoDueInp').value='';renderTodoList();toast('待办任务已保存')}catch(e){toast('待办保存失败：'+(e.message||e));}}
+async function toggleTodoDone(id,done){try{const client=getCloudClient();const {data,error}=await client.from(TODO_TABLE).update({is_done:done,updated_at:new Date().toISOString(),updated_by:cloudUser?.id||null}).eq('id',id).select('*').single();if(error)throw error;weeklyTodos=weeklyTodos.map(x=>String(x.id)===String(id)?data:x);renderTodoList();toast(done?'已标记完成':'已取消完成')}catch(e){toast('更新待办失败：'+(e.message||e));}}
+async function deleteTodo(id){if(!confirm('确认删除这条待办任务？'))return;try{const client=getCloudClient();const {error}=await client.from(TODO_TABLE).delete().eq('id',id);if(error)throw error;weeklyTodos=weeklyTodos.filter(x=>String(x.id)!==String(id));renderTodoList();toast('已删除待办')}catch(e){toast('删除失败：'+(e.message||e));}}
+function bindTodoControls(){const add=byId('addTodoBtn');if(add)add.onclick=addTodo;const refresh=byId('refreshTodoBtn');if(refresh)refresh.onclick=async()=>{await loadWeeklyTodos();renderTodoList();toast('待办已刷新')};if(!window.__todoCountdownTimer){window.__todoCountdownTimer=setInterval(()=>{if(state.tab==='todoList')renderTodoList()},60000)}}
+
+async function loadRiderContacts(){try{const client=getCloudClient();const {data,error}=await client.from(CONTACT_TABLE).select('*').order('rider_id',{ascending:true});if(error)throw error;riderContacts={};(data||[]).forEach(x=>{riderContacts[String(x.rider_id)]=x});riderContactsLoaded=true}catch(e){console.warn('load contacts failed',e);riderContacts=safeGet('rider_contacts_local',{});riderContactsLoaded=false}}
+function getContactName(id,contact){return contact?.rider_name||riderMap.get(String(id))?.name||''}
+function renderRiderContacts(){const table=byId('contactsTable');if(!table)return;const q=(byId('contactSearchInp')?.value||'').trim().toLowerCase();let list=Object.values(riderContacts||{});if(q)list=list.filter(c=>String(c.rider_id||'').toLowerCase().includes(q)||String(c.rider_name||'').toLowerCase().includes(q)||String(c.phone||'').toLowerCase().includes(q));if(!list.length){table.innerHTML='<tr><td class="empty">暂无通讯录数据。可在上方新增，或导入 CSV。</td></tr>';return}let html='<thead><tr><th>骑手 ID</th><th>骑手姓名</th><th>手机号</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';list.forEach(c=>{html+=`<tr><td><button class="contactIdLink" data-contact-id="${esc(c.rider_id)}">${esc(c.rider_id)}</button></td><td>${esc(getContactName(c.rider_id,c)||'-')}</td><td><b>${esc(c.phone||'-')}</b></td><td>${esc(c.note||'-')}</td><td><span class="mini">${formatDateTimeLocal(c.updated_at||c.created_at)}</span></td><td><button class="btn small" data-contact-edit="${esc(c.rider_id)}">编辑</button> <button class="btn small danger" data-contact-delete="${esc(c.rider_id)}">删除</button></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-contact-edit]').forEach(btn=>btn.onclick=()=>fillContactForm(btn.dataset.contactEdit));table.querySelectorAll('[data-contact-delete]').forEach(btn=>btn.onclick=()=>deleteRiderContact(btn.dataset.contactDelete))}
+function clearContactForm(){['contactIdInp','contactNameInp','contactPhoneInp','contactNoteInp'].forEach(id=>{const el=byId(id);if(el)el.value=''})}
+function fillContactForm(id){const c=riderContacts[String(id)]||{};if(byId('contactIdInp'))byId('contactIdInp').value=id;if(byId('contactNameInp'))byId('contactNameInp').value=getContactName(id,c);if(byId('contactPhoneInp'))byId('contactPhoneInp').value=c.phone||'';if(byId('contactNoteInp'))byId('contactNoteInp').value=c.note||'';selectTab('riderContacts')}
+async function saveRiderContact(){const rider_id=(byId('contactIdInp')?.value||'').trim();const phone=(byId('contactPhoneInp')?.value||'').trim();const rider_name=(byId('contactNameInp')?.value||'').trim()||riderMap.get(rider_id)?.name||'';const note=(byId('contactNoteInp')?.value||'').trim();if(!rider_id||!phone){toast('请填写骑手 ID 和手机号');return}const payload={rider_id,phone,rider_name,note,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()};try{const client=getCloudClient();const {data,error}=await client.from(CONTACT_TABLE).upsert(payload,{onConflict:'rider_id'}).select('*').single();if(error)throw error;riderContacts[String(rider_id)]=data;renderRiderContacts();decorateRiderIds();toast('通讯录已保存')}catch(e){toast('通讯录保存失败：'+(e.message||e));}}
+async function deleteRiderContact(id){if(!confirm('确认删除该骑手手机号？'))return;try{const client=getCloudClient();const {error}=await client.from(CONTACT_TABLE).delete().eq('rider_id',id);if(error)throw error;delete riderContacts[String(id)];renderRiderContacts();decorateRiderIds();toast('已删除手机号')}catch(e){toast('删除失败：'+(e.message||e));}}
+function downloadContactTemplate(){const rows=[['ID','骑手姓名','手机号','备注'],['294937','示例骑手','0412345678','常用号码']];downloadBlob('\ufeff'+rows.map(r=>r.map(csvEscape).join(',')).join('\n'),'骑手通讯录模版.csv')}
+async function importContactCSV(file){try{const text=await file.text();const table=parseDelimited(text);if(!table.length)throw new Error('文件为空');const header=table[0].map(x=>String(x).trim());const idIdx=findCol(header,['ID','id','骑手ID','rider_id']);const nameIdx=findCol(header,['骑手姓名','姓名','rider_name','name']);const phoneIdx=findCol(header,['手机号','手机','电话','phone','mobile']);const noteIdx=findCol(header,['备注','note']);if(idIdx<0||phoneIdx<0)throw new Error('通讯录 CSV 至少需要 ID 和 手机号 两列');const payload=table.slice(1).map(r=>({rider_id:String(r[idIdx]||'').trim(),rider_name:nameIdx>=0?String(r[nameIdx]||'').trim():'',phone:String(r[phoneIdx]||'').trim(),note:noteIdx>=0?String(r[noteIdx]||'').trim():'',updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()})).filter(x=>x.rider_id&&x.phone);if(!payload.length)throw new Error('没有可导入的通讯录行');const client=getCloudClient();const {data,error}=await client.from(CONTACT_TABLE).upsert(payload,{onConflict:'rider_id'}).select('*');if(error)throw error;(data||payload).forEach(x=>{riderContacts[String(x.rider_id)]=x});renderRiderContacts();decorateRiderIds();toast(`已导入 ${payload.length} 条通讯录`)}catch(e){alert('导入通讯录失败：'+(e.message||e))}}
+function bindRiderContactControls(){const save=byId('saveContactBtn');if(save)save.onclick=saveRiderContact;const clear=byId('clearContactFormBtn');if(clear)clear.onclick=clearContactForm;const search=byId('contactSearchInp');if(search)search.oninput=renderRiderContacts;const refresh=byId('refreshContactsBtn');if(refresh)refresh.onclick=async()=>{await loadRiderContacts();renderRiderContacts();decorateRiderIds();toast('通讯录已刷新')};const tpl=byId('downloadContactTplBtn');if(tpl)tpl.onclick=downloadContactTemplate;const imp=byId('importContactBtn');if(imp)imp.onclick=()=>byId('contactFileInp')?.click();const file=byId('contactFileInp');if(file)file.onchange=e=>{const f=e.target.files[0];if(f)importContactCSV(f);e.target.value=''};const close=byId('closeContactModalBtn');if(close)close.onclick=()=>byId('contactModal')?.classList.remove('show');const modal=byId('contactModal');if(modal)modal.addEventListener('click',e=>{if(e.target?.id==='contactModal')modal.classList.remove('show')});const edit=byId('editContactFromModalBtn');if(edit)edit.onclick=()=>{byId('contactModal')?.classList.remove('show');fillContactForm(contactModalCurrentId)};if(!window.__contactClickBound){window.__contactClickBound=true;document.addEventListener('click',e=>{const btn=e.target.closest('[data-contact-id]');if(btn){e.preventDefault();e.stopPropagation();showRiderContact(btn.dataset.contactId)}})}}
+function showRiderContact(id){contactModalCurrentId=String(id);const c=riderContacts[contactModalCurrentId];const name=getContactName(contactModalCurrentId,c);const box=byId('contactInfoGrid');if(box){box.innerHTML=`<b>骑手 ID</b><span>${esc(contactModalCurrentId)}</span><b>骑手姓名</b><span>${esc(name||'-')}</span><b>手机号</b><span class="contactPhone">${c?.phone?esc(c.phone):'暂无手机号'}</span><b>备注</b><span>${esc(c?.note||'-')}</span>`}const sub=byId('contactModalSub');if(sub)sub.textContent=c?'已从骑手通讯录读取':'通讯录暂无该 ID，可点击下方维护';byId('contactModal')?.classList.add('show')}
+function decorateRiderIds(){try{document.querySelectorAll('.mini').forEach(el=>{if(el.dataset.contactDecorated==='1')return;const text=el.textContent||'';const m=text.match(/ID\s+([^\s]+)/);if(!m)return;const id=m[1].replace(/[，,。;；]/g,'');el.innerHTML=esc(text).replace(/ID\s+([^\s]+)/,`ID <button class="contactMiniBtn" data-contact-id="${esc(id)}">${esc(id)}</button>`);el.dataset.contactDecorated='1'});document.querySelectorAll('[data-track]').forEach(btn=>{const id=btn.dataset.track;if(!id||btn.querySelector('.contactMiniBtn'))return;const mini=btn.querySelector('.mini');if(mini&&!mini.dataset.contactDecorated){mini.innerHTML=`ID <button class="contactMiniBtn" data-contact-id="${esc(id)}">${esc(id)}</button>`;mini.dataset.contactDecorated='1'}})}catch(e){console.warn('decorateRiderIds failed',e)}}
+
+function selectTab(tab){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;if(tab==='todoList')renderTodoList();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='communicationManual')renderCommunicationManual();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){state.selected=id;selectTab('profile');refreshControls();renderProfile();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
 function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
 function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function downloadBlob(text,filename,type='text/csv;charset=utf-8'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
 function downloadTemplate(){const sample=['100001','示例骑手 Zhang San','120','980.5','32.7','30.0','4.0','W70'];if(window.XLSX){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([columns,sample]);XLSX.utils.book_append_sheet(wb,ws,'Sheet1');XLSX.writeFile(wb,'骑手数据导入模版.xlsx');toast('已下载 XLSX 模版');return}const csv='\ufeff'+[columns,sample].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,'骑手数据导入模版.csv');toast('已下载 CSV 模版')}
