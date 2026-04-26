@@ -664,7 +664,31 @@ async function loadStationReportHistory(){try{if(cloudUser){const {data,error}=a
 function renderStationReportHistory(){const box=byId('stationReportHistoryList');if(!box)return;if(!stationReportHistory.length){box.innerHTML='<div class="empty">暂无历史周报</div>';return}box.innerHTML=stationReportHistory.map((h,i)=>`<details class="reportHistoryItem" ${i===0?'open':''}><summary>${esc(h.title||'站长周报')} · ${esc(h.created_at?new Date(h.created_at).toLocaleString():(h.time||''))}${h.sent_to_dingtalk?' · 已发钉钉':' · 已保存'}</summary><pre>${esc(h.content||'')}</pre></details>`).join('')}
 async function saveStationReportHistory(sent=false){const content=stationReportLastContent||generateStationReportText(),title=`站长周报｜${state.cycle||''} 对比 ${state.compare||''}`,config=normalizeStationReportConfig(stationReportConfig),local={title,content,config,sent_to_dingtalk:sent,time:new Date().toLocaleString(),created_at:new Date().toISOString()};try{if(cloudUser){const {data,error}=await getCloudClient().from(STATION_REPORT_HISTORY_TABLE).insert({cycle:state.cycle||'',compare_cycle:state.compare||'',title,content,config,sent_to_dingtalk:sent,sent_at:sent?new Date().toISOString():null,created_by:cloudUser.id}).select('*').single();if(error)throw error;stationReportHistory=[data,...stationReportHistory].slice(0,50);renderStationReportHistory();return data}}catch(e){toast('周报已保存到本机；云端历史保存失败，请确认已执行周报 SQL');console.warn(e?.message||e)}stationReportHistory=[local,...stationReportHistory].slice(0,50);safeSet(STATION_REPORT_LOCAL_HISTORY_KEY,stationReportHistory);renderStationReportHistory();return local}
 async function dingtalkSignedWebhook(webhook,secret){let url=String(webhook||'').trim();if(!secret)return url;const timestamp=Date.now();const text=`${timestamp}\n${secret}`;const enc=new TextEncoder();const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,enc.encode(text));const bytes=new Uint8Array(sig);let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));const sign=encodeURIComponent(btoa(bin));url+=url.includes('?')?'&':'?';return `${url}timestamp=${timestamp}&sign=${sign}`}
-async function sendStationReportToDingTalk(auto=false){const cfg=readStationReportForm();if(!cfg.webhook){toast('请先填写钉钉 Webhook');return false}const content=stationReportLastContent||generateStationReportText();try{const url=await dingtalkSignedWebhook(cfg.webhook,cfg.secret);const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({msgtype:'markdown',markdown:{title:'站长周报',text:content}})});const data=await res.json().catch(()=>({}));if(!res.ok||(data.errcode&&data.errcode!==0))throw new Error(data.errmsg||`HTTP ${res.status}`);await saveStationReportHistory(true);toast(auto?'站长周报已按计划发送到钉钉':'站长周报已发送到钉钉');return true}catch(e){alert('发送钉钉失败：'+(e.message||e)+'\n\n如浏览器提示 CORS 或网络拦截，需要改用后端/Edge Function 发送。');return false}}
+async function sendStationReportToDingTalk(auto=false){
+  const cfg=readStationReportForm();
+  if(!cfg.webhook){toast('请先填写钉钉 Webhook');return false}
+  const content=stationReportLastContent||generateStationReportText();
+  try{
+    const res=await fetch('/api/send-dingtalk',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        webhook:cfg.webhook,
+        secret:cfg.secret,
+        title:'站长周报',
+        content
+      })
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.ok)throw new Error(data.error||data.errmsg||`HTTP ${res.status}`);
+    await saveStationReportHistory(true);
+    toast(auto?'站长周报已按计划发送到钉钉':'站长周报已发送到钉钉');
+    return true;
+  }catch(e){
+    alert('发送钉钉失败：'+(e.message||e)+'\n\n已改为通过 Vercel 后端 /api/send-dingtalk 发送。请确认 GitHub 已上传 api/send-dingtalk.js，并且 Vercel 已重新部署。');
+    return false;
+  }
+}
 function stationReportTodayKey(){const d=new Date(),cfg=normalizeStationReportConfig(stationReportConfig);return `station_report_sent_${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}_${cfg.sendTime}`}
 async function checkStationReportSchedule(){const cfg=normalizeStationReportConfig(stationReportConfig);if(!cfg.autoSend||!rows.length)return;const now=new Date(),parts=String(cfg.sendTime||'09:00').split(':'),h=+parts[0],m=+parts[1];if(now.getDay()!==+cfg.weekday||now.getHours()!==h||now.getMinutes()!==m)return;const key=stationReportTodayKey();if(localStorage.getItem(key))return;renderStationWeeklyReport();const ok=await sendStationReportToDingTalk(true);if(ok)localStorage.setItem(key,'1')}
 function startStationReportScheduler(){stopStationReportScheduler();stationReportTimer=setInterval(checkStationReportSchedule,60*1000);setTimeout(checkStationReportSchedule,1500)}
