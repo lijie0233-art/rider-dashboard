@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>骑手周度数据看板｜账号登录管理员版</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--ink:#101828;--muted:#667085;--line:#e5e7eb;--blue:#2563eb;--blue2:#eff6ff;--green:#079455;--green2:#ecfdf3;--red:#d92d20;--red2:#fef3f2;--amber:#dc6803;--amber2:#fffaeb;--purple:#7a5af8;--purple2:#f4f3ff;--shadow:0 16px 44px rgba(16,24,40,.08);--shadow2:0 8px 22px rgba(16,24,40,.06);--r:20px}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#eaf1ff 0,#f5f7fb 34%,#f7f8fb 100%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC","Microsoft YaHei",sans-serif}.wrap{max-width:1280px;margin:0 auto;padding:18px}.hero{background:linear-gradient(135deg,#101828 0%,#1d2939 58%,#233b76 100%);color:#fff;border-radius:28px;padding:18px;box-shadow:var(--shadow);position:sticky;top:10px;z-index:8;transition:.2s}.heroTop{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.hero h1{font-size:25px;margin:0 0 6px;letter-spacing:-.03em}.desc{margin:0;color:#d0d5dd;line-height:1.5}.heroRight{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:9px 12px;font-size:12px;color:#eef4ff;white-space:nowrap}.heroBody{transition:.2s}.hero.collapsed{padding:12px 16px;border-radius:22px}.hero.collapsed .desc,.hero.collapsed .heroBody{display:none}.hero.collapsed h1{font-size:18px;margin:0}.controls{display:grid;grid-template-columns:1fr 1fr 1fr 1.45fr;gap:10px;margin-top:14px}.field{display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.16);border-radius:15px;padding:10px 12px}.field span{font-size:12px;color:#d0d5dd;font-weight:850}select,input,textarea{font:inherit;border:0;outline:0;background:transparent;color:inherit}select option{color:#111827}.field input::placeholder{color:#b8c2d6}.dataTools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:13px;padding:9px 12px;font-weight:850;cursor:pointer;box-shadow:var(--shadow2);transition:.15s}.btn:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(16,24,40,.1)}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.danger{background:#fff;border-color:#fecaca;color:var(--red)}.btn.ghost{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2);box-shadow:none}.btn.small{padding:6px 9px;font-size:12px}.dataHint{font-size:12px;color:#d0d5dd;margin-left:4px}.nav{display:flex;gap:8px;margin:14px 0}.nav button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 16px;font-weight:900;color:#475467;cursor:pointer;box-shadow:var(--shadow2)}.nav button.active{background:#101828;color:#fff;border-color:#101828}.tab{display:none}.tab.active{display:block}.panel{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow2);padding:15px;margin-bottom:13px}.panelHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.panel h2{margin:0;font-size:17px;letter-spacing:-.02em}.sub{font-size:12px;color:var(--muted);margin-top:4px}.insight{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:linear-gradient(135deg,#fff,#f8fbff);border:1px solid #dbeafe;border-radius:20px;padding:14px;box-shadow:var(--shadow2);margin-bottom:13px}.insightText{line-height:1.65;color:#344054}.weekStrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:9px}.weekCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;cursor:pointer;transition:.15s}.weekCard:hover{transform:translateY(-2px);box-shadow:var(--shadow2)}.weekCard.active{border-color:#93c5fd;background:linear-gradient(135deg,#eff6ff,#fff)}.weekCard b{display:block;font-size:17px;margin-bottom:6px}.weekCard .miniGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 7px;font-size:12px;color:var(--muted)}.weekCard strong{color:var(--ink)}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px;min-height:98px}.kpi .label{font-size:12px;color:var(--muted);font-weight:900}.kpi .value{font-size:26px;font-weight:950;letter-spacing:-.04em;margin:8px 0 6px}.delta{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:950;white-space:nowrap}.delta.good{background:var(--green2);color:var(--green)}.delta.bad{background:var(--red2);color:var(--red)}.delta.warn{background:var(--amber2);color:var(--amber)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:13px}.chartBox{height:250px;position:relative}.chartBox canvas{width:100%;height:100%;display:block}.snapshotGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.snap{border:1px solid var(--line);border-radius:17px;padding:13px;background:#fff}.snap b{font-size:12px;color:#475467}.snap .n{font-size:24px;font-weight:950;margin:6px 0 2px}.snap .t{font-size:12px;color:var(--muted);line-height:1.45}.snap.red{background:var(--red2);border-color:#fecaca}.snap.amber{background:var(--amber2);border-color:#fedf89}.snap.blue{background:var(--blue2);border-color:#bfdbfe}.snap.green{background:var(--green2);border-color:#bbf7d0}.matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.metricCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.metricCard .top{display:flex;justify-content:space-between;gap:8px;align-items:center}.metricCard b{font-size:13px}.metricCard .big{font-size:22px;font-weight:950;margin:8px 0}.metricCard .smallLine{font-size:12px;color:var(--muted);margin-top:6px}.priorityList{display:grid;gap:8px}.priorityItem{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}.rank{width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#101828;color:#fff;font-weight:950;font-size:13px}.priorityItem .name{font-weight:950}.priorityItem .reason{font-size:12px;color:var(--muted);margin-top:3px}.priorityItem .right{text-align:right}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 11px;font-weight:850;font-size:12px;color:#475467;cursor:pointer}.chip.active{background:#101828;color:#fff;border-color:#101828}.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap}.filterPanel{display:none;background:#f8fafc;border:1px solid var(--line);border-radius:18px;margin:0 0 13px}.filterPanel.show{display:block}.filterGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:13px}.filterGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.filterGrid .field span{color:var(--muted)}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff}table{width:100%;border-collapse:separate;border-spacing:0;min-width:930px}th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}th{position:sticky;top:0;background:#f9fafb;color:#475467;font-size:12px;z-index:1}tr:hover td{background:#fcfcfd}.riderName{font-weight:900}.mini{font-size:12px;color:var(--muted);font-weight:700}.pill{display:inline-flex;align-items:center;margin:2px 4px 2px 0;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:850;background:#f2f4f7;color:#475467}.pill.red{background:var(--red2);color:var(--red)}.pill.amber{background:var(--amber2);color:var(--amber)}.pill.green{background:var(--green2);color:var(--green)}.pill.blue{background:var(--blue2);color:var(--blue)}.pill.purple{background:var(--purple2);color:var(--purple)}.riskDot{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:6px;background:#98a2b3}.riskHigh{background:var(--red)}.riskMid{background:var(--amber)}.riskLow{background:var(--green)}.empty{padding:28px!important;text-align:center;color:var(--muted);font-weight:850}.profileGrid{display:grid;grid-template-columns:330px 1fr;gap:13px}.profileBox{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;box-shadow:var(--shadow2)}.profileTitle{font-size:17px;font-weight:950;line-height:1.35;margin-bottom:5px}.diagnosis{background:linear-gradient(135deg,#fff7ed,#fff);border:1px solid #fed7aa;border-radius:16px;padding:12px;line-height:1.65;color:#344054;margin:12px 0}.metricMini{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}.metricMini .kpi{min-height:94px;padding:11px}.metricMini .value{font-size:19px}.compareGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.compareCard{background:#f9fafb;border:1px solid var(--line);border-radius:15px;padding:10px}.compareCard b{font-size:12px}.compareCard .v{font-size:18px;font-weight:950;margin:6px 0}.note{width:100%;min-height:82px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px;color:var(--ink);resize:vertical}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#101828;color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;box-shadow:var(--shadow);z-index:99;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1}.noDataBox{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:20px;padding:30px;text-align:center;color:#475467}.noDataBox b{display:block;font-size:18px;color:#101828;margin-bottom:8px}.dangerText{color:var(--red);font-weight:900}@media(max-width:980px){.hero{position:static}.controls{grid-template-columns:1fr 1fr}.grid2,.profileGrid{grid-template-columns:1fr}.kpis,.snapshotGrid,.matrix{grid-template-columns:repeat(2,1fr)}.metricMini{grid-template-columns:repeat(2,1fr)}.filterGrid{grid-template-columns:repeat(2,1fr)}.insight{grid-template-columns:1fr}.compareGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.wrap{padding:14px}.heroTop{display:block}.heroRight{justify-content:flex-start;margin-top:10px}.controls,.kpis,.snapshotGrid,.matrix,.filterGrid,.metricMini,.compareGrid{grid-template-columns:1fr}.nav{overflow:auto}.nav button{white-space:nowrap}.weekStrip{grid-template-columns:1fr 1fr}.chartBox{height:220px}.hero h1{font-size:22px}.dataHint{width:100%;margin-left:0}.btn{padding:8px 10px}.priorityItem{grid-template-columns:32px 1fr}.priorityItem .right{grid-column:2;text-align:left}}
+.lightField{background:#fff!important;color:var(--ink)!important;border-color:var(--line)!important;box-shadow:none}.lightField span{color:var(--muted)!important}.profileGrid{display:block}.profileToolbar{display:grid;grid-template-columns:1.1fr 1fr;gap:10px;margin-bottom:12px}.profileSummaryWide{margin-bottom:12px}.innerPanel{box-shadow:none;margin:0}.profileChartGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:12px;margin-bottom:12px}.profileCompareList{display:grid;grid-template-columns:1fr 1fr;gap:8px}.profileCompareList .compareCard{background:#fff}.trackBtn{white-space:nowrap}.nameBtn{background:transparent;border:0;padding:0;text-align:left;color:inherit;cursor:pointer}.nameBtn:hover .riderName,.nameBtn:hover .name{text-decoration:underline}.profileHint{font-size:12px;color:var(--muted);margin-top:6px}.compactTable table{min-width:760px}@media(max-width:980px){.profileToolbar,.profileChartGrid{grid-template-columns:1fr}.profileCompareList{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.profileCompareList{grid-template-columns:1fr}}
+
+/* Multi rider comparison */
+.compareControlGrid{display:grid;grid-template-columns:1.2fr 1fr 1fr auto auto;gap:10px;align-items:end;margin-bottom:12px}.compareControlGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.compareControlGrid .field span{color:var(--muted)}.compareSelectedBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:8px}.selectedChip{display:inline-flex;align-items:center;gap:8px;background:#101828;color:#fff;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:900}.selectedChip button{border:0;background:rgba(255,255,255,.16);color:#fff;width:20px;height:20px;border-radius:999px;cursor:pointer;font-weight:950;line-height:1}.candidateGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}.candidateBtn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px;text-align:left;cursor:pointer;transition:.15s}.candidateBtn:hover{transform:translateY(-1px);box-shadow:var(--shadow2)}.candidateBtn.active{border-color:#93c5fd;background:#eff6ff}.candidateBtn b{display:block;font-size:13px}.candidateBtn span{display:block;font-size:12px;color:var(--muted);margin-top:3px}.multiCompareGrid{display:grid;grid-template-columns:1.25fr .75fr;gap:13px}.multiSummaryGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.compareHeroMetric{background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid #bfdbfe;border-radius:18px;padding:13px}.compareHeroMetric b{display:block;font-size:12px;color:#475467}.compareHeroMetric .num{font-size:24px;font-weight:950;margin-top:6px}.legendWrap{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.legendItem{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#475467;font-weight:850}.legendDot{width:10px;height:10px;border-radius:99px;display:inline-block}.compareTip{font-size:12px;color:var(--muted);line-height:1.55;margin-top:8px}.compareActions{display:flex;gap:8px;flex-wrap:wrap}.compareHeat.good{color:var(--green);font-weight:950}.compareHeat.bad{color:var(--red);font-weight:950}.compareHeat.warn{color:var(--amber);font-weight:950}@media(max-width:1180px){.compareControlGrid{grid-template-columns:1fr 1fr}.multiCompareGrid{grid-template-columns:1fr}}@media(max-width:640px){.compareControlGrid,.multiSummaryGrid{grid-template-columns:1fr}.compareActions{width:100%}.compareActions .btn{flex:1}}
+
+/* Wide-screen layout optimization */
+.wrap{max-width:1760px;width:calc(100% - 28px);padding-left:14px;padding-right:14px}
+@media(min-width:1500px){
+  .wrap{max-width:1880px;width:calc(100% - 36px);padding-left:18px;padding-right:18px}
+  .hero{padding:20px 22px}
+  .panel{padding:18px;margin-bottom:14px}
+  .grid2{grid-template-columns:1.08fr .92fr;gap:14px}
+  .profileChartGrid{grid-template-columns:1.25fr .75fr;gap:14px}
+  .chartBox{height:280px}
+  .tableWrap table{min-width:1120px}
+  .compactTable table{min-width:900px}
+  .kpis,.snapshotGrid,.matrix,.metricMini,.weekStrip{gap:12px}
+  .controls{grid-template-columns:1fr 1fr 1fr 1.8fr}
+}
+@media(min-width:1800px){
+  .wrap{max-width:1960px;width:calc(100% - 48px)}
+  .chartBox{height:300px}
+  .tableWrap table{min-width:1240px}
+}
+
+
+.ruleGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.ruleCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.ruleCard b{display:block;font-size:13px;margin-bottom:6px}.ruleCard .mini{line-height:1.4}.ruleInput{width:100%;border:1px solid var(--line);background:#f9fafb;border-radius:12px;padding:9px 10px;color:var(--ink);margin-top:8px}.statusSelect,.followInput{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);min-width:96px}.followNote{width:100%;min-width:220px;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--ink);background:#fff}.trendTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900}.trendTag.down{background:var(--red2);color:var(--red)}.trendTag.recover{background:var(--green2);color:var(--green)}.trendTag.watch{background:var(--amber2);color:var(--amber)}.trendTag.stable{background:var(--blue2);color:var(--blue)}.trendTag.neutral{background:#f2f4f7;color:#475467}.payFormula{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px;line-height:1.6;color:#344054}.inlineActions{display:flex;gap:6px;flex-wrap:wrap}.inlineActions .btn{box-shadow:none}.bulkBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px;margin:10px 0 12px}.bulkBar label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:850;color:#475467}.bulkBar input[type="checkbox"],.rowCheck{width:16px;height:16px;accent-color:#101828}.bulkBar .statusSelect,.bulkBar .followInput{min-width:130px}.followRuleNote{font-size:12px;color:var(--muted);line-height:1.5;margin:-4px 0 10px}.contactRuleGrid{grid-template-columns:1fr 1fr 1fr 1fr auto!important}.tableTools{display:flex;gap:6px;flex-wrap:wrap}.nowrap{white-space:nowrap}@media(max-width:980px){.ruleGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.ruleGrid{grid-template-columns:1fr}.statusSelect,.followInput,.followNote{min-width:100%}}
+
+
+/* Follow-up review and reason library */
+.reasonLibraryBox{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin:10px 0 12px}
+.reasonLibraryBox .head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+.reasonLibraryBox h3{margin:0;font-size:15px;letter-spacing:-.02em}
+.reasonLibraryBox .sub{margin-top:3px}
+.reasonLibraryActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reasonLibraryActions .followInput{min-width:220px}
+.effectTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;white-space:nowrap}
+.effectTag.pending{background:#f2f4f7;color:#475467}
+.effectTag.good{background:var(--green2);color:var(--green)}
+.effectTag.flat{background:var(--amber2);color:var(--amber)}
+.effectTag.bad{background:var(--red2);color:var(--red)}
+.reviewMini{font-size:12px;color:var(--muted);line-height:1.45;margin-top:3px}
+.reasonSelect{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);min-width:128px}
+.followReviewHead{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.followReviewHead .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none;min-width:180px}
+.followReviewHead .field span{color:var(--muted)}
+@media(max-width:640px){.reasonLibraryActions,.followReviewHead{display:grid;grid-template-columns:1fr}.reasonLibraryActions .followInput{min-width:0;width:100%}}
+
+
+/* Account login and admin-only account management */
+.authScreen{display:none;position:fixed;inset:0;z-index:999;background:radial-gradient(circle at top left,#dbeafe 0,#f8fafc 38%,#eef2ff 100%);align-items:center;justify-content:center;padding:18px}
+body.auth-locked .wrap{display:none}
+body.auth-locked .authScreen{display:flex}
+.authCard{width:min(460px,100%);background:rgba(255,255,255,.96);border:1px solid rgba(226,232,240,.9);border-radius:26px;box-shadow:0 24px 80px rgba(16,24,40,.18);padding:24px}
+.authLock{width:48px;height:48px;border-radius:16px;background:#101828;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px}
+.authCard h2{margin:0 0 6px;font-size:24px;letter-spacing:-.03em}.authCard p{margin:0 0 18px;color:#667085;line-height:1.55;font-size:13px}
+.authField{display:flex;flex-direction:column;gap:6px;margin:10px 0}.authField span{font-size:12px;color:#475467;font-weight:900}.authField input{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;color:var(--ink)}
+.authMsg{min-height:20px;margin:8px 0 10px;color:var(--red);font-size:13px;font-weight:850}.authFoot{margin-top:14px;font-size:12px;color:#667085;line-height:1.5;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px}
+.accountModal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:18px}.accountModal.show{display:flex}
+.accountPanel{width:min(820px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 26px 86px rgba(16,24,40,.25);padding:18px;border:1px solid var(--line)}
+.accountPanelHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.accountPanelHead h2{margin:0;font-size:18px}.accountCreateGrid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:12px}.accountCreateGrid .authField{margin:0}.accountTable{min-width:650px}.roleTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#eff6ff;color:#2563eb}.roleTag.admin{background:#fef3c7;color:#92400e}
+@media(max-width:700px){.accountCreateGrid{grid-template-columns:1fr}.accountPanelHead{display:block}.accountPanelHead .btn{margin-top:10px}}
+
+
+/* v9: stronger, always-visible admin management entry points */
+.accountAdminEntry{display:none}
+.accountFloatBtn{display:none;position:fixed;right:18px;bottom:78px;z-index:900;border:0;background:#101828;color:#fff;border-radius:999px;padding:12px 16px;font-weight:950;box-shadow:0 18px 48px rgba(16,24,40,.22);cursor:pointer}
+.accountFloatBtn:hover{transform:translateY(-1px);box-shadow:0 22px 56px rgba(16,24,40,.26)}
+body.auth-admin .accountFloatBtn{display:inline-flex;align-items:center;gap:8px}
+body.auth-admin #accountNavBtn{display:inline-flex}
+body.auth-admin #accountAdminBtn{display:inline-flex}
+.accountCreateGrid .btn.primary{white-space:nowrap}
+@media(max-width:640px){.accountFloatBtn{right:14px;bottom:64px;padding:10px 13px;font-size:13px}}
+</style>
+</head>
+<body class="auth-locked">
+<div class="authScreen" id="authScreen">
+  <div class="authCard">
+    <div class="authLock">🔐</div>
+    <h2>账号登录</h2>
+    <p>请先登录后进入骑手周度数据看板。管理员账号可新增会员账号并管理会员密码。</p>
+    <label class="authField"><span>账号</span><input id="loginUser" autocomplete="username" placeholder="请输入账号" /></label>
+    <label class="authField"><span>密码</span><input id="loginPass" type="password" autocomplete="current-password" placeholder="请输入密码" /></label>
+    <div class="authMsg" id="loginMsg"></div>
+    <button class="btn primary" id="loginBtn" style="width:100%">登录</button>
+    <div class="authFoot">默认管理员：<b>Jack</b>。仅管理员可以新增会员、重置会员密码或删除会员账号。</div>
+  </div>
+</div>
+<div class="accountModal" id="accountModal">
+  <div class="accountPanel">
+    <div class="accountPanelHead">
+      <div><h2>账号与密码管理</h2><div class="sub">仅管理员可操作；会员账号只能登录查看和使用看板。</div></div>
+      <button class="btn small" id="closeAccountModalBtn">关闭</button>
+    </div>
+    <div class="accountCreateGrid">
+      <label class="authField"><span>新增会员账号</span><input id="newAccountUser" placeholder="例如：member01" /></label>
+      <label class="authField"><span>初始密码</span><input id="newAccountPass" type="password" placeholder="请输入初始密码" /></label>
+      <button class="btn primary" id="createAccountBtn">新增会员</button>
+    </div>
+    <div class="tableWrap"><table class="accountTable" id="accountTable"></table></div>
+    <div class="authFoot">说明：账号保存在当前浏览器本地存储中。换浏览器或清除浏览器数据后，需要重新建立会员账号。</div>
+  </div>
+</div>
+<div class="wrap">
+<header class="hero" id="hero">
+  <div class="heroTop">
+    <div><h1>骑手周度数据看板 · 跟进闭环配置版</h1><p class="desc">默认无数据。导入模版后查看周度变化、优先联系名单、指标异常、多骑手对比、多周期趋势诊断，并支持可配置待联系人群与批量跟进闭环。</p></div>
+    <div class="heroRight"><div class="badge" id="currentUserBadge" style="display:none">未登录</div><button class="btn ghost small" id="accountAdminBtn" style="display:none">账号管理</button><button class="btn ghost small" id="logoutBtn" style="display:none">退出登录</button><div class="badge" id="dataBadge">暂无数据</div><button class="btn ghost small" id="toggleHeaderBtn">上拉隐藏</button></div>
+  </div>
+  <div class="heroBody">
+    <div class="controls">
+      <label class="field"><span>当前周期</span><select id="cycleSel"></select></label>
+      <label class="field"><span>对比周期</span><select id="compareSel"></select></label>
+      <label class="field"><span>重点指标</span><select id="metricSel"></select></label>
+      <label class="field"><span>搜索骑手 / ID</span><input id="searchInp" placeholder="输入姓名或 ID" /></label>
+    </div>
+    <div class="dataTools">
+      <button class="btn ghost" id="importBtn">导入模版数据</button>
+      <button class="btn ghost" id="downloadTplBtn">下载模版</button>
+      <button class="btn ghost" id="downloadDataBtn">导出当前数据</button>
+      <button class="btn danger" id="clearDataBtn">清空数据</button>
+      <input id="dataFileInp" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden />
+      <span class="dataHint" id="importStatus">支持 CSV / TSV；联网加载解析库后支持 XLSX</span>
+    </div>
+  </div>
+</header>
+<nav class="nav"><button class="active" data-tab="overview">📊 总览</button><button data-tab="problems">⚠️ 问题骑手</button><button data-tab="compare">🧩 多人对比</button><button data-tab="diagnosis">📈 趋势诊断</button><button data-tab="followup">✅ 跟进闭环</button><button data-tab="profile">👤 单骑手追踪</button><button class="accountAdminEntry" id="accountNavBtn" type="button">🔐 账号管理</button></nav>
+<main>
+<section id="overview" class="tab active">
+  <div class="insight"><div class="insightText" id="insightText">请先导入模版数据。</div><div class="insightActions"><button class="btn primary" id="goHighBtn">看优先联系</button><button class="btn" id="exportTopBtn">导出问题清单</button></div></div>
+  <div class="panel"><div class="weekStrip" id="weekStrip"></div></div>
+  <div class="kpis" id="kpiGrid"></div>
+  <div class="grid2">
+    <div class="panel"><div class="panelHead"><div><h2 id="trendTitle">周度趋势</h2><div class="sub">按当前重点指标展示</div></div></div><div class="chartBox"><canvas id="trendCanvas"></canvas></div></div>
+    <div class="panel"><div class="panelHead"><div><h2>优先联系 Top10</h2><div class="sub">按风险分、流失/连续下滑和关键指标下降排序</div></div><button class="btn small" id="goProblemBtn">查看全部</button></div><div class="priorityList" id="priorityList"></div></div>
+  </div>
+  <div class="panel"><div class="panelHead"><div><h2>当周经营快照</h2><div class="sub">比“分类标签”更直接：看规模、流失、下降面和异常面</div></div></div><div class="snapshotGrid" id="snapshotGrid"></div></div>
+  <div class="panel"><div class="panelHead"><div><h2>指标变化矩阵</h2><div class="sub">当前周期 vs 对比周期：每个指标的总量、变化和下降骑手数</div></div></div><div class="matrix" id="metricMatrix"></div></div>
+</section>
+<section id="problems" class="tab">
+  <div class="panel">
+    <div class="toolbar"><div><h2>智能问题清单</h2><div class="sub" id="problemSub">导入数据后自动识别需要处理的骑手</div></div><div class="chips"><button class="chip active" data-risk="all">全部风险</button><button class="chip" data-risk="high">高风险</button><button class="chip" data-risk="mid">中风险</button><button class="btn" id="toggleFiltersBtn">筛选</button><button class="btn" id="exportBtn">导出清单</button></div></div>
+    <div class="chips" id="issueChips"></div>
+    <div class="filterPanel" id="filterPanel"><div class="filterGrid">
+      <label class="field"><span>处理动作</span><select id="actionFilter"><option value="all">全部动作</option><option>优先联系</option><option>效率辅导</option><option>复盘排班</option><option>数据核查</option><option>持续观察</option></select></label>
+      <label class="field"><span>下降维度</span><select id="dropFilter"><option value="all">全部维度</option><option value="orders">跑单量下降</option><option value="income">总收入下降</option><option value="hourly">时薪下降</option><option value="duration">背单时长下降</option></select></label>
+      <label class="field"><span>活跃状态</span><select id="activityFilter"><option value="all">全部状态</option><option value="activeCur">本周有数据</option><option value="lost">疑似流失</option><option value="new">新增活跃</option><option value="both">两周均活跃</option></select></label>
+      <label class="field"><span>最低风险分</span><select id="minScoreFilter"><option value="0">不限</option><option value="40">≥40</option><option value="60">≥60</option><option value="80">≥80</option></select></label>
+      <label class="field"><span>排序</span><select id="sortFilter"><option value="score">风险分高到低</option><option value="ordersAmt">跑单下降量</option><option value="ordersPct">跑单降幅%</option><option value="incomeAmt">收入下降额</option><option value="hourlyPct">时薪降幅%</option><option value="durationAmt">背单下降时长</option></select></label>
+      <div class="field"><span>当前筛选</span><b id="filterSummary">全部问题</b></div><div class="field"><span>操作</span><button class="btn" id="resetFiltersBtn">重置筛选</button></div>
+    </div></div>
+    <div class="tableWrap"><table id="problemTable"></table></div>
+  </div>
+</section>
+
+<section id="compare" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2>多骑手同时数据对比</h2><div class="sub">选择 2–8 名骑手，同屏查看趋势、当前周期 vs 对比周期，以及核心指标差异。</div></div>
+      <div class="compareActions"><button class="btn small" id="addTopCompareBtn">加入优先联系 Top5</button><button class="btn small" id="clearCompareBtn">清空选择</button></div>
+    </div>
+    <div class="compareControlGrid">
+      <label class="field"><span>搜索并添加骑手</span><input id="compareSearchInp" placeholder="输入姓名或 ID，下面会显示候选" /></label>
+      <label class="field"><span>快速选择</span><select id="compareRiderSel"></select></label>
+      <label class="field"><span>对比指标</span><select id="compareMetricSel"></select></label>
+      <button class="btn primary" id="addCompareBtn">加入对比</button>
+      <button class="btn" id="addVisibleCompareBtn">加入当前搜索结果</button>
+    </div>
+    <div class="compareSelectedBar" id="compareSelectedBar"><span class="mini">尚未选择骑手</span></div>
+    <div class="candidateGrid" id="compareCandidateGrid"></div>
+  </div>
+  <div class="multiCompareGrid">
+    <div class="panel">
+      <div class="panelHead"><div><h2 id="multiTrendTitle">多人趋势对比</h2><div class="sub">每条线代表一名骑手，可在顶部切换周期和指标。</div></div></div>
+      <div class="chartBox"><canvas id="multiCanvas"></canvas></div>
+      <div class="legendWrap" id="multiLegend"></div>
+    </div>
+    <div class="panel">
+      <div class="panelHead"><div><h2>对比结论</h2><div class="sub">自动汇总当前选择骑手的领先、下滑和风险情况</div></div></div>
+      <div class="multiSummaryGrid" id="multiSummaryGrid"></div>
+      <div class="diagnosis" id="multiInsight">请选择骑手后查看对比结论。</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panelHead"><div><h2>多人明细对比表</h2><div class="sub">同一行展示当前周期数值、对比周期数值、差值和风险标签。</div></div><button class="btn small" id="exportCompareBtn">导出对比表</button></div>
+    <div class="tableWrap"><table id="multiTable"></table></div>
+  </div>
+</section>
+
+<section id="diagnosis" class="tab">
+  <div class="panel">
+    <div class="toolbar"><div><h2>多周期趋势诊断</h2><div class="sub">不只看两周对比，按最近 4 / 8 周识别持续变差、恢复中、疑似流失和稳定优秀骑手。</div></div><div class="chips"><button class="btn small" id="exportDiagnosisBtn">导出诊断表</button></div></div>
+    <div class="compareControlGrid">
+      <label class="field"><span>诊断指标</span><select id="diagnosisMetricSel"></select></label>
+      <label class="field"><span>观察周期</span><select id="diagnosisLookbackSel"><option value="4">最近 4 周</option><option value="8">最近 8 周</option><option value="all">全部周期</option></select></label>
+      <label class="field"><span>搜索骑手 / ID</span><input id="diagnosisSearchInp" placeholder="留空查看全部骑手" /></label>
+      <div class="field"><span>诊断说明</span><b id="diagnosisRuleHint">使用系统默认连续下滑阈值</b></div>
+    </div>
+    <div class="snapshotGrid" id="diagnosisSummaryGrid"></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="panelHead"><div><h2 id="diagnosisChartTitle">团队趋势</h2><div class="sub">按所选指标汇总展示观察窗口内的团队变化。</div></div></div><div class="chartBox"><canvas id="diagnosisCanvas"></canvas></div></div>
+    <div class="panel"><div class="panelHead"><div><h2>诊断结论</h2><div class="sub">自动归纳当前窗口最需要关注的问题。</div></div></div><div class="diagnosis" id="diagnosisInsight">导入数据后查看趋势诊断。</div><div class="priorityList" id="diagnosisPriorityList"></div></div>
+  </div>
+  <div class="panel"><div class="panelHead"><div><h2>骑手趋势诊断表</h2><div class="sub">展示窗口内首末值、变化率、连续下滑次数、状态判断和建议动作。</div></div></div><div class="tableWrap"><table id="diagnosisTable"></table></div></div>
+</section>
+
+<section id="followup" class="tab">
+  <div class="panel">
+    <div class="toolbar">
+      <div>
+        <h2>骑手跟进闭环</h2>
+        <div class="sub">先配置“待联系人群”，再批量选择骑手更新处理状态、负责人、变化原因、下一步日期和备注；数据保存在浏览器本地。</div>
+      </div>
+      <div class="chips">
+        <button class="btn small" id="exportFollowupBtn">导出跟进表</button>
+        <button class="btn small" id="clearDoneFollowupBtn">隐藏已改善</button>
+      </div>
+    </div>
+
+    <div class="compareControlGrid contactRuleGrid">
+      <label class="field"><span>待联系人群来源</span><select id="followBaseSel"><option value="problem">问题骑手</option><option value="activeCur">当前活跃骑手</option><option value="all">全部骑手</option></select></label>
+      <label class="field"><span>跑单量规则</span><select id="followOrderModeSel"><option value="all">不限跑单量</option><option value="lt">跑单量低于</option><option value="gte">跑单量高于等于</option><option value="between">跑单量区间</option></select></label>
+      <label class="field"><span>跑单量阈值 / 最小值</span><input id="followOrderMinInp" type="number" min="0" step="1" placeholder="例如 30" /></label>
+      <label class="field"><span>区间最大值</span><input id="followOrderMaxInp" type="number" min="0" step="1" placeholder="区间模式使用" /></label>
+      <button class="btn primary" id="saveFollowConfigBtn">应用人群配置</button>
+    </div>
+    <div class="followRuleNote" id="followRuleHint">当前待联系人群：问题骑手，不限制跑单量。</div>
+
+    <div class="reasonLibraryBox">
+      <div class="head">
+        <div>
+          <h3>变化原因备注库</h3>
+          <div class="sub">给跟进记录统一标注原因，便于后续复盘：例如请假、转平台、区域单少、排班变化等。</div>
+        </div>
+      </div>
+      <div class="reasonLibraryActions">
+        <select class="reasonSelect" id="reasonLibrarySel"></select>
+        <input class="followInput" id="newReasonInp" placeholder="新增原因，例如：车辆维修" />
+        <button class="btn small" id="addReasonBtn">新增原因</button>
+        <button class="btn small danger" id="removeReasonBtn">删除选中原因</button>
+      </div>
+    </div>
+
+    <div class="compareControlGrid">
+      <label class="field"><span>处理状态</span><select id="followStatusFilter"><option value="all">全部状态</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select></label>
+      <label class="field"><span>搜索骑手 / ID</span><input id="followSearchInp" placeholder="留空显示当前待联系人群" /></label>
+      <div class="field"><span>当前周期</span><b id="followCycleHint">-</b></div>
+      <div class="field"><span>闭环说明</span><b>勾选骑手后可批量更新</b></div>
+    </div>
+
+    <div class="snapshotGrid" id="followSummaryGrid"></div>
+
+    <div class="bulkBar">
+      <label><input id="followSelectAll" type="checkbox" /> 全选当前筛选</label>
+      <select class="statusSelect" id="bulkFollowStatus"><option value="">批量状态：不修改</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select>
+      <select class="reasonSelect" id="bulkFollowReason"><option value="">批量原因：不修改</option></select>
+      <input class="followInput" id="bulkFollowOwner" placeholder="批量负责人：不修改" />
+      <input class="followInput" id="bulkFollowDate" type="date" />
+      <button class="btn primary small" id="bulkApplyFollowBtn">应用到已选骑手</button>
+    </div>
+
+    <div class="tableWrap"><table id="followupTable"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <h2>跟进后效果复盘</h2>
+        <div class="sub">基于当前跟进周期与下一周期自动判断是否改善；没有下一周期数据时显示“待复盘”。</div>
+      </div>
+      <div class="followReviewHead">
+        <label class="field"><span>复盘指标</span><select id="followReviewMetricSel"></select></label>
+        <button class="btn small" id="exportFollowReviewBtn">导出复盘表</button>
+      </div>
+    </div>
+    <div class="snapshotGrid" id="followReviewSummaryGrid"></div>
+    <div class="tableWrap"><table id="followReviewTable"></table></div>
+  </div>
+</section>
+
+<section id="profile" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2>单骑手追踪</h2><div class="sub">可通过顶部“搜索骑手 / ID”筛选，也可从问题清单点击“跟踪”直接进入。</div></div>
+    </div>
+    <div class="profileToolbar">
+      <label class="field lightField"><span>搜索骑手 / ID</span><input id="profileSearchInp" placeholder="输入姓名或 ID，自动筛选下方骑手" /></label>
+      <label class="field lightField"><span>选择骑手</span><select id="riderSel"></select></label>
+    </div>
+    <div class="profileBox profileSummaryWide" id="profileSummary"></div>
+    <div class="metricMini" id="profileMetrics"></div>
+    <div class="profileChartGrid">
+      <div class="panel innerPanel"><div class="panelHead"><div><h2 id="profileChartTitle">骑手趋势</h2><div class="sub">按当前重点指标展示，可在顶部切换重点指标</div></div></div><div class="chartBox"><canvas id="profileCanvas"></canvas></div></div>
+      <div class="panel innerPanel"><div class="panelHead"><div><h2>当前 vs 对比</h2><div class="sub">核心指标差值与变化幅度</div></div></div><div class="profileCompareList" id="profileCompareGrid"></div></div>
+    </div>
+    <div class="tableWrap compactTable"><table id="profileTable"></table></div>
+  </div>
+</section>
+</main>
+</div><button class="accountFloatBtn" id="accountFloatBtn" type="button">🔐 账号管理</button><div class="toast" id="toast"></div>
+<script>
+const metrics=[{key:'orders',label:'跑单量',short:'跑单',unit:'单',drop:.2,min:10},{key:'income',label:'总收入',short:'收入',unit:'$',drop:.2,min:50},{key:'hourly',label:'时薪',short:'时薪',unit:'$/h',drop:.15,min:2},{key:'duration',label:'背单时长',short:'背单',unit:'h',drop:.2,min:3}];
+const mMap=Object.fromEntries(metrics.map(m=>[m.key,m]));
+const columns=['ID','骑手姓名','跑单量','总收入','时薪','背单时长','时段均单/H','周期'];
+const issueDefs=[['all','全部问题'],['ordersDrop','跑单下降'],['incomeDrop','收入下降'],['hourlyDrop','时薪下降'],['durationDrop','背单下降'],['continuous','连续下滑'],['lost','疑似流失'],['anomaly','数据异常']];
+let raw=[],meta={rowCount:0,riderCount:0,cycles:[],sourceFile:'未导入',imported:false},rows=[],cycles=[],recMap=new Map(),riderMap=new Map(),riders=[];
+const state={cycle:'',compare:'',metric:'orders',search:'',tab:'overview',issue:'all',risk:'all',selected:null,action:'all',dropMetric:'all',activity:'all',minScore:0,sort:'score',compareRiders:[],followStatus:'all',diagnosisLookback:'4',diagnosisMetric:'orders',hideImproved:false,followReviewMetric:'orders'};
+const byId=id=>document.getElementById(id);
+const AUTH_KEYS={accounts:'rider_v8_accounts',session:'rider_v8_session'};
+const AUTH_DEFAULT_ADMIN={username:'Jack',password:'Hp12345678',role:'admin',createdAt:'系统内置'};
+function normalizeAuthAccounts(list){
+  const seen=new Set(),out=[];
+  (Array.isArray(list)?list:[]).forEach(a=>{
+    const username=String(a?.username||'').trim();
+    if(!username||seen.has(username))return;
+    seen.add(username);
+    out.push({username,password:String(a?.password||''),role:a?.role==='admin'?'admin':'member',createdAt:a?.createdAt||''});
+  });
+  const admin=out.find(a=>a.username===AUTH_DEFAULT_ADMIN.username);
+  if(admin){admin.password=AUTH_DEFAULT_ADMIN.password;admin.role='admin';admin.createdAt=admin.createdAt||AUTH_DEFAULT_ADMIN.createdAt}
+  else out.unshift({...AUTH_DEFAULT_ADMIN});
+  return out.sort((a,b)=>(a.role==='admin'?-1:0)-(b.role==='admin'?-1:0)||a.username.localeCompare(b.username,'zh-CN'));
+}
+function getAuthAccounts(){const accounts=normalizeAuthAccounts(safeGet(AUTH_KEYS.accounts,[]));safeSet(AUTH_KEYS.accounts,accounts);return accounts}
+function saveAuthAccounts(accounts){safeSet(AUTH_KEYS.accounts,normalizeAuthAccounts(accounts))}
+function getAuthSession(){const s=safeGet(AUTH_KEYS.session,null);return s&&s.username?s:null}
+function currentAuthAccount(){const session=getAuthSession();if(!session)return null;return getAuthAccounts().find(a=>a.username===session.username)||null}
+function authIsAdmin(){const acc=currentAuthAccount();return !!acc&&acc.role==='admin'}
+function setDisplay(el,value){if(!el)return;el.style.setProperty('display',value,value==='none'?'':'important')}
+function updateAuthHeader(){
+  const acc=currentAuthAccount(),badge=byId('currentUserBadge'),adminBtn=byId('accountAdminBtn'),navBtn=byId('accountNavBtn'),floatBtn=byId('accountFloatBtn'),logoutBtn=byId('logoutBtn');
+  document.body.classList.toggle('auth-admin',!!acc&&acc.role==='admin');
+  document.body.classList.toggle('auth-member',!!acc&&acc.role!=='admin');
+  if(!badge||!logoutBtn)return;
+  if(!acc){setDisplay(badge,'none');setDisplay(adminBtn,'none');setDisplay(navBtn,'none');setDisplay(floatBtn,'none');setDisplay(logoutBtn,'none');return}
+  badge.textContent=(acc.role==='admin'?'管理员':'会员')+'：'+acc.username;
+  setDisplay(badge,'inline-flex');
+  const showAdmin=acc.role==='admin'?'inline-flex':'none';
+  setDisplay(adminBtn,showAdmin);
+  setDisplay(navBtn,showAdmin);
+  setDisplay(floatBtn,showAdmin);
+  setDisplay(logoutBtn,'inline-flex');
+}
+function showLogin(msg=''){
+  document.body.classList.add('auth-locked');
+  const screen=byId('authScreen'),m=byId('loginMsg');
+  if(screen)screen.style.display='flex';
+  if(m)m.textContent=msg;
+  updateAuthHeader();
+  setTimeout(()=>byId('loginUser')?.focus(),0);
+}
+function showApp(){
+  document.body.classList.remove('auth-locked');
+  const screen=byId('authScreen');
+  if(screen)screen.style.display='none';
+  updateAuthHeader();
+  setTimeout(()=>{try{drawCharts()}catch(e){}},60);
+}
+function loginAuth(){
+  const u=(byId('loginUser')?.value||'').trim(),p=byId('loginPass')?.value||'',msg=byId('loginMsg');
+  const acc=getAuthAccounts().find(a=>a.username===u&&a.password===p);
+  if(!acc){if(msg)msg.textContent='账号或密码不正确';return}
+  safeSet(AUTH_KEYS.session,{username:acc.username,role:acc.role,loggedAt:new Date().toLocaleString()});
+  if(msg)msg.textContent='';
+  if(byId('loginPass'))byId('loginPass').value='';
+  showApp();
+  toast('登录成功：'+acc.username);
+}
+function logoutAuth(){try{localStorage.removeItem(AUTH_KEYS.session)}catch(e){}showLogin('已退出登录');toast('已退出登录')}
+function openAccountModal(){if(!authIsAdmin()){toast('只有管理员可以管理账号');return}renderAccountTable();byId('accountModal')?.classList.add('show')}
+function closeAccountModal(){byId('accountModal')?.classList.remove('show')}
+function renderAccountTable(){
+  const table=byId('accountTable');if(!table)return;
+  const accounts=getAuthAccounts();
+  let html='<thead><tr><th>账号</th><th>角色</th><th>创建时间</th><th>权限说明</th><th>操作</th></tr></thead><tbody>';
+  accounts.forEach(a=>{
+    const isAdmin=a.role==='admin';
+    const role='<span class="roleTag '+(isAdmin?'admin':'')+'">'+(isAdmin?'管理员':'会员')+'</span>';
+    const ops=isAdmin?'<span class="mini">管理员密码固定</span>':'<button class="btn small" data-reset-account="'+esc(a.username)+'">重置密码</button><button class="btn small danger" data-delete-account="'+esc(a.username)+'">删除</button>';
+    html+='<tr><td><b>'+esc(a.username)+'</b></td><td>'+role+'</td><td>'+esc(a.createdAt||'-')+'</td><td>'+(isAdmin?'可新增会员与管理会员密码':'可登录使用看板，不能管理账号')+'</td><td><div class="inlineActions">'+ops+'</div></td></tr>';
+  });
+  table.innerHTML=html+'</tbody>';
+  table.querySelectorAll('[data-reset-account]').forEach(b=>b.onclick=()=>resetMemberPassword(b.dataset.resetAccount));
+  table.querySelectorAll('[data-delete-account]').forEach(b=>b.onclick=()=>deleteMemberAccount(b.dataset.deleteAccount));
+}
+function createMemberAccount(){
+  if(!authIsAdmin()){toast('只有管理员可以新增会员');return}
+  const u=(byId('newAccountUser')?.value||'').trim(),p=byId('newAccountPass')?.value||'';
+  if(!u||!p){toast('请输入会员账号和初始密码');return}
+  if(p.length<6){toast('会员密码至少 6 位');return}
+  let accounts=getAuthAccounts();
+  if(accounts.some(a=>a.username===u)){toast('账号已存在');return}
+  accounts.push({username:u,password:p,role:'member',createdAt:new Date().toLocaleString()});
+  saveAuthAccounts(accounts);
+  byId('newAccountUser').value='';
+  byId('newAccountPass').value='';
+  renderAccountTable();
+  toast('已新增会员账号：'+u);
+}
+function resetMemberPassword(username){
+  if(!authIsAdmin()){toast('只有管理员可以重置密码');return}
+  if(username===AUTH_DEFAULT_ADMIN.username){toast('管理员密码固定为 '+AUTH_DEFAULT_ADMIN.password);return}
+  const p=prompt('请输入 '+username+' 的新密码（至少 6 位）：','');
+  if(p===null)return;
+  if(String(p).length<6){toast('新密码至少 6 位');return}
+  const accounts=getAuthAccounts().map(a=>a.username===username?{...a,password:String(p)}:a);
+  saveAuthAccounts(accounts);
+  renderAccountTable();
+  toast('已重置会员密码：'+username);
+}
+function deleteMemberAccount(username){
+  if(!authIsAdmin()){toast('只有管理员可以删除会员');return}
+  if(username===AUTH_DEFAULT_ADMIN.username){toast('不能删除管理员账号');return}
+  if(!confirm('确认删除会员账号 '+username+'？'))return;
+  saveAuthAccounts(getAuthAccounts().filter(a=>a.username!==username));
+  renderAccountTable();
+  toast('已删除会员账号：'+username);
+}
+function initAuth(){
+  getAuthAccounts();
+  byId('loginBtn')?.addEventListener('click',loginAuth);
+  ['loginUser','loginPass'].forEach(id=>byId(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')loginAuth()}));
+  byId('logoutBtn')?.addEventListener('click',logoutAuth);
+  ['accountAdminBtn','accountNavBtn','accountFloatBtn'].forEach(id=>byId(id)?.addEventListener('click',openAccountModal));
+  byId('closeAccountModalBtn')?.addEventListener('click',closeAccountModal);
+  byId('accountModal')?.addEventListener('click',e=>{if(e.target?.id==='accountModal')closeAccountModal()});
+  byId('createAccountBtn')?.addEventListener('click',createMemberAccount);
+  ['newAccountUser','newAccountPass'].forEach(id=>byId(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')createMemberAccount()}));
+  currentAuthAccount()?showApp():showLogin();
+}
+
+function safeGet(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch(e){return f}}
+function safeSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('备注存储失败：浏览器本地空间不足')}}
+
+const defaultRules={ordersDropPct:20,ordersDropMin:10,incomeDropPct:20,incomeDropMin:50,hourlyDropPct:15,hourlyDropMin:2,durationDropPct:20,durationDropMin:3,continuousWeeks:2,continuousPct:5,crashPct:50,highRiskScore:70,midRiskScore:40,anomalyHourlyMax:120,anomalyDurationMax:120,efficiencyMinOrders:10};
+try{localStorage.removeItem('rider_v5_rules');localStorage.removeItem('rider_v5_pay_rules')}catch(e){}
+let riskRules={...defaultRules};
+const defaultFollowContactConfig={base:'problem',orderMode:'all',orderMin:0,orderMax:999999};
+let followContactConfig={...defaultFollowContactConfig,...safeGet('rider_v6_follow_contact_config',defaultFollowContactConfig)};
+const followStatuses=['未联系','已联系','继续观察','已改善','放弃跟进'];
+const defaultReasonLibrary=['请假/临时休息','转平台/跑其他平台','天气影响','区域单少','排班变化','账号/设备问题','车辆维修','家庭原因','身体不适','收入预期不符','沟通未接通','其他'];
+let reasonLibrary=safeGet('rider_v7_reason_library',defaultReasonLibrary);
+function normalizeReasonLibrary(){reasonLibrary=[...new Set((Array.isArray(reasonLibrary)?reasonLibrary:defaultReasonLibrary).map(x=>String(x||'').trim()).filter(Boolean))];if(!reasonLibrary.length)reasonLibrary=[...defaultReasonLibrary];return reasonLibrary}
+function saveReasonLibrary(){normalizeReasonLibrary();safeSet('rider_v7_reason_library',reasonLibrary)}
+function reasonOptions(selected='',blank='未选择原因'){normalizeReasonLibrary();const cur=String(selected||'');let html=`<option value="">${esc(blank)}</option>`+reasonLibrary.map(r=>`<option value="${esc(r)}" ${r===cur?'selected':''}>${esc(r)}</option>`).join('');if(cur&&!reasonLibrary.includes(cur))html+=`<option value="${esc(cur)}" selected>${esc(cur)}</option>`;return html}
+function renderReasonLibraryControls(){normalizeReasonLibrary();const sel=byId('reasonLibrarySel');if(sel)sel.innerHTML=reasonLibrary.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');const bulk=byId('bulkFollowReason');if(bulk)bulk.innerHTML='<option value="">批量原因：不修改</option>'+reasonLibrary.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')}
+function addReasonToLibrary(){const inp=byId('newReasonInp'),v=(inp?.value||'').trim();if(!v){toast('请输入要新增的原因');return}normalizeReasonLibrary();if(reasonLibrary.includes(v)){toast('原因已存在');return}reasonLibrary.push(v);saveReasonLibrary();if(inp)inp.value='';renderReasonLibraryControls();renderFollowup();toast('已新增原因')}
+function removeSelectedReason(){const sel=byId('reasonLibrarySel'),v=sel?.value||'';if(!v){toast('请选择要删除的原因');return}reasonLibrary=normalizeReasonLibrary().filter(x=>x!==v);saveReasonLibrary();renderReasonLibraryControls();renderFollowup();toast('已删除原因，历史记录不会被清空')}
+let followups=safeGet('rider_v5_followups',{});
+function nRule(k){const v=Number(riskRules[k]);return Number.isFinite(v)?v:defaultRules[k]}
+function followKey(id,c=state.cycle){return c+'|'+id}
+function getFollow(id,c=state.cycle){const f=followups[followKey(id,c)]||{};return{status:f.status||'未联系',owner:f.owner||'',nextDate:f.nextDate||'',reason:f.reason||'',note:f.note||'',updatedAt:f.updatedAt||''}}
+function setFollow(id,field,value,c=state.cycle){const key=followKey(id,c);followups[key]={...getFollow(id,c),[field]:value,updatedAt:new Date().toLocaleString()};safeSet('rider_v5_followups',followups)}
+function saveFollowContactConfig(){safeSet('rider_v6_follow_contact_config',followContactConfig)}
+function followContactHint(){const baseMap={problem:'问题骑手',activeCur:'当前活跃骑手',all:'全部骑手'},mode=followContactConfig.orderMode||'all',min=Number(followContactConfig.orderMin)||0,max=Number(followContactConfig.orderMax)||0;let rule='不限制跑单量';if(mode==='lt')rule=`跑单量低于 ${min} 单`;if(mode==='gte')rule=`跑单量高于等于 ${min} 单`;if(mode==='between')rule=`跑单量在 ${min}–${max} 单之间`;return `当前待联系人群：${baseMap[followContactConfig.base]||'问题骑手'}，${rule}。`}
+function updateFollowConfigFromInputs(){const get=id=>byId(id);followContactConfig={base:get('followBaseSel')?.value||'problem',orderMode:get('followOrderModeSel')?.value||'all',orderMin:Number(get('followOrderMinInp')?.value)||0,orderMax:Number(get('followOrderMaxInp')?.value)||999999};if(followContactConfig.orderMode==='between'&&followContactConfig.orderMax<followContactConfig.orderMin){const t=followContactConfig.orderMin;followContactConfig.orderMin=followContactConfig.orderMax;followContactConfig.orderMax=t}saveFollowContactConfig();renderFollowup();toast('待联系人群配置已应用')}
+function applyFollowConfigToInputs(){const set=(id,v)=>{const el=byId(id);if(el)el.value=v};set('followBaseSel',followContactConfig.base||'problem');set('followOrderModeSel',followContactConfig.orderMode||'all');set('followOrderMinInp',followContactConfig.orderMin||0);set('followOrderMaxInp',followContactConfig.orderMax===999999?'':followContactConfig.orderMax);const hint=byId('followRuleHint');if(hint)hint.textContent=followContactHint()}
+function contactCandidateItems(){let items=analyze().items;const base=followContactConfig.base||'problem';if(base==='problem')items=items.filter(x=>x.score>0);if(base==='activeCur')items=items.filter(x=>x.curAct);const mode=followContactConfig.orderMode||'all',min=Number(followContactConfig.orderMin)||0,max=Number(followContactConfig.orderMax)||999999;return items.filter(x=>{const orders=val(x.cur,'orders');if(mode==='lt')return orders<min;if(mode==='gte')return orders>=min;if(mode==='between')return orders>=min&&orders<=max;return true})}
+function selectedFollowIds(){return Array.from(document.querySelectorAll('[data-follow-check]:checked')).map(el=>el.value)}
+function applyBulkFollowup(){const ids=selectedFollowIds();if(!ids.length){toast('请先勾选需要批量处理的骑手');return}const status=byId('bulkFollowStatus')?.value||'',reason=byId('bulkFollowReason')?.value||'',owner=(byId('bulkFollowOwner')?.value||'').trim(),date=byId('bulkFollowDate')?.value||'';if(!status&&!reason&&!owner&&!date){toast('请选择批量状态、变化原因，或填写负责人 / 下一步日期');return}ids.forEach(id=>{if(status)setFollow(id,'status',status);if(reason)setFollow(id,'reason',reason);if(owner)setFollow(id,'owner',owner);if(date)setFollow(id,'nextDate',date)});const all=byId('followSelectAll');if(all)all.checked=false;renderFollowup();renderProblems();toast(`已批量更新 ${ids.length} 名骑手`)}
+
+try{localStorage.removeItem('rider_compact_plus_data');localStorage.removeItem('rider_compact_plus_manual')}catch(e){}
+function num(v){return v==null||v===''||Number.isNaN(+v)?null:+v}function toNum(v){if(v==null||v==='')return null;const n=Number(String(v).replace(/[$,，\s]/g,''));return Number.isFinite(n)?n:null}
+function cycleNo(c){const m=String(c).match(/\d+/);return m?+m[0]:0}function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function val(r,k){return r&&Number.isFinite(r[k])?r[k]:0}function rec(c,id){return recMap.get(c+'|'+id)||null}function active(r){return !!r&&(val(r,'orders')>0||val(r,'income')>0||val(r,'duration')>0)}
+function pct(cur,pre){return pre?((cur-pre)/pre*100):null}function fmt(v,k){if(v==null||!Number.isFinite(+v))return '-';v=+v;if(k==='income')return '$'+v.toLocaleString('en-US',{maximumFractionDigits:0});if(k==='hourly')return '$'+v.toFixed(1)+'/h';if(k==='duration')return v.toFixed(1)+'h';if(k==='periodAvg')return v.toFixed(2);return v.toLocaleString('en-US',{maximumFractionDigits:0})}
+function plain(v,k){if(v==null||!Number.isFinite(+v))return '';v=+v;return k==='hourly'||k==='duration'||k==='periodAvg'?v.toFixed(2):v.toFixed(0)}
+function deltaHTML(cur,pre,k){cur=+cur||0;pre=+pre||0;if(!pre)return '<span class="delta warn">无对比</span>';const d=cur-pre,p=d/pre*100,cls=d<0?'bad':d>0?'good':'warn',sign=d>0?'+':'';return `<span class="delta ${cls}">${sign}${fmt(d,k)} · ${sign}${p.toFixed(1)}%</span>`}
+
+function deltaText(cur,pre,k){cur=+cur||0;pre=+pre||0;if(!pre)return '无对比';const d=cur-pre,p=d/pre*100,sign=d>0?'+':'';return `${sign}${fmt(d,k)} / ${sign}${p.toFixed(1)}%`}
+function riskText(level){return level==='high'?'高风险':level==='mid'?'中风险':'低风险'}
+function rebuildData(keep=false){rows=raw.map(r=>({id:String(r[0]??'').trim(),name:String(r[1]??'').trim(),orders:num(r[2]),income:num(r[3]),hourly:num(r[4]),duration:num(r[5]),periodAvg:num(r[6]),cycle:String(r[7]??'').trim()})).filter(r=>r.id&&r.name&&r.cycle);cycles=[...new Set(rows.map(r=>r.cycle))].sort((a,b)=>cycleNo(a)-cycleNo(b)||String(a).localeCompare(String(b),'zh-CN'));recMap=new Map();riderMap=new Map();rows.forEach(r=>{recMap.set(r.cycle+'|'+r.id,r);if(!riderMap.has(r.id))riderMap.set(r.id,{id:r.id,name:r.name})});riders=[...riderMap.values()].sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));meta.rowCount=rows.length;meta.riderCount=riders.length;meta.cycles=cycles;if(!cycles.length){Object.assign(state,{cycle:'',compare:'',selected:null});return}if(!keep||!cycles.includes(state.cycle))state.cycle=cycles[cycles.length-1];if(!keep||!cycles.includes(state.compare)||state.compare===state.cycle){const idx=cycles.indexOf(state.cycle);state.compare=cycles[Math.max(0,idx-1)]||state.cycle}if(state.selected&&!riderMap.has(state.selected))state.selected=null}
+function passes(r){const q=state.search.trim().toLowerCase();return !q||r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q)}function filteredRiders(){return riders.filter(passes)}function riderIds(){return filteredRiders().map(r=>r.id)}function ensureSelectedFromSearch(){if(!rows.length)return;const list=filteredRiders();if(!list.length){state.selected=null;return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id}
+function compareCandidates(){const q=(byId('compareSearchInp')?.value||state.search||'').trim().toLowerCase();const pool=q?riders.filter(r=>r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q)):riders;return pool.slice(0,16)}
+function addCompareRider(id){if(!id||!riderMap.has(id))return;if(!state.compareRiders)state.compareRiders=[];if(!state.compareRiders.includes(id)){if(state.compareRiders.length>=8){toast('最多同时对比 8 名骑手');return}state.compareRiders.push(id)}renderCompare();drawMulti()}
+function removeCompareRider(id){state.compareRiders=(state.compareRiders||[]).filter(x=>x!==id);renderCompare();drawMulti()}
+function ensureCompareRiders(){if(!rows.length){state.compareRiders=[];return}state.compareRiders=(state.compareRiders||[]).filter(id=>riderMap.has(id));if(!state.compareRiders.length){const top=analyze().items.filter(x=>x.score>0).slice(0,4).map(x=>x.id);const fallback=riders.slice(0,Math.min(4,riders.length)).map(r=>r.id);state.compareRiders=[...new Set(top.length?top:fallback)].slice(0,6)}}
+function aggregate(c){const ids=riderIds();let orders=0,income=0,duration=0,activeN=0,periodAvgSum=0,periodAvgN=0;ids.forEach(id=>{const r=rec(c,id);if(active(r))activeN++;orders+=val(r,'orders');income+=val(r,'income');duration+=val(r,'duration');if(val(r,'periodAvg')>0){periodAvgSum+=val(r,'periodAvg');periodAvgN++}});return{active:activeN,orders,income,duration,hourly:duration?income/duration:0,periodAvg:periodAvgN?periodAvgSum/periodAvgN:0}}
+function percentile(arr,p){const a=arr.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return 0;const i=(a.length-1)*p,l=Math.floor(i),u=Math.ceil(i);return l===u?a[l]:a[l]+(a[u]-a[l])*(i-l)}
+function consecutiveDrop(id,k,c=state.cycle){const idx=cycles.indexOf(c);let n=0,thr=nRule('continuousPct')/100;for(let i=idx;i>0;i--){const cur=val(rec(cycles[i],id),k),pre=val(rec(cycles[i-1],id),k);if(pre>0&&cur<pre&&(pre-cur)/pre>=thr)n++;else break}return n}
+function addIssue(arr,key,label,tone,w){arr.push({key,label,tone,weight:w})}
+function analyze(c=state.cycle,comp=state.compare){
+  if(!rows.length||!c||!comp)return{items:[]};
+  const ids=riderIds(),curHourly=ids.map(id=>val(rec(c,id),'hourly')).filter(v=>v>0),qHourly=percentile(curHourly,.25),curOrders=ids.map(id=>val(rec(c,id),'orders')).filter(v=>v>0),qOrders75=percentile(curOrders,.75),items=[];
+  ids.forEach(id=>{
+    const rider=riderMap.get(id),cur=rec(c,id),pre=rec(comp,id),issues=[];let score=0;const curAct=active(cur),preAct=active(pre);
+    function drop(k,label,thrPct,minAbs,w){const cv=val(cur,k),pv=val(pre,k);if(pv>0&&pv-cv>=minAbs&&(pv-cv)/pv>=thrPct/100){addIssue(issues,k+'Drop',label+'下降','red',w);score+=w}}
+    drop('orders','跑单',nRule('ordersDropPct'),nRule('ordersDropMin'),24);
+    drop('income','收入',nRule('incomeDropPct'),nRule('incomeDropMin'),22);
+    drop('hourly','时薪',nRule('hourlyDropPct'),nRule('hourlyDropMin'),18);
+    drop('duration','背单',nRule('durationDropPct'),nRule('durationDropMin'),16);
+    if(preAct&&!curAct){addIssue(issues,'lost','疑似流失','red',30);score+=30}
+    const cOrders=consecutiveDrop(id,'orders',c),cIncome=consecutiveDrop(id,'income',c),cMetric=consecutiveDrop(id,state.metric,c);
+    if(Math.max(cOrders,cIncome,cMetric)>=nRule('continuousWeeks')){addIssue(issues,'continuous','连续下滑','amber',18);score+=18}
+    const cv=val(cur,state.metric),pv=val(pre,state.metric);
+    if(pv>0&&(pv-cv)/pv>=nRule('crashPct')/100&&pv-cv>=mMap[state.metric].min){addIssue(issues,'crash','严重暴跌','red',14);score+=14}
+    const anomaly=cur&&((val(cur,'orders')===0&&val(cur,'income')>0)||((cur.hourly==null||!Number.isFinite(cur.hourly))&&val(cur,'income')>0&&val(cur,'duration')>0)||(val(cur,'hourly')>nRule('anomalyHourlyMax'))||(val(cur,'duration')>nRule('anomalyDurationMax')));
+    if(anomaly){addIssue(issues,'anomaly','数据异常','purple',18);score+=18}
+    if(curAct&&val(cur,'hourly')>0&&qHourly&&val(cur,'hourly')<qHourly&&val(cur,'orders')>=nRule('efficiencyMinOrders')){addIssue(issues,'efficiency','效率偏低','purple',10);score+=10}
+    score=Math.min(100,Math.round(score));
+    let action='持续观察';
+    if(issues.some(i=>i.key==='lost')||score>=nRule('highRiskScore'))action='优先联系';
+    else if(issues.some(i=>i.key==='anomaly'))action='数据核查';
+    else if(issues.some(i=>i.key==='efficiency'||i.key==='hourlyDrop'))action='效率辅导';
+    else if(issues.some(i=>i.key==='continuous'||i.key==='durationDrop'))action='复盘排班';
+    const level=score>=nRule('highRiskScore')?'high':score>=nRule('midRiskScore')?'mid':'low';
+    items.push({id,name:rider?.name||id,cur,pre,issues,score,level,action,curAct,preAct,cOrders,cIncome,cMetric,isCore:curAct&&val(cur,'orders')>=qOrders75&&score<35});
+  });
+  items.sort((a,b)=>b.score-a.score||val(b.pre,state.metric)-val(b.cur,state.metric)-(val(a.pre,state.metric)-val(a.cur,state.metric)));
+  return{items};
+}
+function filteredProblems(){let items=analyze().items.filter(x=>x.score>0);if(state.issue!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.issue));if(state.risk==='high')items=items.filter(x=>x.level==='high');if(state.risk==='mid')items=items.filter(x=>x.level==='mid');if(state.action!=='all')items=items.filter(x=>x.action===state.action);if(state.dropMetric!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.dropMetric+'Drop'));if(state.activity==='activeCur')items=items.filter(x=>x.curAct);if(state.activity==='lost')items=items.filter(x=>x.preAct&&!x.curAct);if(state.activity==='new')items=items.filter(x=>x.curAct&&!x.preAct);if(state.activity==='both')items=items.filter(x=>x.curAct&&x.preAct);items=items.filter(x=>x.score>=state.minScore);const drop=(x,k)=>Math.max(0,val(x.pre,k)-val(x.cur,k));const pctDrop=(x,k)=>val(x.pre,k)>0?drop(x,k)/val(x.pre,k):0;items.sort((a,b)=>{if(state.sort==='ordersAmt')return drop(b,'orders')-drop(a,'orders');if(state.sort==='ordersPct')return pctDrop(b,'orders')-pctDrop(a,'orders');if(state.sort==='incomeAmt')return drop(b,'income')-drop(a,'income');if(state.sort==='hourlyPct')return pctDrop(b,'hourly')-pctDrop(a,'hourly');if(state.sort==='durationAmt')return drop(b,'duration')-drop(a,'duration');return b.score-a.score});return items}
+function renderAll(){renderBadge();renderWeekStrip();renderKpis();renderOverview();renderProblems();renderCompare();renderDiagnosis();renderFollowup();renderProfile();drawCharts()}
+function renderBadge(){byId('dataBadge').textContent=rows.length?`${meta.sourceFile||'已导入'} · ${rows.length}行 · ${riders.length}骑手 · ${cycles.length}周`:'暂无数据'}
+function renderWeekStrip(){const el=byId('weekStrip');if(!rows.length){el.innerHTML='<div class="noDataBox" style="grid-column:1/-1"><b>暂无数据</b>点击“导入模版数据”后查看每周骑手情况。</div>';return}el.innerHTML=cycles.map(c=>{const a=aggregate(c);return `<div class="weekCard ${c===state.cycle?'active':''}" data-cycle="${esc(c)}"><b>${esc(c)}</b><div class="miniGrid"><span>骑手 <strong>${a.active}</strong></span><span>跑单 <strong>${fmt(a.orders,'orders')}</strong></span><span>收入 <strong>${fmt(a.income,'income')}</strong></span><span>时薪 <strong>${fmt(a.hourly,'hourly')}</strong></span></div></div>`}).join('');el.querySelectorAll('.weekCard').forEach(x=>x.onclick=()=>{state.cycle=x.dataset.cycle;const idx=cycles.indexOf(state.cycle);state.compare=cycles[Math.max(0,idx-1)]||state.cycle;refreshControls();renderAll()})}
+function renderKpis(){const el=byId('kpiGrid');if(!rows.length){el.innerHTML='';return}const cur=aggregate(state.cycle),pre=aggregate(state.compare);const list=[['活跃骑手',cur.active,pre.active,'orders'],['跑单量',cur.orders,pre.orders,'orders'],['总收入',cur.income,pre.income,'income'],['综合时薪',cur.hourly,pre.hourly,'hourly']];el.innerHTML=list.map(([lab,cv,pv,k])=>`<div class="kpi"><div class="label">${lab}</div><div class="value">${fmt(cv,k)}</div>${deltaHTML(cv,pv,k)}</div>`).join('')}
+function renderOverview(){const insight=byId('insightText');if(!rows.length){insight.textContent='请先导入模版数据。导入后页面默认显示最新周期，并自动和上一周期对比。';byId('snapshotGrid').innerHTML='';byId('metricMatrix').innerHTML='';byId('priorityList').innerHTML='<div class="empty">暂无数据</div>';return}const a=analyze(),items=a.items,problem=items.filter(x=>x.score>0),high=items.filter(x=>x.level==='high'),lost=items.filter(x=>x.preAct&&!x.curAct),newN=items.filter(x=>x.curAct&&!x.preAct),cur=aggregate(state.cycle),pre=aggregate(state.compare);const worst=metrics.map(m=>({m,down:items.filter(x=>val(x.pre,m.key)>val(x.cur,m.key)&&val(x.pre,m.key)>0).length})).sort((x,y)=>y.down-x.down)[0];insight.innerHTML=`${state.cycle} 对比 ${state.compare}：活跃骑手 ${cur.active} 人，${cur.active>=pre.active?'增加':'减少'} ${Math.abs(cur.active-pre.active)} 人；当前高风险 ${high.length} 人，疑似流失 ${lost.length} 人。下降面最明显的是 <b>${worst.m.label}</b>，共有 <b>${worst.down}</b> 名骑手低于对比周期。`;
+byId('snapshotGrid').innerHTML=[['活跃骑手',cur.active,`较对比周期 ${cur.active-pre.active>=0?'+':''}${cur.active-pre.active} 人`,'blue'],['新增活跃',newN.length,'本周有数据、对比周无数据','green'],['疑似流失',lost.length,'对比周有数据、本周无数据','red'],['高风险骑手',high.length,`风险分 ≥${nRule('highRiskScore')}，建议优先处理`,'amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');
+byId('metricMatrix').innerHTML=metrics.map(m=>{const down=items.filter(x=>val(x.pre,m.key)>0&&val(x.cur,m.key)<val(x.pre,m.key)).length;const curVal=cur[m.key],preVal=pre[m.key];return `<div class="metricCard"><div class="top"><b>${m.label}</b><span class="pill ${down?'red':'green'}">下降${down}人</span></div><div class="big">${fmt(curVal,m.key)}</div>${deltaHTML(curVal,preVal,m.key)}<div class="smallLine">当前周期 ${state.cycle} ｜ 对比 ${state.compare}</div></div>`}).join('');renderPriorityList(problem)}
+function renderPriorityList(problem){const list=[...problem].sort((a,b)=>{const pa=(a.action==='优先联系'?100:0)+(a.issues.some(i=>i.key==='lost')?30:0)+a.score;const pb=(b.action==='优先联系'?100:0)+(b.issues.some(i=>i.key==='lost')?30:0)+b.score;return pb-pa}).slice(0,10);const el=byId('priorityList');el.innerHTML=list.length?list.map((x,i)=>{const main=x.issues.slice(0,3).map(v=>v.label).join('、')||'需观察';return `<div class="priorityItem"><div class="rank">${i+1}</div><button class="nameBtn" data-track="${esc(x.id)}"><div class="name">${esc(x.name)}</div><div class="reason">${esc(x.action)}｜${esc(main)}</div></button><div class="right"><span class="pill ${x.level==='high'?'red':'amber'}">${x.score}分</span><div class="mini">跑单 ${deltaText(val(x.cur,'orders'),val(x.pre,'orders'),'orders')}</div></div></div>`}).join(''):'<div class="empty">当前没有需要优先联系的骑手</div>';el.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))}
+function renderProblems(){const chips=byId('issueChips');chips.innerHTML=issueDefs.map(([k,l])=>`<button class="chip ${state.issue===k?'active':''}" data-issue="${k}">${l}</button>`).join('');chips.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{state.issue=b.dataset.issue;renderProblems()});const items=filteredProblems();byId('problemSub').textContent=rows.length?`${state.cycle} vs ${state.compare} · 当前显示 ${items.length} 名问题骑手`:'导入数据后自动识别问题骑手';byId('filterSummary').textContent=`${items.length}人 · ${state.action==='all'?'全部动作':state.action}`;const table=byId('problemTable');if(!rows.length){table.innerHTML='<tr><td class="empty">暂无数据，请先导入模版</td></tr>';return}if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无问题骑手</td></tr>';return}let html='<thead><tr><th>骑手</th><th>风险</th><th>建议动作</th><th>问题标签</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>操作</th></tr></thead><tbody>';items.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td><td><b>${esc(x.action)}</b></td><td>${x.issues.map(i=>`<span class="pill ${i.tone}">${esc(i.label)}</span>`).join('')}</td><td>${fmt(val(x.cur,'orders'),'orders')}<br>${deltaHTML(val(x.cur,'orders'),val(x.pre,'orders'),'orders')}</td><td>${fmt(val(x.cur,'income'),'income')}<br>${deltaHTML(val(x.cur,'income'),val(x.pre,'income'),'income')}</td><td>${fmt(val(x.cur,'hourly'),'hourly')}<br>${deltaHTML(val(x.cur,'hourly'),val(x.pre,'hourly'),'hourly')}</td><td>${fmt(val(x.cur,'duration'),'duration')}<br>${deltaHTML(val(x.cur,'duration'),val(x.pre,'duration'),'duration')}</td><td>${fmt(val(x.cur,'periodAvg'),'periodAvg')}</td><td><div class="inlineActions"><button class="btn small trackBtn" data-track="${esc(x.id)}">跟踪</button><button class="btn small" data-follow="${esc(x.id)}">跟进</button></div></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));table.querySelectorAll('[data-follow]').forEach(b=>b.onclick=()=>openFollowup(b.dataset.follow))}
+function renderCompare(){const sel=byId('compareRiderSel'),metricSel=byId('compareMetricSel'),bar=byId('compareSelectedBar'),grid=byId('compareCandidateGrid'),summary=byId('multiSummaryGrid'),insight=byId('multiInsight'),table=byId('multiTable');if(metricSel)metricSel.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');if(!sel||!bar||!grid||!summary||!insight||!table)return;if(!rows.length){sel.innerHTML='<option>暂无数据</option>';bar.innerHTML='<span class="mini">请先导入数据</span>';grid.innerHTML='';summary.innerHTML='';insight.textContent='请先导入模版数据。';table.innerHTML='<tr><td class="empty">暂无数据</td></tr>';byId('multiLegend').innerHTML='';drawMulti();return}ensureCompareRiders();const candidates=compareCandidates();sel.innerHTML=candidates.length?candidates.map(r=>`<option value="${esc(r.id)}">${esc(r.name)} · ${esc(r.id)}</option>`).join(''):'<option>未找到骑手</option>';bar.innerHTML=state.compareRiders.length?state.compareRiders.map(id=>{const r=riderMap.get(id);return `<span class="selectedChip">${esc(r?.name||id)}<button data-remove-compare="${esc(id)}" title="移除">×</button></span>`}).join(''):'<span class="mini">尚未选择骑手</span>';bar.querySelectorAll('[data-remove-compare]').forEach(b=>b.onclick=()=>removeCompareRider(b.dataset.removeCompare));grid.innerHTML=candidates.map(r=>{const cur=rec(state.cycle,r.id),pre=rec(state.compare,r.id),selected=state.compareRiders.includes(r.id);return `<button class="candidateBtn ${selected?'active':''}" data-add-compare="${esc(r.id)}"><b>${esc(r.name)}</b><span>ID ${esc(r.id)} ｜ ${mMap[state.metric].short} ${fmt(val(cur,state.metric),state.metric)} ｜ ${deltaText(val(cur,state.metric),val(pre,state.metric),state.metric)}</span></button>`}).join('');grid.querySelectorAll('[data-add-compare]').forEach(b=>b.onclick=()=>addCompareRider(b.dataset.addCompare));const selected=state.compareRiders.map(id=>{const rider=riderMap.get(id),cur=rec(state.cycle,id),pre=rec(state.compare,id),ana=analyze().items.find(x=>x.id===id)||{score:0,level:'low',issues:[],action:'持续观察'};return{id,name:rider?.name||id,cur,pre,ana}});if(!selected.length){summary.innerHTML='';insight.textContent='请选择骑手后查看对比结论。';table.innerHTML='<tr><td class="empty">请添加骑手进行对比</td></tr>';drawMulti();return}const best=[...selected].sort((a,b)=>val(b.cur,state.metric)-val(a.cur,state.metric))[0];const worstDrop=[...selected].sort((a,b)=>(val(a.cur,state.metric)-val(a.pre,state.metric))-(val(b.cur,state.metric)-val(b.pre,state.metric)))[0];const high=selected.filter(x=>x.ana.level==='high').length;const avgCur=selected.reduce((s,x)=>s+val(x.cur,state.metric),0)/selected.length;const avgPre=selected.reduce((s,x)=>s+val(x.pre,state.metric),0)/selected.length;summary.innerHTML=`<div class="compareHeroMetric"><b>已选骑手</b><div class="num">${selected.length}</div></div><div class="compareHeroMetric"><b>平均${mMap[state.metric].short}</b><div class="num">${fmt(avgCur,state.metric)}</div>${deltaHTML(avgCur,avgPre,state.metric)}</div><div class="compareHeroMetric"><b>当前领先</b><div class="num">${esc(best.name)}</div><div class="mini">${fmt(val(best.cur,state.metric),state.metric)}</div></div><div class="compareHeroMetric"><b>高风险人数</b><div class="num">${high}</div><div class="mini">风险分 ≥${nRule('highRiskScore')}</div></div>`;const dropValue=val(worstDrop.cur,state.metric)-val(worstDrop.pre,state.metric);insight.innerHTML=`${state.cycle} 对比 ${state.compare}：当前 <b>${esc(best.name)}</b> 的${mMap[state.metric].label}最高（${fmt(val(best.cur,state.metric),state.metric)}）。${dropValue<0?`下滑最明显的是 <b>${esc(worstDrop.name)}</b>（${deltaText(val(worstDrop.cur,state.metric),val(worstDrop.pre,state.metric),state.metric)}），建议优先复盘。`:'所选骑手在该指标上整体没有明显下滑。'} 当前高风险 <b>${high}</b> 人。`;let html='<thead><tr><th>骑手</th><th>风险</th><th>当前重点指标</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>建议动作</th></tr></thead><tbody>';selected.sort((a,b)=>val(b.cur,state.metric)-val(a.cur,state.metric)).forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="riskDot ${x.ana.level==='high'?'riskHigh':x.ana.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.ana.level)} · ${x.ana.score}</td><td><b>${fmt(val(x.cur,state.metric),state.metric)}</b><br>${deltaHTML(val(x.cur,state.metric),val(x.pre,state.metric),state.metric)}</td>${metrics.map(m=>`<td>${fmt(val(x.cur,m.key),m.key)}<br>${deltaHTML(val(x.cur,m.key),val(x.pre,m.key),m.key)}</td>`).join('')}<td>${fmt(val(x.cur,'periodAvg'),'periodAvg')}<br>${deltaHTML(val(x.cur,'periodAvg'),val(x.pre,'periodAvg'),'periodAvg')}</td><td><b>${esc(x.ana.action)}</b><div class="mini">${x.ana.issues.slice(0,2).map(i=>i.label).join('、')||'持续观察'}</div></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));drawMulti()}
+function exportCompare(){if(!rows.length||!state.compareRiders.length){toast('暂无多人对比数据可导出');return}const header=['周期','对比周期','ID','骑手姓名','风险分','风险等级','行动建议','重点指标','当前重点指标','对比重点指标','重点指标变化','跑单量','跑单变化','总收入','收入变化','时薪','时薪变化','背单时长','背单变化','时段均单/H'];const lines=[header];state.compareRiders.forEach(id=>{const rider=riderMap.get(id),cur=rec(state.cycle,id),pre=rec(state.compare,id),ana=analyze().items.find(x=>x.id===id)||{score:0,level:'low',action:'持续观察'};lines.push([state.cycle,state.compare,id,rider?.name||id,ana.score,riskText(ana.level),ana.action,mMap[state.metric].label,plain(val(cur,state.metric),state.metric),plain(val(pre,state.metric),state.metric),plain(val(cur,state.metric)-val(pre,state.metric),state.metric),plain(val(cur,'orders'),'orders'),plain(val(cur,'orders')-val(pre,'orders'),'orders'),plain(val(cur,'income'),'income'),plain(val(cur,'income')-val(pre,'income'),'income'),plain(val(cur,'hourly'),'hourly'),plain(val(cur,'hourly')-val(pre,'hourly'),'hourly'),plain(val(cur,'duration'),'duration'),plain(val(cur,'duration')-val(pre,'duration'),'duration'),plain(val(cur,'periodAvg'),'periodAvg')])});downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`骑手多人对比_${state.cycle||'未选择'}_vs_${state.compare||'未选择'}.csv`)}
+
+function openFollowup(id){state.selected=id;selectTab('followup');const fs=byId('followSearchInp');if(fs){fs.value=riderMap.get(id)?.name||id}renderFollowup();toast('已进入跟进闭环')}
+function followItems(){let items=contactCandidateItems();const q=(byId('followSearchInp')?.value||'').trim().toLowerCase();if(q)items=items.filter(x=>x.name.toLowerCase().includes(q)||x.id.toLowerCase().includes(q));if(state.hideImproved)items=items.filter(x=>getFollow(x.id).status!=='已改善');if(state.followStatus&&state.followStatus!=='all')items=items.filter(x=>getFollow(x.id).status===state.followStatus);return items}
+function renderFollowup(){const table=byId('followupTable');if(!table)return;applyFollowConfigToInputs();renderReasonLibraryControls();const hint=byId('followCycleHint');if(hint)hint.textContent=state.cycle||'-';const metricSel=byId('followReviewMetricSel');if(metricSel){metricSel.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.followReviewMetric||state.metric)?'selected':''}>${m.label}</option>`).join('')}if(!rows.length){byId('followSummaryGrid').innerHTML='';table.innerHTML='<tr><td class="empty">请先导入数据</td></tr>';renderFollowReview();return}const items=followItems();const all=contactCandidateItems(),counts=Object.fromEntries(followStatuses.map(s=>[s,0]));all.forEach(x=>counts[getFollow(x.id).status]=(counts[getFollow(x.id).status]||0)+1);byId('followSummaryGrid').innerHTML=[['待联系',counts['未联系']||0,'符合人群配置且尚未开始处理','amber'],['已联系',counts['已联系']||0,'已触达但未完成闭环','blue'],['继续观察',counts['继续观察']||0,'需要后续复查','purple'],['已改善',counts['已改善']||0,'可作为闭环完成','green']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');if(!items.length){table.innerHTML='<tr><td class="empty">当前配置 / 筛选下暂无待跟进骑手</td></tr>';renderFollowReview();return}let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>风险</th><th>当前跑单</th><th>建议动作</th><th>跟进状态</th><th>变化原因</th><th>负责人</th><th>下一步日期</th><th>跟进备注</th><th>更新时间</th></tr></thead><tbody>';items.forEach(x=>{const f=getFollow(x.id);html+=`<tr><td><input class="rowCheck" type="checkbox" data-follow-check value="${esc(x.id)}" /></td><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td><td><b>${fmt(val(x.cur,'orders'),'orders')}</b><br>${deltaHTML(val(x.cur,'orders'),val(x.pre,'orders'),'orders')}</td><td><b>${esc(x.action)}</b><div class="mini">${x.issues.slice(0,2).map(i=>i.label).join('、')||'持续观察'}</div></td><td><select class="statusSelect" data-follow-status="${esc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-follow-reason="${esc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" data-follow-owner="${esc(x.id)}" value="${esc(f.owner)}" placeholder="负责人" /></td><td><input class="followInput" type="date" data-follow-date="${esc(x.id)}" value="${esc(f.nextDate)}" /></td><td><textarea class="followNote" data-follow-note="${esc(x.id)}" placeholder="记录联系结果、承诺动作或补充原因">${esc(f.note)}</textarea></td><td><span class="mini">${esc(f.updatedAt||'-')}</span></td></tr>`});table.innerHTML=html+'</tbody>';const allCheck=byId('followSelectAll');if(allCheck)allCheck.checked=false;table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));table.querySelectorAll('[data-follow-status]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followStatus,'status',e.target.value);renderFollowup();renderProblems()});table.querySelectorAll('[data-follow-reason]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followReason,'reason',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-owner]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followOwner,'owner',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-date]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followDate,'nextDate',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-note]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followNote,'note',e.target.value);renderFollowup()});renderFollowReview()}
+function exportFollowup(){const items=followItems();if(!items.length){toast('暂无跟进数据可导出');return}const header=['周期','ID','骑手姓名','风险分','风险等级','建议动作','问题标签','跟进状态','变化原因','负责人','下一步日期','备注','更新时间'];const lines=[header];items.forEach(x=>{const f=getFollow(x.id);lines.push([state.cycle,x.id,x.name,x.score,riskText(x.level),x.action,x.issues.map(i=>i.label).join('|'),f.status,f.reason,f.owner,f.nextDate,f.note,f.updatedAt])});downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`骑手跟进闭环_${state.cycle||'未选择'}.csv`)}
+function nextCycleOf(c){const idx=cycles.indexOf(c);return idx>=0&&idx<cycles.length-1?cycles[idx+1]:''}
+function hasFollowRecord(id,c=state.cycle){const f=getFollow(id,c);return f.status!=='未联系'||!!f.owner||!!f.nextDate||!!f.reason||!!f.note}
+function followReviewRows(){const metric=state.followReviewMetric||state.metric||'orders',next=nextCycleOf(state.cycle);return followItems().filter(x=>hasFollowRecord(x.id)).map(x=>{const f=getFollow(x.id),base=val(rec(state.cycle,x.id),metric),after=next?val(rec(next,x.id),metric):null;let effect='待复盘',cls='pending',change=null,pctVal=null;if(next){change=after-base;pctVal=base?change/base*100:null;if(change>0){effect='已改善';cls='good'}else if(change===0){effect='持平';cls='flat'}else{effect='未改善';cls='bad'}}return{...x,follow:f,metric,base,after,next,effect,cls,change,pctVal}})}
+function renderFollowReview(){const table=byId('followReviewTable');if(!table)return;const metricSel=byId('followReviewMetricSel');if(metricSel)metricSel.value=state.followReviewMetric||state.metric||'orders';if(!rows.length){byId('followReviewSummaryGrid').innerHTML='';table.innerHTML='<tr><td class="empty">请先导入数据</td></tr>';return}const rowsReview=followReviewRows(),next=nextCycleOf(state.cycle),available=rowsReview.filter(x=>x.next),improved=rowsReview.filter(x=>x.effect==='已改善'),notImproved=rowsReview.filter(x=>x.effect==='未改善'),flat=rowsReview.filter(x=>x.effect==='持平');byId('followReviewSummaryGrid').innerHTML=[['已跟进记录',rowsReview.length,'当前筛选中有跟进动作/原因/备注的骑手','blue'],['可复盘',available.length,next?`复盘周期：${next}`:'暂无下一周期数据','purple'],['已改善',improved.length,`按 ${mMap[state.followReviewMetric||state.metric].label} 判断`,'green'],['未改善/持平',notImproved.length+flat.length,'建议继续观察或二次触达','amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');if(!rowsReview.length){table.innerHTML='<tr><td class="empty">当前筛选下还没有可复盘的跟进记录。先在上方选择状态、原因或填写备注。</td></tr>';return}let html='<thead><tr><th>骑手</th><th>跟进状态</th><th>变化原因</th><th>负责人</th><th>跟进周期</th><th>复盘周期</th><th>跟进时指标</th><th>复盘后指标</th><th>变化</th><th>效果判断</th><th>备注</th></tr></thead><tbody>';rowsReview.forEach(x=>{const pct=x.pctVal==null?'':` · ${x.pctVal>=0?'+':''}${x.pctVal.toFixed(1)}%`;const change=x.change==null?'-':`${x.change>=0?'+':''}${fmt(x.change,x.metric)}${pct}`;html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.follow.status)}</td><td>${x.follow.reason?`<span class="pill purple">${esc(x.follow.reason)}</span>`:'<span class="mini">未标注</span>'}</td><td>${esc(x.follow.owner||'-')}</td><td>${esc(state.cycle)}</td><td>${x.next?esc(x.next):'<span class="mini">待下一周期</span>'}</td><td>${fmt(x.base,x.metric)}</td><td>${x.next?fmt(x.after,x.metric):'-'}</td><td>${change}</td><td><span class="effectTag ${x.cls}">${esc(x.effect)}</span><div class="reviewMini">${x.next?'自动对比下一周期':'导入下一周期后自动复盘'}</div></td><td><span class="mini">${esc(x.follow.note||'-')}</span></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))}
+function exportFollowReview(){const items=followReviewRows();if(!items.length){toast('暂无复盘数据可导出');return}const metric=state.followReviewMetric||state.metric||'orders';const header=['跟进周期','复盘周期','复盘指标','ID','骑手姓名','跟进状态','变化原因','负责人','跟进时指标','复盘后指标','变化值','变化率%','效果判断','备注','更新时间'];const lines=[header];items.forEach(x=>lines.push([state.cycle,x.next||'',mMap[metric].label,x.id,x.name,x.follow.status,x.follow.reason,x.follow.owner,plain(x.base,metric),x.next?plain(x.after,metric):'',x.change==null?'':plain(x.change,metric),x.pctVal==null?'':x.pctVal.toFixed(1),x.effect,x.follow.note,x.follow.updatedAt]));downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`骑手跟进效果复盘_${state.cycle||'未选择'}_${metric}.csv`)}
+function trendWindow(){const n=state.diagnosisLookback==='all'?cycles.length:Number(state.diagnosisLookback||4);return cycles.slice(Math.max(0,cycles.length-n))}
+function trendDiagnosisFor(id,k,windowCycles,q75){const vals=windowCycles.map(c=>val(rec(c,id),k)),actives=windowCycles.map(c=>active(rec(c,id))),first=vals.find(v=>v>0)||0,last=vals[vals.length-1]||0;let drops=0,rises=0;for(let i=1;i<vals.length;i++){if(vals[i-1]>0&&vals[i]<vals[i-1]&&(vals[i-1]-vals[i])/vals[i-1]>=nRule('continuousPct')/100)drops++;if(vals[i]>vals[i-1]&&vals[i-1]>0)rises++}const pctChange=first?((last-first)/first*100):null;let tag='稳定观察',cls='neutral',action='持续观察';if(actives.slice(0,-1).some(Boolean)&&!actives[actives.length-1]){tag='疑似流失';cls='down';action='优先联系'}else if(drops>=Math.max(2,nRule('continuousWeeks'))&&(pctChange??0)<-nRule('ordersDropPct')){tag='持续变差';cls='down';action='优先联系'}else if(vals.length>=3&&vals[vals.length-1]>vals[vals.length-2]&&vals[vals.length-2]>=vals[vals.length-3]&&first>last){tag='恢复中';cls='recover';action='继续观察'}else if(last>=q75&&drops<=1){tag='稳定优秀';cls='stable';action='重点维护'}else if(drops>=1||rises>=1){tag='短期波动';cls='watch';action='观察复盘'}return{id,name:riderMap.get(id)?.name||id,values:vals,first,last,pctChange,drops,rises,tag,cls,action}}
+function diagnosisItems(){const metric=state.diagnosisMetric||state.metric,win=trendWindow(),q=(byId('diagnosisSearchInp')?.value||'').trim().toLowerCase();const ids=riderIds().filter(id=>!q||(riderMap.get(id)?.name||'').toLowerCase().includes(q)||id.toLowerCase().includes(q));const current=ids.map(id=>val(rec(state.cycle,id),metric)).filter(v=>v>0),q75=percentile(current,.75);return ids.map(id=>trendDiagnosisFor(id,metric,win,q75)).sort((a,b)=>{const order={'疑似流失':5,'持续变差':4,'短期波动':3,'恢复中':2,'稳定优秀':1,'稳定观察':0};return order[b.tag]-order[a.tag]||Math.abs(b.pctChange||0)-Math.abs(a.pctChange||0)})}
+function renderDiagnosis(){const table=byId('diagnosisTable');if(!table)return;const ms=byId('diagnosisMetricSel');if(ms)ms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.diagnosisMetric||state.metric)?'selected':''}>${m.label}</option>`).join('');const ls=byId('diagnosisLookbackSel');if(ls)ls.value=state.diagnosisLookback;if(!rows.length){byId('diagnosisSummaryGrid').innerHTML='';byId('diagnosisInsight').innerHTML='请先导入数据';table.innerHTML='<tr><td class="empty">暂无数据</td></tr>';drawDiagnosis();return}const items=diagnosisItems(),counts={};items.forEach(x=>counts[x.tag]=(counts[x.tag]||0)+1);byId('diagnosisRuleHint').textContent=`系统默认：连续下滑 ${nRule('continuousWeeks')} 次，每次 ≥${nRule('continuousPct')}%`;byId('diagnosisSummaryGrid').innerHTML=[['持续变差',counts['持续变差']||0,'建议优先处理','red'],['疑似流失',counts['疑似流失']||0,'最新周期无活跃','amber'],['恢复中',counts['恢复中']||0,'仍需继续观察','green'],['稳定优秀',counts['稳定优秀']||0,'可重点维护','blue']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');const need=items.filter(x=>['疑似流失','持续变差'].includes(x.tag)).slice(0,5);byId('diagnosisInsight').innerHTML=`观察窗口：<b>${trendWindow().join(' → ')}</b>。当前识别出持续变差 <b>${counts['持续变差']||0}</b> 人、疑似流失 <b>${counts['疑似流失']||0}</b> 人、恢复中 <b>${counts['恢复中']||0}</b> 人。`;byId('diagnosisPriorityList').innerHTML=need.length?need.map((x,i)=>`<div class="priorityItem"><div class="rank">${i+1}</div><button class="nameBtn" data-track="${esc(x.id)}"><div class="name">${esc(x.name)}</div><div class="reason">${esc(x.tag)}｜${x.pctChange==null?'无首值':x.pctChange.toFixed(1)+'%'}</div></button><div class="right"><span class="trendTag ${x.cls}">${x.action}</span><div class="mini">${fmt(x.last,state.diagnosisMetric)}</div></div></div>`).join(''):'<div class="empty">当前窗口暂无高优先级趋势风险</div>';let html='<thead><tr><th>骑手</th><th>趋势状态</th><th>首值</th><th>末值</th><th>变化率</th><th>下滑次数</th><th>窗口序列</th><th>建议动作</th></tr></thead><tbody>';items.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="trendTag ${x.cls}">${esc(x.tag)}</span></td><td>${fmt(x.first,state.diagnosisMetric)}</td><td>${fmt(x.last,state.diagnosisMetric)}</td><td>${x.pctChange==null?'-':(x.pctChange>=0?'+':'')+x.pctChange.toFixed(1)+'%'}</td><td>${x.drops}</td><td><span class="mini">${x.values.map(v=>fmt(v,state.diagnosisMetric)).join(' → ')}</span></td><td><b>${esc(x.action)}</b></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));drawDiagnosis()}
+function exportDiagnosis(){const items=diagnosisItems();if(!items.length){toast('暂无诊断数据可导出');return}const header=['观察窗口','指标','ID','骑手姓名','趋势状态','首值','末值','变化率%','下滑次数','建议动作','窗口序列'];const lines=[header];items.forEach(x=>lines.push([trendWindow().join('|'),mMap[state.diagnosisMetric].label,x.id,x.name,x.tag,plain(x.first,state.diagnosisMetric),plain(x.last,state.diagnosisMetric),x.pctChange==null?'':x.pctChange.toFixed(1),x.drops,x.action,x.values.map(v=>plain(v,state.diagnosisMetric)).join('|')]));downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`骑手多周期趋势诊断_${state.diagnosisMetric}_${state.cycle||'未选择'}.csv`)}
+function rankFor(c,k,id){const arr=riders.map(r=>({id:r.id,v:val(rec(c,r.id),k)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);const i=arr.findIndex(x=>x.id===id);return i>=0?i+1:null}
+function renderProfile(){const sel=byId('riderSel'),search=byId('profileSearchInp');if(search)search.value=state.search;if(!rows.length){sel.innerHTML='<option>暂无数据</option>';byId('profileSummary').innerHTML='<div class="empty">请先导入数据</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无数据</td></tr>';return}const list=filteredRiders();if(!list.length){state.selected=null;sel.innerHTML='<option>未找到骑手</option>';byId('profileSummary').innerHTML='<div class="empty">没有匹配“'+esc(state.search)+'”的骑手，请调整搜索关键词。</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无匹配骑手</td></tr>';drawProfile();return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id;sel.innerHTML=list.map(r=>`<option value="${esc(r.id)}" ${r.id===state.selected?'selected':''}>${esc(r.name)} · ${esc(r.id)}</option>`).join('');const rider=riderMap.get(state.selected);const cur=rec(state.cycle,state.selected),pre=rec(state.compare,state.selected);const item=analyze().items.find(x=>x.id===state.selected)||{issues:[],score:0,level:'low',action:'持续观察',cOrders:0,cIncome:0};byId('profileSummary').innerHTML=`<div class="profileTitle">${esc(rider?.name||'')}</div><div class="mini">ID ${esc(state.selected)} ｜ ${state.cycle} vs ${state.compare}</div><div style="margin-top:10px"><span class="pill ${item.level==='high'?'red':item.level==='mid'?'amber':'green'}">${riskText(item.level)} ${item.score}分</span><span class="pill blue">${esc(item.action)}</span>${item.issues.slice(0,4).map(i=>`<span class="pill ${i.tone}">${esc(i.label)}</span>`).join('')}</div><div class="profileHint">下方展示该骑手当前周期、对比周期、排名和每周变化；顶部切换“重点指标”可改变趋势图。</div>`;byId('profileMetrics').innerHTML=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].map(m=>{const rCur=rankFor(state.cycle,m.key,state.selected),rPre=rankFor(state.compare,m.key,state.selected);const rankDelta=(rCur&&rPre)?rPre-rCur:null;return `<div class="kpi"><div class="label">${m.label}</div><div class="value">${fmt(val(cur,m.key),m.key)}</div><div class="mini">排名 ${rCur?('#'+rCur):'-'}${rankDelta!==null?`｜较对比 ${rankDelta>0?'+':''}${rankDelta}`:''}</div></div>`}).join('');byId('profileCompareGrid').innerHTML=metrics.map(m=>`<div class="compareCard"><b>${m.label}</b><div class="v">${fmt(val(cur,m.key),m.key)}</div><div class="mini">对比：${fmt(val(pre,m.key),m.key)}</div>${deltaHTML(val(cur,m.key),val(pre,m.key),m.key)}</div>`).join('');let html='<thead><tr><th>周期</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;html+=`<tr><td><b>${esc(c)}</b></td><td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`});byId('profileTable').innerHTML=html+'</tbody>';byId('profileChartTitle').textContent=`${(rider?.name||'').split('-').pop()} · ${mMap[state.metric].label}趋势`;drawProfile()}
+function refreshControls(){byId('cycleSel').innerHTML=cycles.length?cycles.map(c=>`<option ${c===state.cycle?'selected':''}>${esc(c)}</option>`).join(''):'<option>暂无数据</option>';byId('compareSel').innerHTML=cycles.length?cycles.map(c=>`<option ${c===state.compare?'selected':''}>${esc(c)}</option>`).join(''):'<option>暂无数据</option>';byId('metricSel').innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');const cms=byId('compareMetricSel');if(cms)cms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');const dms=byId('diagnosisMetricSel');if(dms)dms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.diagnosisMetric||state.metric)?'selected':''}>${m.label}</option>`).join('');byId('searchInp').value=state.search;const ps=byId('profileSearchInp');if(ps)ps.value=state.search}
+function bind(){byId('toggleHeaderBtn').onclick=()=>{const h=byId('hero');h.classList.toggle('collapsed');byId('toggleHeaderBtn').textContent=h.classList.contains('collapsed')?'展开表头':'上拉隐藏'};document.querySelectorAll('.nav button[data-tab]').forEach(b=>b.onclick=()=>selectTab(b.dataset.tab));byId('cycleSel').onchange=e=>{state.cycle=e.target.value;renderAll()};byId('compareSel').onchange=e=>{state.compare=e.target.value;renderAll()};byId('metricSel').onchange=e=>{state.metric=e.target.value;renderAll()};byId('searchInp').oninput=e=>{state.search=e.target.value;ensureSelectedFromSearch();refreshControls();renderAll()};byId('profileSearchInp').oninput=e=>{state.search=e.target.value;ensureSelectedFromSearch();refreshControls();renderAll()};byId('importBtn').onclick=()=>byId('dataFileInp').click();byId('dataFileInp').onchange=e=>{const f=e.target.files[0];if(f)importFile(f);e.target.value=''};byId('downloadTplBtn').onclick=downloadTemplate;byId('downloadDataBtn').onclick=downloadCurrentData;byId('clearDataBtn').onclick=clearData;byId('goHighBtn').onclick=()=>switchProblems('high');byId('goProblemBtn').onclick=()=>switchProblems('all');byId('exportTopBtn').onclick=exportCurrent;byId('exportBtn').onclick=exportCurrent;byId('toggleFiltersBtn').onclick=()=>byId('filterPanel').classList.toggle('show');document.querySelectorAll('[data-risk]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-risk]').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.risk=b.dataset.risk;renderProblems()});['actionFilter','dropFilter','activityFilter','minScoreFilter','sortFilter'].forEach(id=>{byId(id).onchange=e=>{if(id==='actionFilter')state.action=e.target.value;if(id==='dropFilter')state.dropMetric=e.target.value;if(id==='activityFilter')state.activity=e.target.value;if(id==='minScoreFilter')state.minScore=+e.target.value;if(id==='sortFilter')state.sort=e.target.value;renderProblems()}});byId('resetFiltersBtn').onclick=()=>{Object.assign(state,{issue:'all',risk:'all',action:'all',dropMetric:'all',activity:'all',minScore:0,sort:'score'});['actionFilter','dropFilter','activityFilter','minScoreFilter','sortFilter'].forEach(id=>byId(id).selectedIndex=0);document.querySelectorAll('[data-risk]').forEach((x,i)=>x.classList.toggle('active',i===0));renderProblems()};byId('riderSel').onchange=e=>{state.selected=e.target.value;renderProfile()};
+const cmpSearch=byId('compareSearchInp');if(cmpSearch)cmpSearch.oninput=()=>renderCompare();
+const cmpSel=byId('compareRiderSel');if(cmpSel)cmpSel.onchange=e=>addCompareRider(e.target.value);
+const cmpMetric=byId('compareMetricSel');if(cmpMetric)cmpMetric.onchange=e=>{state.metric=e.target.value;refreshControls();renderAll()};
+const addCmp=byId('addCompareBtn');if(addCmp)addCmp.onclick=()=>addCompareRider(byId('compareRiderSel').value);
+const addVisible=byId('addVisibleCompareBtn');if(addVisible)addVisible.onclick=()=>{compareCandidates().slice(0,8).forEach(r=>{if(!state.compareRiders.includes(r.id)&&state.compareRiders.length<8)state.compareRiders.push(r.id)});renderCompare();drawMulti();toast('已加入当前候选骑手')};
+const addTop=byId('addTopCompareBtn');if(addTop)addTop.onclick=()=>{state.compareRiders=[];analyze().items.filter(x=>x.score>0).slice(0,5).forEach(x=>state.compareRiders.push(x.id));if(!state.compareRiders.length)state.compareRiders=riders.slice(0,5).map(r=>r.id);renderCompare();drawMulti();toast('已加入优先联系骑手')};
+const clearCmp=byId('clearCompareBtn');if(clearCmp)clearCmp.onclick=()=>{state.compareRiders=[];renderCompare();drawMulti()};
+const exportCmp=byId('exportCompareBtn');if(exportCmp)exportCmp.onclick=exportCompare;
+const followFilter=byId('followStatusFilter');if(followFilter)followFilter.onchange=e=>{state.followStatus=e.target.value;renderFollowup()};
+const followSearch=byId('followSearchInp');if(followSearch)followSearch.oninput=()=>renderFollowup();
+['followBaseSel','followOrderModeSel','followOrderMinInp','followOrderMaxInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=updateFollowConfigFromInputs});
+const saveFollowConfig=byId('saveFollowConfigBtn');if(saveFollowConfig)saveFollowConfig.onclick=updateFollowConfigFromInputs;
+const followSelectAll=byId('followSelectAll');if(followSelectAll)followSelectAll.onchange=e=>document.querySelectorAll('[data-follow-check]').forEach(ch=>ch.checked=e.target.checked);
+const bulkApply=byId('bulkApplyFollowBtn');if(bulkApply)bulkApply.onclick=applyBulkFollowup;
+const addReasonBtn=byId('addReasonBtn');if(addReasonBtn)addReasonBtn.onclick=addReasonToLibrary;
+const removeReasonBtn=byId('removeReasonBtn');if(removeReasonBtn)removeReasonBtn.onclick=removeSelectedReason;
+const reviewMetric=byId('followReviewMetricSel');if(reviewMetric)reviewMetric.onchange=e=>{state.followReviewMetric=e.target.value;renderFollowReview()};
+const exportReview=byId('exportFollowReviewBtn');if(exportReview)exportReview.onclick=exportFollowReview;
+const exportFollow=byId('exportFollowupBtn');if(exportFollow)exportFollow.onclick=exportFollowup;
+const clearDone=byId('clearDoneFollowupBtn');if(clearDone)clearDone.onclick=()=>{state.hideImproved=!state.hideImproved;clearDone.textContent=state.hideImproved?'显示已改善':'隐藏已改善';renderFollowup()};
+const diagMetric=byId('diagnosisMetricSel');if(diagMetric)diagMetric.onchange=e=>{state.diagnosisMetric=e.target.value;renderDiagnosis();drawDiagnosis()};
+const diagLook=byId('diagnosisLookbackSel');if(diagLook)diagLook.onchange=e=>{state.diagnosisLookback=e.target.value;renderDiagnosis();drawDiagnosis()};
+const diagSearch=byId('diagnosisSearchInp');if(diagSearch)diagSearch.oninput=()=>renderDiagnosis();
+const exportDiag=byId('exportDiagnosisBtn');if(exportDiag)exportDiag.onclick=exportDiagnosis;
+window.addEventListener('resize',()=>drawCharts())}
+function selectTab(tab){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;drawCharts()}function openProfile(id){state.selected=id;selectTab('profile');refreshControls();renderProfile();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
+function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
+function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function downloadBlob(text,filename,type='text/csv;charset=utf-8'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
+function downloadTemplate(){const sample=['100001','示例骑手 Zhang San','120','980.5','32.7','30.0','4.0','W70'];if(window.XLSX){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([columns,sample]);XLSX.utils.book_append_sheet(wb,ws,'Sheet1');XLSX.writeFile(wb,'骑手数据导入模版.xlsx');toast('已下载 XLSX 模版');return}const csv='\ufeff'+[columns,sample].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,'骑手数据导入模版.csv');toast('已下载 CSV 模版')}
+function downloadCurrentData(){if(!raw.length){toast('暂无数据可导出');return}const csv='\ufeff'+[columns,...raw].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,`骑手当前数据_${cycles[0]||''}-${cycles[cycles.length-1]||''}.csv`)}
+function clearData(){raw=[];meta={rowCount:0,riderCount:0,cycles:[],sourceFile:'未导入',imported:false};Object.assign(state,{cycle:'',compare:'',selected:null,search:''});rebuildData(false);refreshControls();renderAll();byId('importStatus').textContent='已清空数据，可重新导入';toast('已清空数据')}
+async function importFile(file){try{byId('importStatus').textContent='正在导入：'+file.name;let table;const lower=file.name.toLowerCase();if(lower.endsWith('.xlsx')||lower.endsWith('.xls')){if(!window.XLSX)throw new Error('XLSX 解析库未加载。请联网后重试，或把 Excel 另存为 CSV 再导入。');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];table=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''})}else{const text=await file.text();table=parseDelimited(text)}const normalized=normalizeImportRows(table);if(!normalized.length)throw new Error('没有识别到有效数据行');raw=normalized;meta={columns,rowCount:raw.length,riderCount:new Set(raw.map(r=>String(r[0]))).size,cycles:[...new Set(raw.map(r=>String(r[7])))],sourceFile:file.name,generatedAt:new Date().toLocaleString(),imported:true};rebuildData(false);refreshControls();renderAll();byId('importStatus').textContent=`已导入 ${raw.length} 行 · ${riders.length} 名骑手 · 数据未写入本地存储`;toast('导入完成')}catch(err){byId('importStatus').textContent='导入失败';alert(err.message||err)}}
+function parseDelimited(text){text=String(text||'').replace(/^\ufeff/,'');const first=(text.split(/\r?\n/).find(l=>l.trim())||''),delim=(first.match(/\t/g)||[]).length>(first.match(/,/g)||[]).length?'\t':',';const out=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(q){if(ch==='"'&&next==='"'){cell+='"';i++}else if(ch==='"')q=false;else cell+=ch}else{if(ch==='"')q=true;else if(ch===delim){row.push(cell);cell=''}else if(ch==='\n'){row.push(cell);out.push(row);row=[];cell=''}else if(ch==='\r'){}else cell+=ch}}row.push(cell);out.push(row);return out.filter(r=>r.some(c=>String(c).trim()!==''))}
+function normalizeImportRows(table){if(!Array.isArray(table)||!table.length)throw new Error('文件为空');const header=table[0].map(x=>String(x).trim());const idx={id:findCol(header,['ID','id','骑手ID','Rider ID']),name:findCol(header,['骑手姓名','姓名','骑手','name','Name']),orders:findCol(header,['跑单量','单量','订单量','orders','Orders']),income:findCol(header,['总收入','收入','income','Income']),hourly:findCol(header,['时薪','小时收入','hourly','Hourly']),duration:findCol(header,['背单时长','在线时长','时长','duration','Duration']),periodAvg:findCol(header,['时段均单/H','时段均单/h','时段均单','均单','每小时单量','avgOrder','Avg Order']),cycle:findCol(header,['周期','周','week','Week','cycle','Cycle'])};const req={id:'ID',name:'骑手姓名',orders:'跑单量',income:'总收入',hourly:'时薪',duration:'背单时长',cycle:'周期'};const missing=Object.entries(req).filter(([k])=>idx[k]<0).map(([,v])=>v);if(missing.length)throw new Error('缺少必要列：'+missing.join('、')+'。请先下载模版，按列名填写。');return table.slice(1).map(r=>[r[idx.id],r[idx.name],toNum(r[idx.orders]),toNum(r[idx.income]),toNum(r[idx.hourly]),toNum(r[idx.duration]),idx.periodAvg>=0?toNum(r[idx.periodAvg]):null,r[idx.cycle]]).filter(r=>String(r[0]??'').trim()&&String(r[1]??'').trim()&&String(r[7]??'').trim())}
+function findCol(header,names){const norm=s=>String(s||'').trim().toLowerCase().replace(/[\s_\-]/g,'');const h=header.map(norm);for(const n of names){const i=h.indexOf(norm(n));if(i>=0)return i}return-1}
+function exportCurrent(){const items=filteredProblems();if(!items.length){toast('暂无问题清单可导出');return}const header=['周期','对比周期','ID','骑手姓名','风险分','风险等级','行动建议','问题标签','跑单量','跑单变化','总收入','收入变化','时薪','时薪变化','背单时长','背单变化','时段均单/H'];const lines=[header];items.forEach(x=>lines.push([state.cycle,state.compare,x.id,x.name,x.score,riskText(x.level),x.action,x.issues.map(i=>i.label).join('|'),plain(val(x.cur,'orders'),'orders'),plain(val(x.cur,'orders')-val(x.pre,'orders'),'orders'),plain(val(x.cur,'income'),'income'),plain(val(x.cur,'income')-val(x.pre,'income'),'income'),plain(val(x.cur,'hourly'),'hourly'),plain(val(x.cur,'hourly')-val(x.pre,'hourly'),'hourly'),plain(val(x.cur,'duration'),'duration'),plain(val(x.cur,'duration')-val(x.pre,'duration'),'duration'),plain(val(x.cur,'periodAvg'),'periodAvg')]));const csv='﻿'+lines.map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,`骑手问题清单_${state.cycle||'未选择'}_vs_${state.compare||'未选择'}.csv`)}
+function drawCharts(){drawTrend();drawProfile();drawMulti();drawDiagnosis()}function fitCanvas(canvas){if(!canvas)return null;const dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();canvas.width=Math.max(320,Math.floor(rect.width*dpr));canvas.height=Math.max(200,Math.floor(rect.height*dpr));const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);return ctx}
+function drawTrend(){const c=byId('trendCanvas'),ctx=fitCanvas(c);if(!ctx)return;byId('trendTitle').textContent=`${mMap[state.metric].label}周度趋势`;if(!rows.length){emptyCanvas(ctx,c.clientWidth,c.clientHeight,'暂无趋势数据');return}drawLine(ctx,c,cycles,cycles.map(w=>aggregate(w)[state.metric]),state.metric)}
+function drawProfile(){const c=byId('profileCanvas'),ctx=fitCanvas(c);if(!ctx)return;if(!rows.length||!state.selected){emptyCanvas(ctx,c.clientWidth,c.clientHeight,'暂无骑手趋势');return}drawLine(ctx,c,cycles,cycles.map(w=>val(rec(w,state.selected),state.metric)),state.metric)}
+function drawLine(ctx,canvas,labels,values,k){const w=canvas.clientWidth,h=canvas.clientHeight,p={l:52,r:18,t:20,b:34};ctx.clearRect(0,0,w,h);ctx.font='12px system-ui';const nums=values.filter(v=>Number.isFinite(v));if(!nums.length){emptyCanvas(ctx,w,h,'暂无趋势数据');return}let min=Math.min(...nums),max=Math.max(...nums);if(min===max){min-=1;max+=1}const pad=(max-min)*.15,yMin=min-pad,yMax=max+pad;ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;for(let i=0;i<4;i++){let y=p.t+(h-p.t-p.b)*i/3;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke()}const pts=labels.map((lab,i)=>{const x=p.l+(w-p.l-p.r)*(labels.length===1?0:i/(labels.length-1));const v=values[i];const y=p.t+(h-p.t-p.b)*(1-(v-yMin)/(yMax-yMin));return{x,y,v,lab}});ctx.strokeStyle='#2563eb';ctx.lineWidth=3;ctx.beginPath();pts.forEach((pt,i)=>i?ctx.lineTo(pt.x,pt.y):ctx.moveTo(pt.x,pt.y));ctx.stroke();pts.forEach(pt=>{ctx.fillStyle='#fff';ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.beginPath();ctx.arc(pt.x,pt.y,4,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#667085';ctx.textAlign='center';ctx.fillText(pt.lab,pt.x,h-12)});ctx.fillStyle='#667085';ctx.textAlign='left';ctx.fillText(mMap[k].label,p.l,p.t-6)}
+function drawMulti(){const c=byId('multiCanvas');if(!c)return;const ctx=fitCanvas(c);if(!ctx)return;const title=byId('multiTrendTitle');if(title)title.textContent=`${mMap[state.metric].label}多人趋势对比`;if(!rows.length||!state.compareRiders||!state.compareRiders.length){emptyCanvas(ctx,c.clientWidth,c.clientHeight,'请选择骑手进行对比');const leg=byId('multiLegend');if(leg)leg.innerHTML='';return}const colors=['#2563eb','#079455','#d92d20','#dc6803','#7a5af8','#0e7490','#be185d','#52525b'];const series=state.compareRiders.map((id,i)=>({id,name:riderMap.get(id)?.name||id,color:colors[i%colors.length],values:cycles.map(w=>val(rec(w,id),state.metric))}));drawMultiLine(ctx,c,cycles,series,state.metric);const leg=byId('multiLegend');if(leg)leg.innerHTML=series.map(s=>`<span class="legendItem"><i class="legendDot" style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}
+function drawMultiLine(ctx,canvas,labels,series,k){const w=canvas.clientWidth,h=canvas.clientHeight,p={l:52,r:18,t:20,b:34};ctx.clearRect(0,0,w,h);ctx.font='12px system-ui';const nums=series.flatMap(s=>s.values).filter(v=>Number.isFinite(v));if(!nums.length){emptyCanvas(ctx,w,h,'暂无趋势数据');return}let min=Math.min(...nums),max=Math.max(...nums);if(min===max){min-=1;max+=1}const pad=(max-min)*.15,yMin=min-pad,yMax=max+pad;ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;for(let i=0;i<4;i++){let y=p.t+(h-p.t-p.b)*i/3;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(w-p.r,y);ctx.stroke()}series.forEach(s=>{const pts=labels.map((lab,i)=>{const x=p.l+(w-p.l-p.r)*(labels.length===1?0:i/(labels.length-1));const v=s.values[i];const y=p.t+(h-p.t-p.b)*(1-(v-yMin)/(yMax-yMin));return{x,y,v,lab}});ctx.strokeStyle=s.color;ctx.lineWidth=2.5;ctx.beginPath();pts.forEach((pt,i)=>i?ctx.lineTo(pt.x,pt.y):ctx.moveTo(pt.x,pt.y));ctx.stroke();pts.forEach(pt=>{ctx.fillStyle='#fff';ctx.strokeStyle=s.color;ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(pt.x,pt.y,3.5,0,Math.PI*2);ctx.fill();ctx.stroke()})});ctx.fillStyle='#667085';ctx.textAlign='center';labels.forEach((lab,i)=>{const x=p.l+(w-p.l-p.r)*(labels.length===1?0:i/(labels.length-1));ctx.fillText(lab,x,h-12)});ctx.textAlign='left';ctx.fillText(mMap[k].label,p.l,p.t-6)}
+function drawDiagnosis(){const c=byId('diagnosisCanvas');if(!c)return;const ctx=fitCanvas(c);if(!ctx)return;const metric=state.diagnosisMetric||state.metric;if(!rows.length){emptyCanvas(ctx,c.clientWidth,c.clientHeight,'暂无趋势诊断数据');return}const win=trendWindow();const values=win.map(w=>aggregate(w)[metric]);const title=byId('diagnosisChartTitle');if(title)title.textContent=`团队${mMap[metric].label}趋势`;drawLine(ctx,c,win,values,metric)}
+function emptyCanvas(ctx,w,h,t){ctx.clearRect(0,0,w,h);ctx.fillStyle='#667085';ctx.textAlign='center';ctx.font='13px system-ui';ctx.fillText(t,w/2,h/2)}
+rebuildData(false);refreshControls();bind();renderAll();initAuth();
+</script>
+</body>
+</html>
