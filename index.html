@@ -103,13 +103,11 @@ body.auth-admin #accountAdminBtn{display:inline-flex}
       <div class="authBadge">骑手数据看板 · Login</div>
     </div>
     <div class="authLock">🔐</div>
-    <h2>邮箱账号登录</h2>
-    <p>请输入在 Supabase 中创建的邮箱账号和密码。登录成功后，系统会自动读取最新云数据。</p>
+    <h2>骑手核心数据看板</h2>
     <label class="authField"><span>邮箱账号</span><input id="loginUser" autocomplete="username" placeholder="例如：admin@example.com" /></label>
     <label class="authField"><span>密码</span><input id="loginPass" type="password" autocomplete="current-password" placeholder="请输入密码" /></label>
     <div class="authMsg" id="loginMsg"></div>
     <button class="btn primary" id="loginBtn" style="width:100%">登录</button>
-    <div class="authFoot">账号请在 Supabase 后台 Authentication → Users 创建。网页里只能使用 publishable / anon key，不能放 secret / service_role key。</div>
   </div>
 </div>
 <div class="accountModal" id="accountModal">
