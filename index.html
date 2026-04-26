@@ -353,7 +353,7 @@ function mapCloudRow(row){
     pick('income','total_income','总收入','收入'),
     pick('hourly','hourly_income','时薪','小时收入'),
     pick('duration','back_duration','背单时长','在线时长','时长'),
-    pick('orders_per_hour','period_avg','periodAvg','时段均单/H','时段均单/h','时段均单'),
+    pick('orders_per_hour','period_avg','periodAvg','时段均单/H','时段均单/h','时段均单','计算均单/H','计算均单/h','计算均单'),
     pick('cycle','week','周期','周')
   ];
 }
@@ -362,9 +362,19 @@ async function loadCloudData(){
   try{
     if(status)status.textContent='正在读取 Supabase 云数据...';
     const client=getCloudClient();
-    const {data,error}=await client.from(CLOUD_CONFIG.table).select('*').range(0,9999);
-    if(error)throw error;
-    const normalized=(data||[]).map(mapCloudRow).filter(r=>String(r[0]??'').trim()&&String(r[1]??'').trim()&&String(r[7]??'').trim());
+    const pageSize=1000;
+    let from=0;
+    let allData=[];
+    for(let page=1;page<=100;page++){
+      if(status)status.textContent=`正在读取 Supabase 云数据... 已读取 ${allData.length} 行`;
+      const {data,error}=await client.from(CLOUD_CONFIG.table).select('*').range(from,from+pageSize-1);
+      if(error)throw error;
+      const batch=data||[];
+      allData=allData.concat(batch);
+      if(batch.length<pageSize)break;
+      from+=pageSize;
+    }
+    const normalized=allData.map(mapCloudRow).filter(r=>String(r[0]??'').trim()&&String(r[1]??'').trim()&&String(r[7]??'').trim());
     raw=normalized;
     meta={
       columns,
