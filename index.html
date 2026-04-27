@@ -72,7 +72,7 @@
 .followOwnerBoard{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;margin:12px 0;box-shadow:var(--shadow2)}
 .followOwnerHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap}
 .followOwnerHead h3{margin:0;font-size:16px;letter-spacing:-.02em}.followOwnerHead .sub{margin-top:4px}
-.followOwnerControls{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin:10px 0 12px;align-items:end}
+.followOwnerControls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px;align-items:end}
 .followOwnerControls .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.followOwnerControls .field span{color:var(--muted)}
 .ownerManageBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px;margin:10px 0}
 .ownerManageBar input,.ownerManageBar select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;color:var(--ink);min-width:140px}
@@ -416,17 +416,12 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
     <div class="panelHead">
       <div>
         <h2>专人跟进</h2>
-        <div class="sub">从空白负责人流入专项负责人板块，专人查看自己名下的已联系、未联系、复盘结果，并直接更新状态、原因、日期和备注。</div>
+        <div class="sub">查看专项负责人名下的跟进清单，专人可直接更新状态、原因、日期和备注。负责人分配请统一在“跟进闭环”板块执行。</div>
       </div>
+      <button class="btn small" id="toggleOwnerConfigBtn" type="button">负责人配置</button>
     </div>
     <div class="followOwnerBoard" id="followOwnerBoard">
-      <div class="followOwnerHead">
-        <div>
-          <h3>专项负责人跟进板块</h3>
-          <div class="sub">把空白负责人骑手分配给专项负责人；负责人可查看自己名下的未联系、已联系、继续观察、已改善和复盘结果。</div>
-        </div>
-      </div>
-      <div class="ownerManageBar">
+      <div class="ownerManageBar" id="ownerConfigBar" style="display:none">
         <b>负责人配置</b>
         <select id="followOwnerManageSel"></select>
         <input id="newFollowOwnerInp" placeholder="新增负责人姓名" />
@@ -435,20 +430,20 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
       </div>
       <div class="followOwnerControls">
         <label class="field"><span>查看负责人</span><select id="followOwnerBoardSel"></select></label>
-        <label class="field"><span>分配给负责人</span><select id="assignBlankOwnerSel"></select></label>
-        <div class="field"><span>待分配说明</span><b>勾选空白负责人骑手后批量流入负责人板块</b></div>
-        <button class="btn primary" id="assignBlankOwnerBtn">分配已选骑手</button>
+        <div class="field"><span>说明</span><b>仅显示当前负责人的跟进名单</b></div>
       </div>
       <div class="snapshotGrid" id="ownerBoardSummaryGrid"></div>
-      <div class="ownerBoardSplit">
-        <div>
-          <div class="panelHead"><div><h2>空白负责人待分配</h2><div class="sub">来自当前待联系人群，尚未填写负责人的骑手。</div></div></div>
-          <div class="tableWrap ownerMiniTable"><table id="blankOwnerTable"></table></div>
-        </div>
-        <div>
-          <div class="panelHead"><div><h2 id="ownerBoardTitle">负责人跟进清单</h2><div class="sub">可直接更改状态、原因、下一步日期和备注。</div></div></div>
-          <div class="tableWrap ownerMiniTable"><table id="ownerBoardTable"></table></div>
-        </div>
+      <div class="bulkBar" id="ownerBulkBar">
+        <label><input id="ownerSelectAll" type="checkbox" /> 全选当前负责人名单</label>
+        <select class="statusSelect" id="ownerBulkStatus"><option value="">批量状态：不修改</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select>
+        <select class="reasonSelect" id="ownerBulkReason"><option value="">批量原因：不修改</option></select>
+        <input class="followInput" id="ownerBulkDate" type="date" />
+        <input class="followInput" id="ownerBulkNote" placeholder="批量备注：不修改" />
+        <button class="btn primary small" id="ownerBulkApplyBtn">应用到已选</button>
+      </div>
+      <div>
+        <div class="panelHead"><div><h2 id="ownerBoardTitle">负责人跟进清单</h2><div class="sub">可选择名单，并直接更改状态、原因、下一步日期和备注。</div></div></div>
+        <div class="tableWrap ownerMiniTable"><table id="ownerBoardTable"></table></div>
       </div>
     </div>
   </div>
@@ -912,10 +907,63 @@ async function loadFollowupOwners(){followupOwners=normalizeFollowupOwners(follo
 async function addFollowupOwner(){const inp=byId('newFollowOwnerInp'),name=String(inp?.value||'').trim();if(!name){toast('请输入负责人姓名');return}followupOwners=normalizeFollowupOwners([...followupOwners,name]);safeSet('rider_followup_owner_options',followupOwners);try{await getCloudClient().from(FOLLOWUP_OWNER_TABLE).upsert({name,sort_order:followupOwners.indexOf(name)},{onConflict:'name'})}catch(e){console.warn('负责人云端保存失败：',e?.message||e)}if(inp)inp.value='';renderFollowOwnerBoard();toast('已新增负责人：'+name)}
 async function removeFollowupOwner(){const sel=byId('followOwnerManageSel'),name=String(sel?.value||'').trim();if(!name){toast('请选择要删除的负责人');return}if(!confirm('确认删除负责人 '+name+'？已分配给该负责人的历史记录不会被清空。'))return;followupOwners=normalizeFollowupOwners(followupOwners.filter(x=>x!==name));safeSet('rider_followup_owner_options',followupOwners);try{await getCloudClient().from(FOLLOWUP_OWNER_TABLE).delete().eq('name',name)}catch(e){console.warn('负责人云端删除失败：',e?.message||e)}if(state.followOwner===name)state.followOwner=followupOwnerOptions()[0]||'';renderFollowOwnerBoard();renderFollowup();toast('已删除负责人配置：'+name)}
 function ownerReviewMap(){const map=new Map();followReviewRows().forEach(r=>map.set(r.id,r));return map}
-function renderFollowOwnerControls(){const owners=followupOwnerOptions();if(!state.followOwner)state.followOwner=owners[0]||'';const boardSel=byId('followOwnerBoardSel'),assignSel=byId('assignBlankOwnerSel'),manageSel=byId('followOwnerManageSel');if(boardSel)boardSel.innerHTML=ownerOptionHTML(state.followOwner);if(assignSel)assignSel.innerHTML=ownerOptionHTML(state.followOwner);if(manageSel)manageSel.innerHTML=owners.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}
-function renderFollowOwnerBoard(){const wrap=byId('followOwnerBoard');if(!wrap)return;renderFollowOwnerControls();const owners=followupOwnerOptions();const owner=state.followOwner||owners[0]||'';const base=contactCandidateItems();const blank=base.filter(x=>!String(getFollow(x.id).owner||'').trim());const ownerItems=base.filter(x=>String(getFollow(x.id).owner||'').trim()===owner);const reviewMap=ownerReviewMap();const countStatus=s=>ownerItems.filter(x=>getFollow(x.id).status===s).length;const summary=byId('ownerBoardSummaryGrid');if(summary)summary.innerHTML=[['空白负责人',blank.length,'可批量流入专项负责人','amber'],['负责人名下',ownerItems.length,owner?`${owner} 当前周期跟进清单`:'请选择负责人','blue'],['未联系',countStatus('未联系'),'负责人待触达骑手','purple'],['已联系',countStatus('已联系'),'已完成首次触达','green']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${esc(x[2])}</div></div>`).join('');const title=byId('ownerBoardTitle');if(title)title.textContent=owner?`${owner} 的负责人跟进清单`:'负责人跟进清单';const blankTable=byId('blankOwnerTable');if(blankTable){if(!blank.length)blankTable.innerHTML='<tr><td class="empty">当前待联系人群中暂无空白负责人骑手</td></tr>';else{let html='<thead><tr><th>选择</th><th>骑手</th><th>风险</th><th>问题</th><th>建议动作</th></tr></thead><tbody>';blank.forEach(x=>{html+=`<tr><td><input class="rowCheck" type="checkbox" data-owner-blank-check value="${esc(x.id)}"></td><td><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></td><td>${riskText(x.level)} · ${x.score}</td><td>${x.issues.slice(0,3).map(i=>`<span class="pill amber">${esc(i.label)}</span>`).join('')||'<span class="mini">持续观察</span>'}</td><td>${esc(x.action)}</td></tr>`});blankTable.innerHTML=html+'</tbody>'}}
-const ownerTable=byId('ownerBoardTable');if(ownerTable){if(!ownerItems.length)ownerTable.innerHTML='<tr><td class="empty">该负责人当前暂无骑手。可从左侧空白负责人列表分配。</td></tr>';else{let html='<thead><tr><th>骑手</th><th>状态</th><th>原因</th><th>下一步</th><th>复盘</th><th>备注</th><th>更新</th></tr></thead><tbody>';ownerItems.forEach(x=>{const f=getFollow(x.id),rv=reviewMap.get(x.id);html+=`<tr><td><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)} · 风险 ${x.score}</div></td><td><select class="statusSelect" data-owner-status="${esc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-owner-reason="${esc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" type="date" data-owner-date="${esc(x.id)}" value="${esc(f.nextDate)}"></td><td>${rv?`<span class="effectTag ${rv.cls}">${esc(rv.effect)}</span><div class="reviewMini">${rv.next?esc(rv.next):'待下一周期'}</div>`:'<span class="effectTag pending">未复盘</span>'}</td><td><textarea class="followNote" data-owner-note="${esc(x.id)}" placeholder="负责人跟进备注">${esc(f.note)}</textarea>${noteHistoryHTML(x.id)}</td><td><span class="mini">${esc(f.updatedAt||'-')}</span></td></tr>`});ownerTable.innerHTML=html+'</tbody>'}}
-const boardSel=byId('followOwnerBoardSel');if(boardSel)boardSel.onchange=e=>{state.followOwner=e.target.value;renderFollowOwnerBoard()};const assignSel=byId('assignBlankOwnerSel');if(assignSel)assignSel.onchange=e=>{state.followOwner=e.target.value;renderFollowOwnerBoard()};const addBtn=byId('addFollowOwnerBtn');if(addBtn)addBtn.onclick=addFollowupOwner;const delBtn=byId('removeFollowOwnerBtn');if(delBtn)delBtn.onclick=removeFollowupOwner;const assignBtn=byId('assignBlankOwnerBtn');if(assignBtn)assignBtn.onclick=()=>{const target=byId('assignBlankOwnerSel')?.value||state.followOwner;if(!target){toast('请先选择负责人');return}const ids=Array.from(document.querySelectorAll('[data-owner-blank-check]:checked')).map(x=>x.value);if(!ids.length){toast('请先勾选空白负责人骑手');return}ids.forEach(id=>setFollow(id,'owner',target));state.followOwner=target;renderFollowup();toast(`已分配 ${ids.length} 名骑手给 ${target}`)};wrap.querySelectorAll('[data-owner-status]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerStatus,'status',e.target.value);renderFollowup();renderProblems()});wrap.querySelectorAll('[data-owner-reason]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerReason,'reason',e.target.value);renderFollowup()});wrap.querySelectorAll('[data-owner-date]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerDate,'nextDate',e.target.value);renderFollowup()});wrap.querySelectorAll('[data-owner-note]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerNote,'note',e.target.value);renderFollowup()});}
+function renderFollowOwnerControls(){
+  const owners=followupOwnerOptions();
+  if(!state.followOwner)state.followOwner=owners[0]||'';
+  const boardSel=byId('followOwnerBoardSel'),manageSel=byId('followOwnerManageSel');
+  if(boardSel)boardSel.innerHTML=ownerOptionHTML(state.followOwner);
+  if(manageSel)manageSel.innerHTML=owners.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+  const bulkReason=byId('ownerBulkReason');
+  if(bulkReason)bulkReason.innerHTML='<option value="">批量原因：不修改</option>'+normalizeReasonLibrary().map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+}
+function selectedOwnerFollowIds(){return Array.from(document.querySelectorAll('[data-owner-check]:checked')).map(el=>el.value)}
+function applyOwnerBulkUpdate(){
+  const ids=selectedOwnerFollowIds();
+  if(!ids.length){toast('请先勾选需要处理的骑手');return}
+  const status=byId('ownerBulkStatus')?.value||'',reason=byId('ownerBulkReason')?.value||'',date=byId('ownerBulkDate')?.value||'',note=(byId('ownerBulkNote')?.value||'').trim();
+  if(!status&&!reason&&!date&&!note){toast('请选择批量状态、变化原因，或填写下一步日期 / 备注');return}
+  ids.forEach(id=>{if(status)setFollow(id,'status',status);if(reason)setFollow(id,'reason',reason);if(date)setFollow(id,'nextDate',date);if(note)setFollow(id,'note',note)});
+  const all=byId('ownerSelectAll');if(all)all.checked=false;
+  if(byId('ownerBulkNote'))byId('ownerBulkNote').value='';
+  renderFollowup();renderProblems();toast(`已批量更新 ${ids.length} 名骑手`);
+}
+function renderFollowOwnerBoard(){
+  const wrap=byId('followOwnerBoard');if(!wrap)return;
+  renderFollowOwnerControls();
+  const owners=followupOwnerOptions();
+  const owner=state.followOwner||owners[0]||'';
+  const base=contactCandidateItems();
+  const ownerItems=base.filter(x=>String(getFollow(x.id).owner||'').trim()===owner);
+  const reviewMap=ownerReviewMap();
+  const countStatus=s=>ownerItems.filter(x=>getFollow(x.id).status===s).length;
+  const summary=byId('ownerBoardSummaryGrid');
+  if(summary)summary.innerHTML=[
+    ['负责人名下',ownerItems.length,owner?`${owner} 当前周期跟进清单`:'请选择负责人','blue'],
+    ['未联系',countStatus('未联系'),'负责人待触达骑手','purple'],
+    ['已联系',countStatus('已联系'),'已完成首次触达','green'],
+    ['继续观察',countStatus('继续观察'),'需要后续复查','amber']
+  ].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${esc(x[2])}</div></div>`).join('');
+  const title=byId('ownerBoardTitle');if(title)title.textContent=owner?`${owner} 的负责人跟进清单`:'负责人跟进清单';
+  const ownerTable=byId('ownerBoardTable');
+  if(ownerTable){
+    if(!ownerItems.length)ownerTable.innerHTML='<tr><td class="empty">该负责人当前暂无骑手。请到“跟进闭环”板块分配负责人。</td></tr>';
+    else{
+      let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>状态</th><th>原因</th><th>下一步</th><th>复盘</th><th>备注</th><th>更新</th></tr></thead><tbody>';
+      ownerItems.forEach(x=>{const f=getFollow(x.id),rv=reviewMap.get(x.id);html+=`<tr><td><input class="rowCheck" type="checkbox" data-owner-check value="${esc(x.id)}"></td><td><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)} · 风险 ${x.score}</div></td><td><select class="statusSelect" data-owner-status="${esc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-owner-reason="${esc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" type="date" data-owner-date="${esc(x.id)}" value="${esc(f.nextDate)}"></td><td>${rv?`<span class="effectTag ${rv.cls}">${esc(rv.effect)}</span><div class="reviewMini">${rv.next?esc(rv.next):'待下一周期'}</div>`:'<span class="effectTag pending">未复盘</span>'}</td><td><textarea class="followNote" data-owner-note="${esc(x.id)}" placeholder="负责人跟进备注">${esc(f.note)}</textarea>${noteHistoryHTML(x.id)}</td><td><span class="mini">${esc(f.updatedAt||'-')}</span></td></tr>`});
+      ownerTable.innerHTML=html+'</tbody>';
+    }
+  }
+  const boardSel=byId('followOwnerBoardSel');if(boardSel)boardSel.onchange=e=>{state.followOwner=e.target.value;renderFollowOwnerBoard()};
+  const toggleBtn=byId('toggleOwnerConfigBtn');if(toggleBtn)toggleBtn.onclick=()=>{const bar=byId('ownerConfigBar');if(!bar)return;const hidden=bar.style.display==='none'||!bar.style.display;bar.style.display=hidden?'flex':'none';toggleBtn.textContent=hidden?'隐藏负责人配置':'负责人配置'};
+  const addBtn=byId('addFollowOwnerBtn');if(addBtn)addBtn.onclick=addFollowupOwner;
+  const delBtn=byId('removeFollowOwnerBtn');if(delBtn)delBtn.onclick=removeFollowupOwner;
+  const ownerSelectAll=byId('ownerSelectAll');if(ownerSelectAll)ownerSelectAll.onchange=e=>{wrap.querySelectorAll('[data-owner-check]').forEach(ch=>ch.checked=e.target.checked)};
+  const applyBtn=byId('ownerBulkApplyBtn');if(applyBtn)applyBtn.onclick=applyOwnerBulkUpdate;
+  wrap.querySelectorAll('[data-owner-status]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerStatus,'status',e.target.value);renderFollowup();renderProblems()});
+  wrap.querySelectorAll('[data-owner-reason]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerReason,'reason',e.target.value);renderFollowup()});
+  wrap.querySelectorAll('[data-owner-date]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerDate,'nextDate',e.target.value);renderFollowup()});
+  wrap.querySelectorAll('[data-owner-note]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.ownerNote,'note',e.target.value);renderFollowup()});
+}
 
 function nRule(k){const v=Number(riskRules[k]);return Number.isFinite(v)?v:defaultRules[k]}
 function followKey(id,c=state.cycle){return c+'|'+id}
