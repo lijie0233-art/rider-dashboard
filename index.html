@@ -165,6 +165,11 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
 @media(max-width:900px){.todoFormGrid,.contactFormGrid{grid-template-columns:1fr}.todoStats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.todoStats{grid-template-columns:1fr}.contactInfoGrid{grid-template-columns:1fr}}
 
+
+/* System management and member growth */
+.menu-module-hidden{display:none!important}.systemSwitchGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.systemSwitchCard{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:13px}.systemSwitchCard b{display:block;font-size:14px}.systemSwitchCard span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.switchInput{width:44px;height:24px;appearance:none;background:#d0d5dd;border-radius:999px;position:relative;cursor:pointer;transition:.15s;flex:0 0 auto}.switchInput:checked{background:#111827}.switchInput:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 2px 6px rgba(0,0,0,.18)}.switchInput:checked:before{transform:translateX(20px)}.systemNote{line-height:1.65;color:#475467;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}.memberGrowth{margin-top:7px;max-width:170px}.memberGrowthTop{display:flex;align-items:center;justify-content:space-between;gap:6px}.memberGrowthTop strong{font-size:11px;color:#ffd400;white-space:nowrap}.memberGrowthTop em{font-style:normal;font-size:10px;color:#9fb1ca;white-space:nowrap}.memberGrowthBar{height:6px;background:rgba(255,255,255,.16);border-radius:999px;overflow:hidden;margin-top:5px}.memberGrowthBar i{display:block;height:100%;width:0;background:#ffd400;border-radius:999px;transition:.2s}.memberGrowth small{display:block;font-size:10px;color:#8fa1bc;margin-top:4px;line-height:1.25}.memberGrowthStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}.memberGrowthStats .snap .n{font-size:22px}
+body.sidebar-collapsed .memberGrowth{display:none}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -215,18 +220,19 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
       <button class="active" data-tab="overview"><span class="menuIcon">📊</span><span class="menuLabel">总览</span></button>
       <button data-tab="todoList"><span class="menuIcon">📝</span><span class="menuLabel">待办事项</span></button>
       <button data-tab="problems"><span class="menuIcon">⚠️</span><span class="menuLabel">问题骑手</span></button>
-      <button data-tab="compare"><span class="menuIcon">🧩</span><span class="menuLabel">多人对比</span></button>
-      <button data-tab="diagnosis"><span class="menuIcon">📈</span><span class="menuLabel">趋势诊断</span></button>
       <button data-tab="followup"><span class="menuIcon">✅</span><span class="menuLabel">跟进闭环</span></button>
       <button data-tab="ownerFollowup"><span class="menuIcon">👥</span><span class="menuLabel">专人跟进</span></button>
+      <button data-tab="diagnosis"><span class="menuIcon">📈</span><span class="menuLabel">趋势诊断</span></button>
+      <button data-tab="compare"><span class="menuIcon">🧩</span><span class="menuLabel">多人对比</span></button>
+      <button data-tab="profile"><span class="menuIcon">👤</span><span class="menuLabel">单骑手跟踪</span></button>
       <button data-tab="communicationManual"><span class="menuIcon">💬</span><span class="menuLabel">沟通手册</span></button>
       <button data-tab="riderContacts"><span class="menuIcon">☎️</span><span class="menuLabel">骑手通讯录</span></button>
       <button data-tab="weeklyReport"><span class="menuIcon">🗞️</span><span class="menuLabel">站长周报</span></button>
-      <button data-tab="profile"><span class="menuIcon">👤</span><span class="menuLabel">单骑手追踪</span></button>
+      <button data-tab="systemManagement"><span class="menuIcon">⚙️</span><span class="menuLabel">系统管理</span></button>
     </nav>
     <div class="sidebarFoot" id="sidebarUserInfo">
       <div class="sidebarAvatar" id="sidebarUserAvatar">👤</div>
-      <div class="sidebarFootText"><b id="sidebarUserEmail">未登录</b><span id="sidebarUserRole">-</span></div>
+      <div class="sidebarFootText"><b id="sidebarUserEmail">未登录</b><span id="sidebarUserRole">-</span><div class="memberGrowth" id="memberGrowthBox"><div class="memberGrowthTop"><strong id="memberGrowthLevel">L1 实习司管</strong><em id="memberGrowthXp">0 XP</em></div><div class="memberGrowthBar"><i id="memberGrowthBar"></i></div><small id="memberGrowthHint">联系骑手、改善骑手和使用看板可增加经验</small></div></div>
     </div>
   </aside>
   <div class="appTopbar">
@@ -571,10 +577,27 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
   </div>
 </section>
 
+
+<section id="systemManagement" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div><h2>系统管理</h2><div class="sub">管理看板模块显示、成员成长等级等基础设置。</div></div>
+      <div class="inlineActions"><button class="btn primary small" id="saveModuleSwitchBtn">保存菜单开关</button><button class="btn small" id="resetModuleSwitchBtn">恢复全部显示</button></div>
+    </div>
+    <div class="systemNote">关闭的模块将从左侧菜单栏中隐藏，但不会删除任何业务数据。保存后会立即生效，刷新页面后仍按当前设置显示。</div>
+    <div class="panelHead"><div><h2>菜单模块开关</h2><div class="sub">总览和系统管理默认固定显示，其余模块可按需要隐藏。</div></div></div>
+    <div class="systemSwitchGrid" id="moduleSwitchGrid"></div>
+  </div>
+  <div class="panel">
+    <div class="panelHead"><div><h2>账号成员成长</h2><div class="sub">通过联系骑手、改善骑手和使用看板时长累计经验值，获得等级成就。</div></div></div>
+    <div class="memberGrowthStats" id="memberGrowthStats"></div>
+  </div>
+</section>
+
 <section id="profile" class="tab">
   <div class="panel">
     <div class="panelHead">
-      <div><h2>单骑手追踪</h2><div class="sub">可通过顶部“搜索骑手 / ID”筛选，也可从问题清单点击“跟踪”直接进入。</div></div>
+      <div><h2>单骑手跟踪</h2><div class="sub">可通过顶部“搜索骑手 / ID”筛选，也可从问题清单点击“跟踪”直接进入。</div></div>
     </div>
     <div class="profileToolbar">
       <label class="field lightField"><span>搜索骑手 / ID</span><input id="profileSearchInp" placeholder="输入姓名或 ID，自动筛选下方骑手" /></label>
@@ -722,6 +745,7 @@ function updateAuthHeader(){
     if(sideAvatar)sideAvatar.textContent='\u{1F464}';
     if(sideEmail)sideEmail.textContent='\u672A\u767B\u5F55';
     if(sideRole)sideRole.textContent='-';
+    memberGrowth={xp:0,contacted_count:0,improved_count:0,view_minutes:0};renderMemberGrowth();
     return;
   }
   const roleText=acc.role==='admin'?'\u7BA1\u7406\u5458':'\u4F1A\u5458';
@@ -736,6 +760,7 @@ function updateAuthHeader(){
   setDisplay(navBtn,showAdmin);
   setDisplay(floatBtn,showAdmin);
   setDisplay(logoutBtn,'inline-flex');
+  renderMemberGrowth();
 }
 
 function showLogin(msg=''){
@@ -751,6 +776,9 @@ async function showApp(){
   const screen=byId('authScreen');
   if(screen)screen.style.display='none';
   updateAuthHeader();
+  await loadModuleSwitchConfig();
+  await loadMemberGrowth();
+  startMemberGrowthTimer();
   await loadCloudFollowups();
   await loadFollowupOwners();
   subscribeFollowupsRealtime();
@@ -779,6 +807,7 @@ async function loginAuth(){
 }
 async function logoutAuth(){
   await unsubscribeFollowupsRealtime();
+  stopMemberGrowthTimer();
   stopStationReportScheduler();
   try{await getCloudClient().auth.signOut()}catch(e){}
   cloudUser=null;cloudProfile=null;cloudAuthRole='member';
@@ -820,6 +849,53 @@ async function initAuth(){
 
 function safeGet(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch(e){return f}}
 function safeSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('备注存储失败：浏览器本地空间不足')}}
+
+const SYSTEM_SETTINGS_TABLE='system_module_settings';
+const MODULE_SWITCH_KEY='menu_module_switches';
+const MODULE_SWITCH_LOCAL_KEY='rider_menu_module_switches_v1';
+const MODULE_META=[
+  {tab:'todoList',label:'待办事项',desc:'本周任务、负责人、截止时间'},
+  {tab:'problems',label:'问题骑手',desc:'风险识别和问题清单'},
+  {tab:'followup',label:'跟进闭环',desc:'批量跟进、状态和复盘'},
+  {tab:'ownerFollowup',label:'专人跟进',desc:'按负责人查看跟进名单'},
+  {tab:'diagnosis',label:'趋势诊断',desc:'多周期趋势和持续下滑'},
+  {tab:'compare',label:'多人对比',desc:'多骑手指标横向对比'},
+  {tab:'profile',label:'单骑手跟踪',desc:'单个骑手周期趋势'},
+  {tab:'communicationManual',label:'沟通手册',desc:'问题标签沟通话术'},
+  {tab:'riderContacts',label:'骑手通讯录',desc:'ID 与手机号维护'},
+  {tab:'weeklyReport',label:'站长周报',desc:'周报生成和钉钉推送'}
+];
+let moduleSwitchConfig=normalizeModuleSwitchConfig(safeGet(MODULE_SWITCH_LOCAL_KEY,{}));
+function normalizeModuleSwitchConfig(c={}){const out={};MODULE_META.forEach(m=>out[m.tab]=c[m.tab]!==false);return out}
+function applyModuleSwitches(){moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);MODULE_META.forEach(m=>{document.querySelectorAll(`.sideNav button[data-tab="${m.tab}"]`).forEach(btn=>btn.classList.toggle('menu-module-hidden',moduleSwitchConfig[m.tab]===false))});const cur=state.tab;if(cur&&moduleSwitchConfig[cur]===false){selectTab('overview')}}
+async function loadModuleSwitchConfig(){try{const client=getCloudClient();const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',MODULE_SWITCH_KEY).maybeSingle();if(!error&&data?.config){moduleSwitchConfig=normalizeModuleSwitchConfig(data.config);safeSet(MODULE_SWITCH_LOCAL_KEY,moduleSwitchConfig)}}catch(e){moduleSwitchConfig=normalizeModuleSwitchConfig(safeGet(MODULE_SWITCH_LOCAL_KEY,{}))}applyModuleSwitches()}
+async function saveModuleSwitchConfig(){moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);safeSet(MODULE_SWITCH_LOCAL_KEY,moduleSwitchConfig);try{const client=getCloudClient();await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:MODULE_SWITCH_KEY,config:moduleSwitchConfig,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'})}catch(e){console.warn('菜单模块开关云端保存失败，已保存到本机：',e?.message||e)}applyModuleSwitches();renderSystemManagement();toast('菜单模块开关已保存')}
+function renderSystemManagement(){const grid=byId('moduleSwitchGrid');if(!grid)return;moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);grid.innerHTML=MODULE_META.map(m=>`<label class="systemSwitchCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><input class="switchInput" type="checkbox" data-module-switch="${esc(m.tab)}" ${moduleSwitchConfig[m.tab]!==false?'checked':''}></label>`).join('');grid.querySelectorAll('[data-module-switch]').forEach(el=>el.onchange=()=>{moduleSwitchConfig[el.dataset.moduleSwitch]=el.checked});renderMemberGrowthStats()}
+function bindSystemManagementControls(){const save=byId('saveModuleSwitchBtn');if(save)save.onclick=saveModuleSwitchConfig;const reset=byId('resetModuleSwitchBtn');if(reset)reset.onclick=()=>{moduleSwitchConfig=normalizeModuleSwitchConfig({});saveModuleSwitchConfig()}}
+
+const MEMBER_GROWTH_TABLE='account_member_growth';
+const MEMBER_GROWTH_LOCAL_KEY='rider_member_growth_v1';
+const MEMBER_GROWTH_AWARD_KEY='rider_member_growth_awards_v1';
+let memberGrowth={xp:0,contacted_count:0,improved_count:0,view_minutes:0};
+let memberGrowthTimer=null;
+const MEMBER_LEVELS=[{level:'L1',title:'实习司管',min:0,next:100},{level:'L2',title:'见习司管',min:100,next:300},{level:'L3',title:'专任司管',min:300,next:700},{level:'L4',title:'全能司管',min:700,next:null}];
+function growthUserKey(){return cloudUser?.id||cloudUser?.email||'guest'}
+function growthLocalAll(){return safeGet(MEMBER_GROWTH_LOCAL_KEY,{})}
+function growthAwardAll(){return safeGet(MEMBER_GROWTH_AWARD_KEY,{})}
+function normalizeGrowth(g={}){return{xp:Math.max(0,+g.xp||0),contacted_count:+g.contacted_count||0,improved_count:+g.improved_count||0,view_minutes:+g.view_minutes||0}}
+function memberLevel(xp=0){let cur=MEMBER_LEVELS[0];for(const l of MEMBER_LEVELS){if(xp>=l.min)cur=l}return cur}
+function memberProgress(){const lvl=memberLevel(memberGrowth.xp),next=lvl.next;if(!next)return 100;return Math.max(0,Math.min(100,Math.round((memberGrowth.xp-lvl.min)/(next-lvl.min)*100)))}
+function renderMemberGrowth(){const lvl=memberLevel(memberGrowth.xp),bar=byId('memberGrowthBar'),level=byId('memberGrowthLevel'),xp=byId('memberGrowthXp'),hint=byId('memberGrowthHint');if(level)level.textContent=`${lvl.level} ${lvl.title}`;if(xp)xp.textContent=`${memberGrowth.xp} XP`;if(bar)bar.style.width=memberProgress()+'%';if(hint)hint.textContent=lvl.next?`距下一等级还需 ${Math.max(0,lvl.next-memberGrowth.xp)} XP`:'已达最高等级';renderMemberGrowthStats()}
+function renderMemberGrowthStats(){const box=byId('memberGrowthStats');if(!box)return;const lvl=memberLevel(memberGrowth.xp);box.innerHTML=[['当前等级',`${lvl.level} ${lvl.title}`,`${memberGrowth.xp} XP`,'blue'],['已联系骑手',memberGrowth.contacted_count,'状态更新为“已联系”累计','green'],['改善骑手',memberGrowth.improved_count,'状态更新为“已改善”累计','amber'],['看板时长',memberGrowth.view_minutes+' 分钟','每使用 1 分钟 +1 XP','blue']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('')}
+async function loadMemberGrowth(){const all=growthLocalAll();memberGrowth=normalizeGrowth(all[growthUserKey()]||{});try{const client=getCloudClient();const {data,error}=await client.from(MEMBER_GROWTH_TABLE).select('*').eq('user_id',cloudUser.id).maybeSingle();if(!error&&data){memberGrowth=normalizeGrowth(data);all[growthUserKey()]=memberGrowth;safeSet(MEMBER_GROWTH_LOCAL_KEY,all)}}catch(e){console.warn('成员成长云表未启用，暂用本机记录：',e?.message||e)}renderMemberGrowth()}
+async function saveMemberGrowth(){memberGrowth=normalizeGrowth(memberGrowth);const all=growthLocalAll();all[growthUserKey()]=memberGrowth;safeSet(MEMBER_GROWTH_LOCAL_KEY,all);renderMemberGrowth();try{const client=getCloudClient();await client.from(MEMBER_GROWTH_TABLE).upsert({user_id:cloudUser.id,email:cloudUser.email||'',...memberGrowth,updated_at:new Date().toISOString()},{onConflict:'user_id'})}catch(e){console.warn('成员成长云端保存失败：',e?.message||e)}}
+function growthAwarded(key){const all=growthAwardAll(),uid=growthUserKey();return !!(all[uid]&&all[uid][key])}
+function markGrowthAwarded(key){const all=growthAwardAll(),uid=growthUserKey();all[uid]=all[uid]||{};all[uid][key]=true;safeSet(MEMBER_GROWTH_AWARD_KEY,all)}
+function addMemberGrowthXp(amount,extra={}){if(!cloudUser||!amount)return;memberGrowth=normalizeGrowth(memberGrowth);memberGrowth.xp+=amount;if(extra.contacted)memberGrowth.contacted_count+=extra.contacted;if(extra.improved)memberGrowth.improved_count+=extra.improved;if(extra.minutes)memberGrowth.view_minutes+=extra.minutes;saveMemberGrowth()}
+function awardMemberGrowthForFollow(field,oldVal,newVal,key){if(field!=='status'||String(oldVal||'')===String(newVal||''))return;if(String(newVal)==='已联系'){const k=`${key}|contacted`;if(!growthAwarded(k)){markGrowthAwarded(k);addMemberGrowthXp(10,{contacted:1});toast('成员成长 +10 XP：完成一次骑手联系')}}if(String(newVal)==='已改善'){const k=`${key}|improved`;if(!growthAwarded(k)){markGrowthAwarded(k);addMemberGrowthXp(30,{improved:1});toast('成员成长 +30 XP：记录一名改善骑手')}}}
+function startMemberGrowthTimer(){stopMemberGrowthTimer();memberGrowthTimer=setInterval(()=>addMemberGrowthXp(1,{minutes:1}),60000)}
+function stopMemberGrowthTimer(){if(memberGrowthTimer)clearInterval(memberGrowthTimer);memberGrowthTimer=null}
+
 const STATION_REPORT_CONFIG_TABLE='station_weekly_report_configs';
 const STATION_REPORT_HISTORY_TABLE='station_weekly_reports';
 const STATION_REPORT_LOCAL_CONFIG_KEY='station_weekly_report_config_v1';
@@ -987,7 +1063,7 @@ function scheduleFollowupRealtimeRefresh(payload){if(payload?.eventType==='DELET
 function subscribeFollowupsRealtime(){if(followupsRealtimeChannel||!cloudUser)return;try{const client=getCloudClient();followupsRealtimeChannel=client.channel('rider_followups_realtime').on('postgres_changes',{event:'*',schema:'public',table:FOLLOWUP_CLOUD_TABLE},payload=>scheduleFollowupRealtimeRefresh(payload)).subscribe(status=>{if(status==='SUBSCRIBED'){const s=byId('importStatus');if(s&&!String(s.textContent||'').includes('跟进闭环实时同步已开启'))s.textContent=(s.textContent||'')+' · 跟进闭环实时同步已开启'}})}catch(e){console.warn('跟进闭环实时同步开启失败：',e?.message||e);toast('跟进闭环实时同步开启失败，请确认 Supabase Realtime 已启用')}}
 async function unsubscribeFollowupsRealtime(){if(!followupsRealtimeChannel)return;try{await getCloudClient().removeChannel(followupsRealtimeChannel)}catch(e){}followupsRealtimeChannel=null;if(followupsRealtimeTimer)clearTimeout(followupsRealtimeTimer);followupsRealtimeTimer=null}
 async function saveFollowupCloud(key,f){if(!cloudUser){toast('请先登录后再保存跟进记录');return false}try{const client=getCloudClient();const {error}=await client.from(FOLLOWUP_CLOUD_TABLE).upsert(cloudFollowupPayload(key,f),{onConflict:'follow_key'});if(error)throw error;followupsCloudReady=true;return true}catch(e){console.warn('跟进记录云端保存失败，已保留在本机缓存：',e?.message||e);toast('跟进记录云端保存失败：请执行新版 SQL，确认 rider_followups 有 change_history 字段和写入权限');return false}}
-function setFollow(id,field,value,c=state.cycle){const key=followKey(id,c),old=getFollow(id,c),now=new Date().toLocaleString(),label=followFieldLabels[field]||field;const oldVal=String(old[field]??'');const newVal=String(value??'');const next={...old,[field]:value,updatedAt:now};const changeHistory=[...normalizeChangeHistory(old)];if(oldVal!==newVal&&['status','reason','owner','nextDate','note'].includes(field)){changeHistory.push({time:now,field,label,oldValue:oldVal,newValue:newVal,user:cloudUser?.email||''})}next.changeHistory=changeHistory;if(field==='note'){const oldNote=String(old.note||'').trim(),newNote=String(value||'').trim(),history=[...normalizeNoteHistory(old)];if(newNote&&newNote!==oldNote)history.push({time:now,note:newNote});next.noteHistory=history}followups[key]=next;safeSet('rider_v5_followups',followups);saveFollowupCloud(key,next)}
+function setFollow(id,field,value,c=state.cycle){const key=followKey(id,c),old=getFollow(id,c),now=new Date().toLocaleString(),label=followFieldLabels[field]||field;const oldVal=String(old[field]??'');const newVal=String(value??'');awardMemberGrowthForFollow(field,oldVal,newVal,key);const next={...old,[field]:value,updatedAt:now};const changeHistory=[...normalizeChangeHistory(old)];if(oldVal!==newVal&&['status','reason','owner','nextDate','note'].includes(field)){changeHistory.push({time:now,field,label,oldValue:oldVal,newValue:newVal,user:cloudUser?.email||''})}next.changeHistory=changeHistory;if(field==='note'){const oldNote=String(old.note||'').trim(),newNote=String(value||'').trim(),history=[...normalizeNoteHistory(old)];if(newNote&&newNote!==oldNote)history.push({time:now,note:newNote});next.noteHistory=history}followups[key]=next;safeSet('rider_v5_followups',followups);saveFollowupCloud(key,next)}
 function saveFollowContactConfig(){safeSet('rider_v6_follow_contact_config',followContactConfig)}function followContactHint(){const baseMap={problem:'问题骑手',activeCur:'当前活跃骑手',all:'全部骑手'},mode=followContactConfig.orderMode||'all',min=Number(followContactConfig.orderMin)||0,max=Number(followContactConfig.orderMax)||0;let rule='不限制跑单量';if(mode==='lt')rule=`跑单量低于 ${min} 单`;if(mode==='gte')rule=`跑单量高于等于 ${min} 单`;if(mode==='between')rule=`跑单量在 ${min}–${max} 单之间`;return `当前待联系人群：${baseMap[followContactConfig.base]||'问题骑手'}，${rule}。`}
 function updateFollowConfigFromInputs(){const get=id=>byId(id);followContactConfig={base:get('followBaseSel')?.value||'problem',orderMode:get('followOrderModeSel')?.value||'all',orderMin:Number(get('followOrderMinInp')?.value)||0,orderMax:Number(get('followOrderMaxInp')?.value)||999999};if(followContactConfig.orderMode==='between'&&followContactConfig.orderMax<followContactConfig.orderMin){const t=followContactConfig.orderMin;followContactConfig.orderMin=followContactConfig.orderMax;followContactConfig.orderMax=t}saveFollowContactConfig();renderFollowup();toast('待联系人群配置已应用')}
 function applyFollowConfigToInputs(){const set=(id,v)=>{const el=byId(id);if(el)el.value=v};set('followBaseSel',followContactConfig.base||'problem');set('followOrderModeSel',followContactConfig.orderMode||'all');set('followOrderMinInp',followContactConfig.orderMin||0);set('followOrderMaxInp',followContactConfig.orderMax===999999?'':followContactConfig.orderMax);const hint=byId('followRuleHint');if(hint)hint.textContent=followContactHint()}
@@ -1046,7 +1122,7 @@ function analyze(c=state.cycle,comp=state.compare){
   return{items};
 }
 function filteredProblems(){let items=analyze().items.filter(x=>x.score>0);if(state.issue!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.issue));if(state.risk==='high')items=items.filter(x=>x.level==='high');if(state.risk==='mid')items=items.filter(x=>x.level==='mid');if(state.action!=='all')items=items.filter(x=>x.action===state.action);if(state.dropMetric!=='all')items=items.filter(x=>x.issues.some(i=>i.key===state.dropMetric+'Drop'));if(state.activity==='activeCur')items=items.filter(x=>x.curAct);if(state.activity==='lost')items=items.filter(x=>x.preAct&&!x.curAct);if(state.activity==='new')items=items.filter(x=>x.curAct&&!x.preAct);if(state.activity==='both')items=items.filter(x=>x.curAct&&x.preAct);items=items.filter(x=>x.score>=state.minScore);const drop=(x,k)=>Math.max(0,val(x.pre,k)-val(x.cur,k));const pctDrop=(x,k)=>val(x.pre,k)>0?drop(x,k)/val(x.pre,k):0;items.sort((a,b)=>{if(state.sort==='ordersAmt')return drop(b,'orders')-drop(a,'orders');if(state.sort==='ordersPct')return pctDrop(b,'orders')-pctDrop(a,'orders');if(state.sort==='incomeAmt')return drop(b,'income')-drop(a,'income');if(state.sort==='hourlyPct')return pctDrop(b,'hourly')-pctDrop(a,'hourly');if(state.sort==='durationAmt')return drop(b,'duration')-drop(a,'duration');return b.score-a.score});return items}
-function renderAll(){renderBadge();renderWeekStrip();renderKpis();renderOverview();renderProblems();renderCompare();renderDiagnosis();renderFollowup();renderTodoList();renderStationWeeklyReport();renderCommunicationManual();renderRiderContacts();renderProfile();drawCharts();setTimeout(decorateRiderIds,0)}
+function renderAll(){applyModuleSwitches();renderBadge();renderWeekStrip();renderKpis();renderOverview();renderProblems();renderCompare();renderDiagnosis();renderFollowup();renderTodoList();renderStationWeeklyReport();renderCommunicationManual();renderRiderContacts();renderSystemManagement();renderMemberGrowth();renderProfile();drawCharts();setTimeout(decorateRiderIds,0)}
 function renderBadge(){byId('dataBadge').textContent=rows.length?`${meta.sourceFile||'已导入'} · ${rows.length}行 · ${riders.length}骑手 · ${cycles.length}周`:'暂无数据'}
 function renderWeekStrip(){const el=byId('weekStrip');if(!rows.length){el.innerHTML='<div class="noDataBox" style="grid-column:1/-1"><b>暂无数据</b>登录后系统会自动读取 Supabase 云表；也可以点击“刷新云数据”。</div>';return}el.innerHTML=cycles.map(c=>{const a=aggregate(c);return `<div class="weekCard ${c===state.cycle?'active':''}" data-cycle="${esc(c)}"><b>${esc(c)}</b><div class="miniGrid"><span>骑手 <strong>${a.active}</strong></span><span>跑单 <strong>${fmt(a.orders,'orders')}</strong></span><span>收入 <strong>${fmt(a.income,'income')}</strong></span><span>时薪 <strong>${fmt(a.hourly,'hourly')}</strong></span></div></div>`}).join('');el.querySelectorAll('.weekCard').forEach(x=>x.onclick=()=>{state.cycle=x.dataset.cycle;const idx=cycles.indexOf(state.cycle);state.compare=cycles[Math.max(0,idx-1)]||state.cycle;refreshControls();renderAll()})}
 function renderKpis(){const el=byId('kpiGrid');if(!rows.length){el.innerHTML='';return}const cur=aggregate(state.cycle),pre=aggregate(state.compare);const list=[['活跃骑手',cur.active,pre.active,'orders'],['跑单量',cur.orders,pre.orders,'orders'],['总收入',cur.income,pre.income,'income'],['综合时薪',cur.hourly,pre.hourly,'hourly']];el.innerHTML=list.map(([lab,cv,pv,k])=>`<div class="kpi"><div class="label">${lab}</div><div class="value">${fmt(cv,k)}</div>${deltaHTML(cv,pv,k)}</div>`).join('')}
@@ -1112,7 +1188,7 @@ const diagMetric=byId('diagnosisMetricSel');if(diagMetric)diagMetric.onchange=e=
 const diagLook=byId('diagnosisLookbackSel');if(diagLook)diagLook.onchange=e=>{state.diagnosisLookback=e.target.value;renderDiagnosis();drawDiagnosis()};
 const diagSearch=byId('diagnosisSearchInp');if(diagSearch)diagSearch.oninput=()=>renderDiagnosis();
 const exportDiag=byId('exportDiagnosisBtn');if(exportDiag)exportDiag.onclick=exportDiagnosis;
-const toggleReason=byId('toggleReasonLibraryBtn');if(toggleReason)toggleReason.onclick=()=>{const box=byId('reasonLibraryBox');if(box){box.classList.toggle('reasonHidden');toggleReason.textContent=box.classList.contains('reasonHidden')?'打开变化原因库':'隐藏变化原因库'}};window.addEventListener('resize',()=>drawCharts());bindStationReportControls();bindCommunicationManualControls();bindTodoControls();bindRiderContactControls()}
+const toggleReason=byId('toggleReasonLibraryBtn');if(toggleReason)toggleReason.onclick=()=>{const box=byId('reasonLibraryBox');if(box){box.classList.toggle('reasonHidden');toggleReason.textContent=box.classList.contains('reasonHidden')?'打开变化原因库':'隐藏变化原因库'}};window.addEventListener('resize',()=>drawCharts());bindStationReportControls();bindCommunicationManualControls();bindTodoControls();bindRiderContactControls();bindSystemManagementControls()}
 
 
 function currentWeekKey(d=new Date()){
@@ -1146,7 +1222,7 @@ function bindRiderContactControls(){const save=byId('saveContactBtn');if(save)sa
 function showRiderContact(id){contactModalCurrentId=String(id);const c=riderContacts[contactModalCurrentId];const name=getContactName(contactModalCurrentId,c);const box=byId('contactInfoGrid');if(box){box.innerHTML=`<b>骑手 ID</b><span>${esc(contactModalCurrentId)}</span><b>骑手姓名</b><span>${esc(name||'-')}</span><b>手机号</b><span class="contactPhone">${c?.phone?esc(c.phone):'暂无手机号'}</span><b>备注</b><span>${esc(c?.note||'-')}</span>`}const sub=byId('contactModalSub');if(sub)sub.textContent=c?'已从骑手通讯录读取':'通讯录暂无该 ID，可点击下方维护';byId('contactModal')?.classList.add('show')}
 function decorateRiderIds(){try{document.querySelectorAll('.mini').forEach(el=>{if(el.dataset.contactDecorated==='1')return;const text=el.textContent||'';const m=text.match(/ID\s+([^\s]+)/);if(!m)return;const id=m[1].replace(/[，,。;；]/g,'');el.innerHTML=esc(text).replace(/ID\s+([^\s]+)/,`ID <span class="contactMiniBtn" data-contact-id="${esc(id)}" role="button" tabindex="0">${esc(id)}</span>`);el.dataset.contactDecorated='1'});document.querySelectorAll('[data-track]').forEach(btn=>{const id=btn.dataset.track;if(!id||btn.querySelector('.contactMiniBtn'))return;const mini=btn.querySelector('.mini');if(mini&&!mini.dataset.contactDecorated){mini.innerHTML=`ID <span class="contactMiniBtn" data-contact-id="${esc(id)}" role="button" tabindex="0">${esc(id)}</span>`;mini.dataset.contactDecorated='1'}})}catch(e){console.warn('decorateRiderIds failed',e)}}
 
-function selectTab(tab){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;if(tab==='todoList')renderTodoList();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='communicationManual')renderCommunicationManual();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){state.selected=id;selectTab('profile');refreshControls();renderProfile();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
+function selectTab(tab){if(moduleSwitchConfig[tab]===false&&tab!=='overview'&&tab!=='systemManagement')tab='overview';document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;applyModuleSwitches();if(tab==='todoList')renderTodoList();if(tab==='ownerFollowup')renderFollowOwnerBoard();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='communicationManual')renderCommunicationManual();if(tab==='systemManagement')renderSystemManagement();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){state.selected=id;selectTab('profile');refreshControls();renderProfile();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
 function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
 function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function downloadBlob(text,filename,type='text/csv;charset=utf-8'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
 function downloadTemplate(){const sample=['100001','示例骑手 Zhang San','120','980.5','32.7','30.0','4.0','W70'];if(window.XLSX){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([columns,sample]);XLSX.utils.book_append_sheet(wb,ws,'Sheet1');XLSX.writeFile(wb,'骑手数据导入模版.xlsx');toast('已下载 XLSX 模版');return}const csv='\ufeff'+[columns,sample].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,'骑手数据导入模版.csv');toast('已下载 CSV 模版')}
