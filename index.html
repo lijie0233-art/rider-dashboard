@@ -189,6 +189,9 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 .donateHead{display:flex;gap:12px;align-items:center;margin-bottom:12px}.donateIcon{width:44px;height:44px;border-radius:16px;background:#fff4b8;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:inset 0 0 0 1px rgba(234,179,8,.25)}
 .donateHead h3{margin:0;font-size:18px;letter-spacing:-.02em}.donateHead p{margin:3px 0 0;color:#667085;font-size:12px;line-height:1.5}.donateAmountGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.donateAmount{border:1px solid #e5e7eb;background:#fff;border-radius:16px;padding:11px 8px;text-align:center;font-weight:950;color:#344054;cursor:pointer;transition:.14s}.donateAmount:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(16,24,40,.08)}.donateAmount.active{background:#111827;color:#ffd400;border-color:#111827}.donateCustomBox{display:none;margin:2px 0 12px}.donateCustomBox.show{display:block}.donateCustomBox input{width:100%;border:1px solid #d0d5dd;border-radius:14px;background:#fff;padding:12px 13px;color:#111827}.donatePayBtn{width:100%;border:0;background:#111827;color:#ffd400;border-radius:16px;padding:13px 14px;font-weight:950;cursor:pointer;box-shadow:0 10px 24px rgba(17,24,39,.15)}.donatePayBtn:hover{filter:brightness(1.05);transform:translateY(-1px)}.donateDisclaimer{font-size:12px;color:#667085;line-height:1.55;margin-top:11px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:10px}.donateThanksPanel{text-align:center;margin-top:86px}.donateThanksMark{width:56px;height:56px;margin:6px auto 12px;border-radius:20px;background:#fff4b8;display:flex;align-items:center;justify-content:center;font-size:26px}.donateThanksPanel h3{margin:0 0 8px;font-size:19px}.donateThanksPanel p{margin:6px 0;color:#475467;line-height:1.6;font-weight:750}.donateThanksPanel small{display:block;margin-top:10px;color:#98a2b3;font-size:12px}@media(max-width:760px){.donateTopBtn{padding:8px 10px;font-size:12px}.donateLayer,.donateThanksLayer{align-items:flex-start;justify-content:center;padding:12px}.donatePanel,.donateThanksPanel{margin-top:56px}.donateAmountGrid{grid-template-columns:repeat(2,1fr)}}
 
+
+/* Sydney clock in top bar */
+.sydneyClock{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:7px 11px;min-width:150px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap}.sydneyClock b{font-size:13px;color:#172033;line-height:1}.sydneyClock span{font-size:11px;color:#667085;line-height:1.1}.sydneyClock:before{content:'悉尼';display:inline-flex;align-self:flex-end;background:#fff7cc;color:#7a4f00;border:1px solid #f6d85f;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:950;margin-bottom:1px}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{min-width:auto;padding:7px 9px}.sydneyClock span{display:none}.sydneyClock:before{display:none}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock b{font-size:12px}.sydneyClock{padding:6px 8px}.donateTopBtn{padding:8px 10px!important}}
 </style>
 </head>
 <body class="auth-locked">
@@ -258,8 +261,11 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
   <div class="appTopbar">
     <div class="topbarTitle">骑手核心数据看板</div>
     <label class="topSearch"><span>🔎</span><input id="searchInp" placeholder="搜索骑手姓名 / ID" /></label>
-    <div class="topbarHint">云数据实时同步</div>
-    <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button>
+    <div class="topbarActions">
+      <div class="topbarHint">云数据实时同步</div>
+      <div class="sydneyClock" id="sydneyClock" aria-label="悉尼当地时间"><b id="sydneyClockTime">--:--:--</b><span id="sydneyClockDate">----/--/--</span></div>
+      <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button>
+    </div>
   </div>
 <header class="hero" id="hero">
   <div class="heroTop">
@@ -1371,6 +1377,27 @@ function drawMultiLine(ctx,canvas,labels,series,k){const w=canvas.clientWidth,h=
 function drawDiagnosis(){const c=byId('diagnosisCanvas');if(!c)return;const ctx=fitCanvas(c);if(!ctx)return;const metric=state.diagnosisMetric||state.metric;if(!rows.length){emptyCanvas(ctx,c.clientWidth,c.clientHeight,'暂无趋势诊断数据');return}const win=trendWindow();const values=win.map(w=>aggregate(w)[metric]);const title=byId('diagnosisChartTitle');if(title)title.textContent=`团队${mMap[metric].label}趋势`;drawLine(ctx,c,win,values,metric)}
 function emptyCanvas(ctx,w,h,t){ctx.clearRect(0,0,w,h);ctx.fillStyle='#667085';ctx.textAlign='center';ctx.font='13px system-ui';ctx.fillText(t,w/2,h/2)}
 
+
+function initSydneyClock(){
+  const timeEl=byId('sydneyClockTime'),dateEl=byId('sydneyClockDate');
+  if(!timeEl||!dateEl)return;
+  const update=()=>{
+    const now=new Date();
+    try{
+      const dateParts=new Intl.DateTimeFormat('zh-CN',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).format(now);
+      const timeParts=new Intl.DateTimeFormat('zh-CN',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+      timeEl.textContent=timeParts;
+      dateEl.textContent=dateParts;
+    }catch(e){
+      timeEl.textContent=now.toLocaleTimeString('zh-CN');
+      dateEl.textContent=now.toLocaleDateString('zh-CN');
+    }
+  };
+  update();
+  clearInterval(window.__sydneyClockTimer);
+  window.__sydneyClockTimer=setInterval(update,1000);
+}
+
 function initDonationFeature(){
   const openBtn=byId('donateFloatBtn'),layer=byId('donateLayer'),closeBtn=byId('donateCloseBtn'),amountGrid=byId('donateAmountGrid'),customBox=byId('donateCustomBox'),customInput=byId('donateCustomInput'),payBtn=byId('donatePayBtn'),thanks=byId('donateThanksLayer'),thanksClose=byId('donateThanksCloseBtn');
   if(!openBtn||!layer||!amountGrid||!payBtn||!thanks)return;
@@ -1400,7 +1427,7 @@ function initDonationFeature(){
   };
 }
 
-rebuildData(false);refreshControls();bind();renderAll();initDonationFeature();initAuth();
+rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initAuth();
 </script>
 </body>
 </html>
