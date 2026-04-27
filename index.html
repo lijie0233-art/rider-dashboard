@@ -217,6 +217,7 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
       <button data-tab="compare"><span class="menuIcon">🧩</span><span class="menuLabel">多人对比</span></button>
       <button data-tab="diagnosis"><span class="menuIcon">📈</span><span class="menuLabel">趋势诊断</span></button>
       <button data-tab="followup"><span class="menuIcon">✅</span><span class="menuLabel">跟进闭环</span></button>
+      <button data-tab="ownerFollowup"><span class="menuIcon">👥</span><span class="menuLabel">专人跟进</span></button>
       <button data-tab="communicationManual"><span class="menuIcon">💬</span><span class="menuLabel">沟通手册</span></button>
       <button data-tab="riderContacts"><span class="menuIcon">☎️</span><span class="menuLabel">骑手通讯录</span></button>
       <button data-tab="weeklyReport"><span class="menuIcon">🗞️</span><span class="menuLabel">站长周报</span></button>
@@ -379,6 +380,45 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
     </div>
 
     <div class="snapshotGrid" id="followSummaryGrid"></div>
+
+
+    <div class="bulkBar">
+      <label><input id="followSelectAll" type="checkbox" /> 全选当前筛选</label>
+      <select class="statusSelect" id="bulkFollowStatus"><option value="">批量状态：不修改</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select>
+      <select class="reasonSelect" id="bulkFollowReason"><option value="">批量原因：不修改</option></select>
+      <input class="followInput" id="bulkFollowOwner" placeholder="批量负责人：不修改" />
+      <input class="followInput" id="bulkFollowDate" type="date" />
+      <button class="btn primary small" id="bulkApplyFollowBtn">应用到已选骑手</button>
+    </div>
+
+    <div class="tableWrap"><table id="followupTable"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <h2>跟进后效果复盘</h2>
+        <div class="sub">基于当前跟进周期与下一周期自动判断是否改善；没有下一周期数据时显示“待复盘”。</div>
+      </div>
+      <div class="followReviewHead">
+        <label class="field"><span>复盘指标</span><select id="followReviewMetricSel"></select></label>
+        <button class="btn small" id="exportFollowReviewBtn">导出复盘表</button>
+      </div>
+    </div>
+    <div class="snapshotGrid" id="followReviewSummaryGrid"></div>
+    <div class="tableWrap"><table id="followReviewTable"></table></div>
+  </div>
+</section>
+
+
+<section id="ownerFollowup" class="tab">
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <h2>专人跟进</h2>
+        <div class="sub">从空白负责人流入专项负责人板块，专人查看自己名下的已联系、未联系、复盘结果，并直接更新状态、原因、日期和备注。</div>
+      </div>
+    </div>
     <div class="followOwnerBoard" id="followOwnerBoard">
       <div class="followOwnerHead">
         <div>
@@ -411,32 +451,6 @@ body:not(.auth-locked){background:#f3f5f8;color:#172033}.wrap{max-width:none!imp
         </div>
       </div>
     </div>
-
-    <div class="bulkBar">
-      <label><input id="followSelectAll" type="checkbox" /> 全选当前筛选</label>
-      <select class="statusSelect" id="bulkFollowStatus"><option value="">批量状态：不修改</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select>
-      <select class="reasonSelect" id="bulkFollowReason"><option value="">批量原因：不修改</option></select>
-      <input class="followInput" id="bulkFollowOwner" placeholder="批量负责人：不修改" />
-      <input class="followInput" id="bulkFollowDate" type="date" />
-      <button class="btn primary small" id="bulkApplyFollowBtn">应用到已选骑手</button>
-    </div>
-
-    <div class="tableWrap"><table id="followupTable"></table></div>
-  </div>
-
-  <div class="panel">
-    <div class="panelHead">
-      <div>
-        <h2>跟进后效果复盘</h2>
-        <div class="sub">基于当前跟进周期与下一周期自动判断是否改善；没有下一周期数据时显示“待复盘”。</div>
-      </div>
-      <div class="followReviewHead">
-        <label class="field"><span>复盘指标</span><select id="followReviewMetricSel"></select></label>
-        <button class="btn small" id="exportFollowReviewBtn">导出复盘表</button>
-      </div>
-    </div>
-    <div class="snapshotGrid" id="followReviewSummaryGrid"></div>
-    <div class="tableWrap"><table id="followReviewTable"></table></div>
   </div>
 </section>
 
