@@ -184,7 +184,7 @@ body.sidebar-collapsed .memberGrowth{display:none}
 
 /* Topbar donation entry */
 .donateTopBtn{border:1px solid #f4d03f;background:#fff8cc;color:#111827;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:950;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 6px 16px rgba(17,24,39,.08);transition:.16s}
-.donateTopBtn:hover{transform:translateY(-1px);background:#ffd400;box-shadow:0 10px 22px rgba(17,24,39,.12)}.donateTotalChip{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04)}.donateTotalPanel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff8cc;border:1px solid #f2e394;border-radius:16px;padding:10px 12px;margin:10px 0 4px;color:#344054;font-size:13px;font-weight:850}.donateTotalPanel b{font-size:18px;color:#111827;letter-spacing:-.02em}
+.donateTopBtn:hover{transform:translateY(-1px);background:#ffd400;box-shadow:0 10px 22px rgba(17,24,39,.12)}
 body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!important}
 .donateLayer,.donateThanksLayer{display:none;position:fixed;inset:0;z-index:1300;background:rgba(15,23,42,.34);padding:18px;align-items:flex-start;justify-content:flex-end}
 .donateLayer.show,.donateThanksLayer.show{display:flex}
@@ -195,11 +195,19 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 
 
 /* Local clock in top bar */
-.sydneyClock{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap;line-height:1}.sydneyClock b{font-size:13px;color:#172033;line-height:1;font-weight:950;white-space:nowrap}.sydneyClock span{font-size:13px;color:#172033;line-height:1;font-weight:850;white-space:nowrap}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{padding:7px 9px}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock{padding:6px 8px;gap:4px}.sydneyClock b,.sydneyClock span{font-size:12px}.donateTopBtn{padding:8px 10px!important}.donateTotalChip{padding:7px 9px;font-size:12px}}
+.sydneyClock{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap;line-height:1}.sydneyClock b{font-size:13px;color:#172033;line-height:1;font-weight:950;white-space:nowrap}.sydneyClock span{font-size:13px;color:#172033;line-height:1;font-weight:850;white-space:nowrap}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{padding:7px 9px}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock{padding:6px 8px;gap:4px}.sydneyClock b,.sydneyClock span{font-size:12px}.donateTopBtn{padding:8px 10px!important}}
 
 
 /* Order appeal processing center */
 .appealGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.appealCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px;box-shadow:var(--shadow2)}.appealCard b{display:block;font-size:12px;color:#475467}.appealCard .num{font-size:24px;font-weight:950;margin-top:6px;color:#111827}.appealFilterGrid{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-bottom:12px}.appealFilterGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealFilterGrid .field span{color:var(--muted)}.appealReasonTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#fff7ed;color:#c2410c}.appealStatusTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.appealStatusTag.ok{background:var(--green2);color:var(--green)}.appealStatusTag.no{background:var(--red2);color:var(--red)}.appealPhotoLink{display:inline-flex;margin:2px 6px 2px 0;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850;color:#2563eb;text-decoration:none}.appealDetailModal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.52);align-items:center;justify-content:center;padding:18px}.appealDetailModal.show{display:flex}.appealDetailPanel{width:min(920px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 26px 86px rgba(16,24,40,.25);padding:18px;border:1px solid var(--line)}.appealDetailHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.appealDetailHead h2{margin:0;font-size:18px}.appealDetailGrid{display:grid;grid-template-columns:140px 1fr;gap:8px 12px;border:1px solid var(--line);border-radius:18px;padding:14px;background:#f8fafc}.appealDetailGrid b{font-size:13px;color:#475467}.appealDetailGrid span{font-size:13px;color:#111827;line-height:1.55}.appealImageGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}.appealImageGrid a{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.appealImageGrid img{width:100%;height:110px;object-fit:cover;display:block}.appealReviewBox{margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end}.appealReviewBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealReviewBox .field span{color:var(--muted)}.appealPublicLink{font-size:12px;color:#475467;line-height:1.6;background:#fffaeb;border:1px solid #fedf89;border-radius:14px;padding:10px;margin-bottom:12px}.appealPublicLink code{background:#fff;border:1px solid #fde68a;border-radius:8px;padding:2px 6px;color:#92400e}@media(max-width:980px){.appealGrid{grid-template-columns:repeat(2,1fr)}.appealFilterGrid,.appealReviewBox{grid-template-columns:1fr}.appealDetailGrid{grid-template-columns:1fr}}@media(max-width:640px){.appealGrid{grid-template-columns:1fr}.appealDetailPanel{padding:14px;border-radius:20px}.appealImageGrid{grid-template-columns:repeat(2,1fr)}}
+
+
+/* Donation message and history detail */
+.donateTotalChip{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04);cursor:pointer;transition:.16s}
+.donateTotalChip:hover{transform:translateY(-1px);background:#fff8cc;border-color:#f4d03f;box-shadow:0 10px 22px rgba(17,24,39,.1)}
+.donateTotalPanel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff8cc;border:1px solid #f2e394;border-radius:16px;padding:10px 12px;margin:10px 0 4px;color:#344054;font-size:13px;font-weight:850}.donateTotalPanel b{font-size:18px;color:#111827;letter-spacing:-.02em}
+.donateMessageBox{margin:10px 0 12px}.donateMessageBox label{display:block;font-size:12px;color:#344054;font-weight:950;margin-bottom:7px}.donateMessageBox textarea{width:100%;min-height:74px;border:1px solid #d0d5dd;border-radius:14px;background:#fff;padding:11px 12px;color:#111827;resize:vertical;font:inherit}.donateMessageBox textarea:focus{outline:none;border-color:#111827;box-shadow:0 0 0 4px rgba(17,24,39,.08)}
+body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{display:none;position:fixed;inset:0;z-index:1300;background:rgba(15,23,42,.34);padding:18px;align-items:flex-start;justify-content:flex-end}.donateDetailLayer.show{display:flex}.donateDetailPanel{width:min(520px,100%);max-height:82vh;overflow:auto;margin-top:54px;background:rgba(255,255,255,.98);border:1px solid rgba(226,232,240,.95);border-radius:24px;box-shadow:0 28px 90px rgba(15,23,42,.22);padding:18px;color:#111827;position:relative}.donateDetailPanel h3{margin:0 0 4px;font-size:18px}.donateDetailSummary{font-size:13px;color:#667085;margin-bottom:12px}.donateHistoryList{display:grid;gap:10px}.donateHistoryItem{border:1px solid #e5e7eb;background:#fff;border-radius:16px;padding:12px}.donateHistoryTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.donateHistoryUser{font-weight:950;color:#172033;word-break:break-all}.donateHistoryAmount{font-weight:950;color:#111827;background:#fff8cc;border:1px solid #f2e394;border-radius:999px;padding:4px 9px;white-space:nowrap}.donateHistoryMeta{font-size:12px;color:#98a2b3;margin-top:3px}.donateHistoryMsg{font-size:13px;color:#475467;background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;margin-top:8px;padding:9px;line-height:1.5;white-space:pre-wrap}.donateEmpty{padding:24px;text-align:center;color:#667085;border:1px dashed #cbd5e1;border-radius:16px;background:#f8fafc;font-weight:850}@media(max-width:760px){.donateTotalChip{padding:7px 9px;font-size:12px}.donateDetailLayer{align-items:flex-start;justify-content:center;padding:12px}.donateDetailPanel{margin-top:56px}}
 
 </style>
 </head>
@@ -275,7 +283,7 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
     <div class="topbarActions">
       <div class="topbarHint">云数据实时同步</div>
       <div class="sydneyClock" id="sydneyClock" aria-label="当地日期时间"><span id="sydneyClockDate">----/--/--</span><b id="sydneyClockTime">--:--:--</b></div>
-      <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" aria-label="截止今日总计已打赏金额">截止今日已打赏 ¥0</span>
+      <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" role="button" tabindex="0" aria-label="查看打赏明细">截止今日已打赏 ¥0</span>
     </div>
   </div>
 <header class="hero" id="hero">
@@ -740,8 +748,18 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
       <button class="donateAmount" type="button" data-amount="custom">自定义</button>
     </div>
     <div class="donateCustomBox" id="donateCustomBox"><input id="donateCustomInput" type="number" min="1" max="99" step="1" placeholder="请输入小额面值，例如 2" /></div>
+    <div class="donateMessageBox"><label for="donateMessageInput">感谢语 / 留言</label><textarea id="donateMessageInput" maxlength="120" placeholder="可以写一句感谢语，例如：继续加油，期待更多功能～"></textarea></div>
     <button class="donatePayBtn" id="donatePayBtn" type="button">立即支付</button>
     <div class="donateDisclaimer">温馨提示：此为演示反馈入口，全程无真实付款、无订单生成、无信息扣费。</div>
+  </div>
+</div>
+
+<div class="donateDetailLayer" id="donateDetailLayer" aria-hidden="true">
+  <div class="donateDetailPanel" role="dialog" aria-modal="true" aria-labelledby="donateDetailTitle">
+    <button class="donateClose" id="donateDetailCloseBtn" type="button" aria-label="关闭打赏明细">×</button>
+    <h3 id="donateDetailTitle">打赏明细</h3>
+    <div class="donateDetailSummary" id="donateDetailSummary">截止今日总计已打赏 ¥0</div>
+    <div class="donateHistoryList" id="donateHistoryList"></div>
   </div>
 </div>
 <div class="donateThanksLayer" id="donateThanksLayer" aria-hidden="true">
@@ -919,6 +937,7 @@ async function showApp(){
   await loadStationReportConfig();
   await loadOrderAppeals();
   await loadCloudData();
+  if(window.refreshDonationSummary){try{await window.refreshDonationSummary()}catch(e){}}
   startStationReportScheduler();
   setTimeout(()=>{try{drawCharts()}catch(e){}},60);
 }
@@ -1514,24 +1533,63 @@ function initSydneyClock(){
 }
 
 function initDonationFeature(){
-  const openBtn=byId('donateFloatBtn'),layer=byId('donateLayer'),closeBtn=byId('donateCloseBtn'),amountGrid=byId('donateAmountGrid'),customBox=byId('donateCustomBox'),customInput=byId('donateCustomInput'),payBtn=byId('donatePayBtn'),thanks=byId('donateThanksLayer'),thanksClose=byId('donateThanksCloseBtn'),totalChip=byId('donateTotalChip'),totalPanel=byId('donateTotalPanel');
+  const openBtn=byId('donateFloatBtn'),layer=byId('donateLayer'),closeBtn=byId('donateCloseBtn'),amountGrid=byId('donateAmountGrid'),customBox=byId('donateCustomBox'),customInput=byId('donateCustomInput'),messageInput=byId('donateMessageInput'),payBtn=byId('donatePayBtn'),thanks=byId('donateThanksLayer'),thanksClose=byId('donateThanksCloseBtn'),totalChip=byId('donateTotalChip'),totalPanel=byId('donateTotalPanel'),detailLayer=byId('donateDetailLayer'),detailClose=byId('donateDetailCloseBtn'),detailSummary=byId('donateDetailSummary'),historyList=byId('donateHistoryList');
   if(!openBtn||!layer||!amountGrid||!payBtn||!thanks)return;
-  let selectedAmount='1',thanksTimer=null;
-  const donateStoreKey='rider_dashboard_donation_total_amount_v1';
+  let selectedAmount='1',thanksTimer=null,donationHistory=[],remoteAvailable=false;
+  const localKey='rider_dashboard_donation_records_v2';
   const fmtAmount=n=>'¥'+(Number(n||0).toFixed(2).replace(/\.00$/,''));
-  const getTotal=()=>{try{return Number(localStorage.getItem(donateStoreKey)||0)||0}catch(e){return 0}};
-  const setTotal=v=>{try{localStorage.setItem(donateStoreKey,String(Math.max(0,Number(v)||0)))}catch(e){}};
-  const updateTotal=()=>{const total=getTotal(),text='截止今日已打赏 '+fmtAmount(total);if(totalChip)totalChip.textContent=text;if(totalPanel){const b=totalPanel.querySelector('b');if(b)b.textContent=fmtAmount(total)}};
-  updateTotal();
+  const safeJson=(txt,fallback)=>{try{return JSON.parse(txt)}catch(e){return fallback}};
+  const localHistory=()=>{try{return safeJson(localStorage.getItem(localKey)||'[]',[])}catch(e){return []}};
+  const saveLocalHistory=list=>{try{localStorage.setItem(localKey,JSON.stringify(list||[]))}catch(e){}};
+  const accountLabel=()=>{const acc=currentAuthAccount?.();return acc?.email||acc?.username||'未知会员'};
+  const roleLabel=()=>{const acc=currentAuthAccount?.();return acc?.role==='admin'?'管理员':'会员'};
+  const totalAmount=()=>donationHistory.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+  const formatDate=t=>{try{return new Date(t).toLocaleString('zh-CN',{timeZone:'Australia/Sydney',hour12:false})}catch(e){return t||''}};
+  const normalizeRecords=records=>(records||[]).map(x=>({
+    id:x.id||String(Date.now()+Math.random()),
+    user_email:x.user_email||x.userEmail||x.email||'未知会员',
+    user_role:x.user_role||x.userRole||'会员',
+    amount:Number(x.amount)||0,
+    message:x.message||x.thanks_message||x.note||'',
+    created_at:x.created_at||x.createdAt||new Date().toISOString()
+  })).filter(x=>x.amount>0).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const renderHistory=()=>{
+    const total=totalAmount(),text='截止今日已打赏 '+fmtAmount(total);
+    if(totalChip)totalChip.textContent=text;
+    if(totalPanel){const b=totalPanel.querySelector('b');if(b)b.textContent=fmtAmount(total)}
+    if(detailSummary)detailSummary.textContent=`截止今日总计已打赏 ${fmtAmount(total)} · 共 ${donationHistory.length} 笔`;
+    if(historyList){
+      historyList.innerHTML=donationHistory.length?donationHistory.map(x=>`<div class="donateHistoryItem"><div class="donateHistoryTop"><div><div class="donateHistoryUser">${esc(x.user_email||'未知会员')}</div><div class="donateHistoryMeta">${esc(x.user_role||'会员')} · ${esc(formatDate(x.created_at))}</div></div><div class="donateHistoryAmount">${fmtAmount(x.amount)}</div></div><div class="donateHistoryMsg">${esc(x.message||'未填写感谢语')}</div></div>`).join(''):'<div class="donateEmpty">暂无打赏记录</div>';
+    }
+  };
+  const loadHistory=async()=>{
+    try{
+      const client=getCloudClient();
+      const {data,error}=await client.from('donation_records').select('id,user_email,user_role,amount,message,created_at').order('created_at',{ascending:false}).limit(500);
+      if(error)throw error;
+      remoteAvailable=true;
+      donationHistory=normalizeRecords(data||[]);
+    }catch(e){
+      remoteAvailable=false;
+      donationHistory=normalizeRecords(localHistory());
+    }
+    renderHistory();
+  };
+  window.refreshDonationSummary=loadHistory;
   const closeLayer=()=>{layer.classList.remove('show');layer.setAttribute('aria-hidden','true')};
-  const openLayer=()=>{layer.classList.add('show');layer.setAttribute('aria-hidden','false')};
+  const openLayer=async()=>{await loadHistory();layer.classList.add('show');layer.setAttribute('aria-hidden','false')};
   const closeThanks=()=>{thanks.classList.remove('show');thanks.setAttribute('aria-hidden','true');if(thanksTimer){clearTimeout(thanksTimer);thanksTimer=null}};
   const openThanks=()=>{closeLayer();thanks.classList.add('show');thanks.setAttribute('aria-hidden','false');if(thanksTimer)clearTimeout(thanksTimer);thanksTimer=setTimeout(closeThanks,3000)};
+  const openDetail=async()=>{await loadHistory();detailLayer?.classList.add('show');detailLayer?.setAttribute('aria-hidden','false')};
+  const closeDetail=()=>{detailLayer?.classList.remove('show');detailLayer?.setAttribute('aria-hidden','true')};
   openBtn.onclick=openLayer;
   closeBtn&&(closeBtn.onclick=closeLayer);
   thanksClose&&(thanksClose.onclick=closeThanks);
+  totalChip&&(totalChip.onclick=openDetail,totalChip.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDetail()}});
+  detailClose&&(detailClose.onclick=closeDetail);
   layer.addEventListener('click',e=>{if(e.target===layer)closeLayer()});
   thanks.addEventListener('click',e=>{if(e.target===thanks)closeThanks()});
+  detailLayer?.addEventListener('click',e=>{if(e.target===detailLayer)closeDetail()});
   amountGrid.querySelectorAll('.donateAmount').forEach(btn=>{
     btn.addEventListener('click',()=>{
       amountGrid.querySelectorAll('.donateAmount').forEach(b=>b.classList.remove('active'));
@@ -1539,7 +1597,7 @@ function initDonationFeature(){
       if(selectedAmount==='custom'){customBox?.classList.add('show');setTimeout(()=>customInput?.focus(),0)}else customBox?.classList.remove('show');
     });
   });
-  payBtn.onclick=()=>{
+  payBtn.onclick=async()=>{
     let payAmount=Number(selectedAmount||0);
     if(selectedAmount==='custom'){
       const n=Number(customInput?.value||0);
@@ -1547,10 +1605,19 @@ function initDonationFeature(){
       payAmount=n;
     }
     payAmount=Math.round(payAmount*100)/100;
-    setTotal(getTotal()+payAmount);
-    updateTotal();
+    const record={id:(crypto.randomUUID&&crypto.randomUUID())||String(Date.now()),user_email:accountLabel(),user_role:roleLabel(),amount:payAmount,message:(messageInput?.value||'').trim(),created_at:new Date().toISOString()};
+    try{
+      const client=getCloudClient();
+      const {error}=await client.from('donation_records').insert({user_email:record.user_email,user_role:record.user_role,amount:record.amount,message:record.message});
+      if(error)throw error;
+      await loadHistory();
+    }catch(e){
+      const list=normalizeRecords(localHistory());list.unshift(record);saveLocalHistory(list);donationHistory=list;renderHistory();
+    }
+    if(messageInput)messageInput.value='';
     openThanks();
   };
+  loadHistory();
 }
 
 rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initAuth();
