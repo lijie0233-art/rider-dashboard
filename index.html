@@ -184,7 +184,7 @@ body.sidebar-collapsed .memberGrowth{display:none}
 
 /* Topbar donation entry */
 .donateTopBtn{border:1px solid #f4d03f;background:#fff8cc;color:#111827;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:950;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 6px 16px rgba(17,24,39,.08);transition:.16s}
-.donateTopBtn:hover{transform:translateY(-1px);background:#ffd400;box-shadow:0 10px 22px rgba(17,24,39,.12)}
+.donateTopBtn:hover{transform:translateY(-1px);background:#ffd400;box-shadow:0 10px 22px rgba(17,24,39,.12)}.donateTotalChip{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04)}.donateTotalPanel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff8cc;border:1px solid #f2e394;border-radius:16px;padding:10px 12px;margin:10px 0 4px;color:#344054;font-size:13px;font-weight:850}.donateTotalPanel b{font-size:18px;color:#111827;letter-spacing:-.02em}
 body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!important}
 .donateLayer,.donateThanksLayer{display:none;position:fixed;inset:0;z-index:1300;background:rgba(15,23,42,.34);padding:18px;align-items:flex-start;justify-content:flex-end}
 .donateLayer.show,.donateThanksLayer.show{display:flex}
@@ -195,7 +195,7 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 
 
 /* Local clock in top bar */
-.sydneyClock{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap;line-height:1}.sydneyClock b{font-size:13px;color:#172033;line-height:1;font-weight:950;white-space:nowrap}.sydneyClock span{font-size:13px;color:#172033;line-height:1;font-weight:850;white-space:nowrap}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{padding:7px 9px}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock{padding:6px 8px;gap:4px}.sydneyClock b,.sydneyClock span{font-size:12px}.donateTopBtn{padding:8px 10px!important}}
+.sydneyClock{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap;line-height:1}.sydneyClock b{font-size:13px;color:#172033;line-height:1;font-weight:950;white-space:nowrap}.sydneyClock span{font-size:13px;color:#172033;line-height:1;font-weight:850;white-space:nowrap}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{padding:7px 9px}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock{padding:6px 8px;gap:4px}.sydneyClock b,.sydneyClock span{font-size:12px}.donateTopBtn{padding:8px 10px!important}.donateTotalChip{padding:7px 9px;font-size:12px}}
 
 
 /* Order appeal processing center */
@@ -275,7 +275,7 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
     <div class="topbarActions">
       <div class="topbarHint">云数据实时同步</div>
       <div class="sydneyClock" id="sydneyClock" aria-label="当地日期时间"><span id="sydneyClockDate">----/--/--</span><b id="sydneyClockTime">--:--:--</b></div>
-      <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button>
+      <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" aria-label="截止今日总计已打赏金额">截止今日已打赏 ¥0</span>
     </div>
   </div>
 <header class="hero" id="hero">
@@ -730,6 +730,7 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
       <div class="donateIcon">☕</div>
       <div><h3 id="donateTitle">打赏支持</h3><p>请选择一个小额心意，给看板一点继续优化的鼓励。</p></div>
     </div>
+    <div class="donateTotalPanel" id="donateTotalPanel"><span>截止今日总计已打赏金额</span><b>¥0</b></div>
     <div class="donateAmountGrid" id="donateAmountGrid">
       <button class="donateAmount active" type="button" data-amount="1">1 元</button>
       <button class="donateAmount" type="button" data-amount="3">3 元</button>
@@ -1513,9 +1514,15 @@ function initSydneyClock(){
 }
 
 function initDonationFeature(){
-  const openBtn=byId('donateFloatBtn'),layer=byId('donateLayer'),closeBtn=byId('donateCloseBtn'),amountGrid=byId('donateAmountGrid'),customBox=byId('donateCustomBox'),customInput=byId('donateCustomInput'),payBtn=byId('donatePayBtn'),thanks=byId('donateThanksLayer'),thanksClose=byId('donateThanksCloseBtn');
+  const openBtn=byId('donateFloatBtn'),layer=byId('donateLayer'),closeBtn=byId('donateCloseBtn'),amountGrid=byId('donateAmountGrid'),customBox=byId('donateCustomBox'),customInput=byId('donateCustomInput'),payBtn=byId('donatePayBtn'),thanks=byId('donateThanksLayer'),thanksClose=byId('donateThanksCloseBtn'),totalChip=byId('donateTotalChip'),totalPanel=byId('donateTotalPanel');
   if(!openBtn||!layer||!amountGrid||!payBtn||!thanks)return;
   let selectedAmount='1',thanksTimer=null;
+  const donateStoreKey='rider_dashboard_donation_total_amount_v1';
+  const fmtAmount=n=>'¥'+(Number(n||0).toFixed(2).replace(/\.00$/,''));
+  const getTotal=()=>{try{return Number(localStorage.getItem(donateStoreKey)||0)||0}catch(e){return 0}};
+  const setTotal=v=>{try{localStorage.setItem(donateStoreKey,String(Math.max(0,Number(v)||0)))}catch(e){}};
+  const updateTotal=()=>{const total=getTotal(),text='截止今日已打赏 '+fmtAmount(total);if(totalChip)totalChip.textContent=text;if(totalPanel){const b=totalPanel.querySelector('b');if(b)b.textContent=fmtAmount(total)}};
+  updateTotal();
   const closeLayer=()=>{layer.classList.remove('show');layer.setAttribute('aria-hidden','true')};
   const openLayer=()=>{layer.classList.add('show');layer.setAttribute('aria-hidden','false')};
   const closeThanks=()=>{thanks.classList.remove('show');thanks.setAttribute('aria-hidden','true');if(thanksTimer){clearTimeout(thanksTimer);thanksTimer=null}};
@@ -1533,10 +1540,15 @@ function initDonationFeature(){
     });
   });
   payBtn.onclick=()=>{
+    let payAmount=Number(selectedAmount||0);
     if(selectedAmount==='custom'){
       const n=Number(customInput?.value||0);
       if(!Number.isFinite(n)||n<=0){toast('请输入有效的小额面值');customInput?.focus();return}
+      payAmount=n;
     }
+    payAmount=Math.round(payAmount*100)/100;
+    setTotal(getTotal()+payAmount);
+    updateTotal();
     openThanks();
   };
 }
