@@ -466,7 +466,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 
     <div class="compareControlGrid">
       <label class="field"><span>处理状态</span><select id="followStatusFilter"><option value="all">全部状态</option><option>未联系</option><option>已联系</option><option>继续观察</option><option>已改善</option><option>放弃跟进</option></select></label>
-      <label class="field"><span>问题标签（可多选）</span><select id="followIssueFilter" multiple size="4"></select></label>
+      <label class="field"><span>问题标签</span><select id="followIssueFilter"></select></label>
       <label class="field"><span>负责人</span><select id="followOwnerFilter"><option value="all">全部负责人</option></select></label>
       <label class="field"><span>搜索骑手 / ID</span><input id="followSearchInp" placeholder="留空显示当前待联系人群" /></label>
       <div class="field"><span>当前周期</span><b id="followCycleHint">-</b></div>
@@ -1429,7 +1429,7 @@ function openFollowup(id){state.selected=id;selectTab('followup');const fs=byId(
 function followIssueFilterOptions(){return [['ordersDrop','跑单下降'],['incomeDrop','收入下降'],['hourlyDrop','时薪下降'],['durationDrop','背单下降'],['continuous','连续下滑'],['lost','疑似流失'],['crash','严重暴跌'],['anomaly','数据异常'],['efficiency','效率偏低']]}
 function selectedMultiValues(id){const el=byId(id);return el?Array.from(el.selectedOptions||[]).map(o=>o.value).filter(Boolean):[]}
 function setMultiValues(id,values=[]){const el=byId(id);if(!el)return;const s=new Set(values);Array.from(el.options||[]).forEach(o=>o.selected=s.has(o.value))}
-function renderFollowFilterControls(){const issueSel=byId('followIssueFilter');if(issueSel){const cur=new Set(state.followIssueTags||[]);issueSel.innerHTML=followIssueFilterOptions().map(([k,l])=>`<option value="${k}" ${cur.has(k)?'selected':''}>${l}</option>`).join('')}const ownerSel=byId('followOwnerFilter');if(ownerSel){const owners=followupOwnerOptions();const cur=state.followOwner||'all';ownerSel.innerHTML='<option value="all">全部负责人</option><option value="__blank__">未分配负责人</option>'+owners.map(o=>`<option value="${esc(o)}" ${o===cur?'selected':''}>${esc(o)}</option>`).join('');ownerSel.value=cur}}
+function renderFollowFilterControls(){const issueSel=byId('followIssueFilter');if(issueSel){const cur=(state.followIssueTags&&state.followIssueTags[0])||'all';issueSel.innerHTML='<option value="all">全部问题标签</option>'+followIssueFilterOptions().map(([k,l])=>`<option value="${k}" ${k===cur?'selected':''}>${l}</option>`).join('');issueSel.value=cur}const ownerSel=byId('followOwnerFilter');if(ownerSel){const owners=followupOwnerOptions();const cur=state.followOwner||'all';ownerSel.innerHTML='<option value="all">全部负责人</option><option value="__blank__">未分配负责人</option>'+owners.map(o=>`<option value="${esc(o)}" ${o===cur?'selected':''}>${esc(o)}</option>`).join('');ownerSel.value=cur}}
 function recentCycleWindow(endCycle,count){const idx=cycles.indexOf(endCycle);if(idx<0)return[];return cycles.slice(Math.max(0,idx-count+1),idx+1)}
 function avgOrdersForRider(id,count=1,endCycle=state.cycle){const cs=recentCycleWindow(endCycle,Number(count)||1);if(!cs.length)return 0;return cs.reduce((sum,c)=>sum+val(rec(c,id),'orders'),0)/cs.length}
 function followItems(){let items=contactCandidateItems();const q=(byId('followSearchInp')?.value||'').trim().toLowerCase();if(q)items=items.filter(x=>x.name.toLowerCase().includes(q)||x.id.toLowerCase().includes(q));if(state.hideImproved)items=items.filter(x=>getFollow(x.id).status!=='已改善');if(state.followStatus&&state.followStatus!=='all')items=items.filter(x=>getFollow(x.id).status===state.followStatus);const issueTags=state.followIssueTags||[];if(issueTags.length)items=items.filter(x=>issueTags.some(k=>x.issues.some(i=>i.key===k)));if(state.followOwner&&state.followOwner!=='all'){items=items.filter(x=>{const owner=String(getFollow(x.id).owner||'').trim();return state.followOwner==='__blank__'?!owner:owner===state.followOwner})}return items}
@@ -1470,7 +1470,7 @@ const addTop=byId('addTopCompareBtn');if(addTop)addTop.onclick=()=>{state.compar
 const clearCmp=byId('clearCompareBtn');if(clearCmp)clearCmp.onclick=()=>{state.compareRiders=[];renderCompare();drawMulti()};
 const exportCmp=byId('exportCompareBtn');if(exportCmp)exportCmp.onclick=exportCompare;
 const followFilter=byId('followStatusFilter');if(followFilter)followFilter.onchange=e=>{state.followStatus=e.target.value;renderFollowup()};
-const followIssueFilter=byId('followIssueFilter');if(followIssueFilter)followIssueFilter.onchange=()=>{state.followIssueTags=selectedMultiValues('followIssueFilter');renderFollowup()};
+const followIssueFilter=byId('followIssueFilter');if(followIssueFilter)followIssueFilter.onchange=()=>{state.followIssueTags=followIssueFilter.value&&followIssueFilter.value!=='all'?[followIssueFilter.value]:[];renderFollowup()};
 const followOwnerFilter=byId('followOwnerFilter');if(followOwnerFilter)followOwnerFilter.onchange=e=>{state.followOwner=e.target.value;renderFollowup()};
 const followSearch=byId('followSearchInp');if(followSearch)followSearch.oninput=()=>renderFollowup();
 ['followBaseSel','followOrderModeSel','followOrderMinInp','followOrderMaxInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=updateFollowConfigFromInputs});
