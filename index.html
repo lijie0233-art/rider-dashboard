@@ -396,7 +396,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>步行目标上限</span><input id="tailWalkTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>影响提示阈值 ≥</span><input id="tailImpactMinInp" type="number" min="0" step="0.01" value="0.05" /></label>
     </div>
-    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车包含摩托车和汽车。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
+    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车包含电动自行车、摩托车和汽车。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
   </div>
   <div class="snapshotGrid" id="tailSummaryGrid"></div>
   <div class="panel">
@@ -2083,16 +2083,23 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
 
 
 
+
 /* === 尾单骑手中心 === */
 (function(){
   const DEFAULT_MOTOR_STD=6, DEFAULT_BIKE_STD=1, DEFAULT_WALK_STD=1;
   const vehicleGroups=[
-    {key:'motor',label:'机动车',match:v=>/(机动车|摩托|motor|motorcycle|scooter|汽车|car|auto|vehicle)/i.test(v||''),std:DEFAULT_MOTOR_STD},
-    {key:'bike',label:'自行车',match:v=>/(自行车|单车|bike|bicycle|电动自行车|电动车|e-?bike|ebike)/i.test(v||''),std:DEFAULT_BIKE_STD},
-    {key:'walk',label:'步行',match:v=>/(步行|walk|walking)/i.test(v||''),std:DEFAULT_WALK_STD}
+    {key:'motor',label:'机动车',std:DEFAULT_MOTOR_STD},
+    {key:'bike',label:'自行车',std:DEFAULT_BIKE_STD},
+    {key:'walk',label:'步行',std:DEFAULT_WALK_STD}
   ];
   function normVehicle(v){return String(v||'').trim()||'空白'}
-  function groupOfVehicle(v){const s=normVehicle(v);const matched=vehicleGroups.find(g=>g.match(s));return matched||vehicleGroups[0]}
+  function groupOfVehicle(v){
+    const s=normVehicle(v).toLowerCase();
+    if(/(步行|walk|walking)/i.test(s))return vehicleGroups[2];
+    if(/(电动自行车|电动车|e-?bike|ebike|摩托|motor|motorcycle|scooter|汽车|car|auto)/i.test(s))return vehicleGroups[0];
+    if(/(自行车|单车|bike|bicycle)/i.test(s))return vehicleGroups[1];
+    return vehicleGroups[0];
+  }
   function personalTailPct(r){const x=ratePercent(r&&r.tailRate);return Number.isFinite(x)?x:null}
   function rowOrders(r){const n=val(r,'orders');return Number.isFinite(n)?n:0}
   function tailOrderCount(r){const t=personalTailPct(r);if(t==null)return null;return rowOrders(r)*t/100}
@@ -2101,31 +2108,26 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   function weeklyTailPctForRow(r,c){const total=periodTotalOrders(c);const cnt=tailOrderCount(r);if(!total||cnt==null)return null;return cnt/total*100}
   function fmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
   function fmtCount(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
-  function diffText(d){return d==null?'<span class="mini">空白</span>':`<span class="${d>0?'dangerText':d<0?'tailStdOk':''}">${d>=0?'+':''}${d.toFixed(2)}%</span>`}
+  function fmtSignedPct(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(2)}%</span>`}
+  function fmtSignedCount(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(1)}</span>`}
   function activeCurrentRows(){return periodRows(state.cycle)}
   function groupRateFromSum(sum,total){return total?sum/total*100:null}
   function tailVehicleStats(){
     const map=new Map();
-    vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0,curOver:0,preOver:0}));
-    function ensure(g){
-      if(!map.has(g.key))map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0,curOver:0,preOver:0});
-      return map.get(g.key);
-    }
+    vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0}));
     function add(c,isCur){
-      const total=periodTotalOrders(c);
       riderIds().forEach(id=>{
         const r=rec(c,id);if(!r||!active(r))return;
-        const g=groupOfVehicle(r.vehicle), o=ensure(g), p=personalTailPct(r), cnt=tailOrderCount(r);
-        if(cnt==null)return;
-        if(isCur){o.curTailCnt+=cnt;o.curOrders+=rowOrders(r);o.curN++;if(p!=null&&p>g.std)o.curOver++}
-        else{o.preTailCnt+=cnt;o.preOrders+=rowOrders(r);o.preN++;if(p!=null&&p>g.std)o.preOver++}
+        const g=groupOfVehicle(r.vehicle), o=map.get(g.key), cnt=tailOrderCount(r);
+        if(isCur){o.curOrders+=rowOrders(r);o.curN++;if(cnt!=null)o.curTailCnt+=cnt}
+        else{o.preOrders+=rowOrders(r);o.preN++;if(cnt!=null)o.preTailCnt+=cnt}
       });
     }
     add(state.compare,false);add(state.cycle,true);
     const curTotal=periodTotalOrders(state.cycle), preTotal=periodTotalOrders(state.compare);
     return [...map.values()].map(o=>{
       const curRate=groupRateFromSum(o.curTailCnt,curTotal), preRate=groupRateFromSum(o.preTailCnt,preTotal);
-      return {...o,curRate,preRate,delta:(curRate!=null&&preRate!=null)?curRate-preRate:null};
+      return {...o,curRate,preRate,deltaRate:(curRate!=null&&preRate!=null)?curRate-preRate:null,deltaTailCnt:o.curTailCnt-o.preTailCnt};
     });
   }
   function overallWeeklyTailPct(c){
@@ -2137,31 +2139,28 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     return riderIds().map(id=>{
       const cur=rec(state.cycle,id),pre=rec(state.compare,id);
       if(!cur||!pre)return null;
-      const c=weeklyTailPctForRow(cur,state.cycle),p=weeklyTailPctForRow(pre,state.compare);
-      if(c==null||p==null)return null;
-      return {
-        id,
-        name:riderMap.get(id)?.name||cur.name||id,
-        cur,pre,
-        curWeeklyTail:c,
-        preWeeklyTail:p,
-        curPersonal:personalTailPct(cur),
-        prePersonal:personalTailPct(pre),
-        delta:c-p,
-        vehicle:normVehicle(cur.vehicle||pre.vehicle)
-      };
+      const curPersonal=personalTailPct(cur),prePersonal=personalTailPct(pre);
+      if(curPersonal==null||prePersonal==null)return null;
+      const curCnt=tailOrderCount(cur),preCnt=tailOrderCount(pre);
+      const delta=curPersonal-prePersonal;
+      return {id,name:riderMap.get(id)?.name||cur.name||id,cur,pre,curPersonal,prePersonal,curTailCnt:curCnt,preTailCnt:preCnt,delta,vehicle:normVehicle(cur.vehicle||pre.vehicle)};
     }).filter(x=>x&&x.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,10)
   }
   function tailImpactItems(){
-    const motor=Number(byId('tailMotorTargetInp')?.value)||DEFAULT_MOTOR_STD, bike=Number(byId('tailBikeTargetInp')?.value)||DEFAULT_BIKE_STD, walk=Number(byId('tailWalkTargetInp')?.value)||DEFAULT_WALK_STD, min=Number(byId('tailImpactMinInp')?.value)||0;
+    const motor=Number(byId('tailMotorTargetInp')?.value)||DEFAULT_MOTOR_STD,
+          bike=Number(byId('tailBikeTargetInp')?.value)||DEFAULT_BIKE_STD,
+          walk=Number(byId('tailWalkTargetInp')?.value)||DEFAULT_WALK_STD,
+          min=Number(byId('tailImpactMinInp')?.value)||0;
     const total=periodTotalOrders(state.cycle)||1;
     return activeCurrentRows().map(r=>{
       const personal=personalTailPct(r);if(personal==null)return null;
       const g=groupOfVehicle(r.vehicle);
       const target=g.key==='walk'?walk:(g.key==='bike'?bike:motor);
+      const orders=rowOrders(r), curCnt=tailOrderCount(r);
       const over=Math.max(0,personal-target);
-      const impact=rowOrders(r)*over/100/total*100;
-      return {id:r.id,name:r.name,vehicle:normVehicle(r.vehicle),group:g.label,cur:r,curPersonal:personal,curWeeklyTail:weeklyTailPctForRow(r,state.cycle),target,impact,standard:g.std,tag:impact>=min};
+      const impact=orders*over/100/total*100;
+      const tip=impact>=min?`预计将该骑手从 ${fmtPct(personal)} 降至 ${target}%，可拉低整体约 ${impact.toFixed(2)}%`:`影响低于阈值 ${min}%`;
+      return {id:r.id,name:r.name,vehicle:normVehicle(r.vehicle),group:g.label,cur:r,curPersonal:personal,curTailCnt:curCnt,target,impact,tip,tag:impact>=min};
     }).filter(x=>x&&x.impact>0&&x.impact>=min).sort((a,b)=>b.impact-a.impact).slice(0,50)
   }
   function renderTailSummary(){
@@ -2169,8 +2168,8 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     const curRows=activeCurrentRows(), worsen=tailWorseTop(), impacts=tailImpactItems(), overall=overallWeeklyTailPct(state.cycle);
     el.innerHTML=[
       ['当前活跃骑手',curRows.length,'当前周期有跑单/收入/时长记录的骑手','blue'],
-      ['当周骑手责尾单率',overall==null?'空白':overall.toFixed(2)+'%','按尾单单量 / 当周总单量计算','amber'],
-      ['裂化 TOP10',worsen.length,'当周责尾单率贡献较对比周期上升','red'],
+      ['当周骑手责尾单率',overall==null?'空白':overall.toFixed(2)+'%','按骑手责尾单单量 / 当周总单量计算','amber'],
+      ['裂化 TOP10',worsen.length,'个人责尾单率较对比周期上升','red'],
       ['高影响骑手',impacts.length,'预计能明显拉低整体当周责尾单率','green']
     ].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('')
   }
@@ -2182,17 +2181,17 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     renderTailSummary();
     const stats=tailVehicleStats();
     if(vt){
-      let html='<thead><tr><th>车型分区</th><th>个人标准</th><th>当前骑手数</th><th>当前责尾单单量</th><th>当前当周责尾单率</th><th>对比骑手数</th><th>对比责尾单单量</th><th>对比当周责尾单率</th><th>差值</th><th>当前超标骑手</th></tr></thead><tbody>';
+      let html='<thead><tr><th>车型区分</th><th>本周尾单单量</th><th>本周骑手数</th><th>本周骑手责尾单单量</th><th>本周骑手责尾单率</th><th>对比周尾单单量</th><th>对比周骑手数</th><th>对比周骑手责尾单单量</th><th>对比周骑手责尾单率</th><th>差值尾单率</th><th>差值单量</th></tr></thead><tbody>';
       stats.forEach(x=>{
         const bad=x.curRate!=null&&x.curRate>x.std;
-        html+=`<tr><td><span class="tailVehicleBadge">${esc(x.label)}</span></td><td>≤ ${x.std}%</td><td>${x.curN}</td><td>${fmtCount(x.curTailCnt)}</td><td><b class="${bad?'tailStdBad':'tailStdOk'}">${fmtPct(x.curRate)}</b></td><td>${x.preN}</td><td>${fmtCount(x.preTailCnt)}</td><td>${fmtPct(x.preRate)}</td><td>${diffText(x.delta)}</td><td><span class="pill ${x.curOver?'red':'green'}">${x.curOver} 人</span></td></tr>`;
+        html+=`<tr><td><span class="tailVehicleBadge">${esc(x.label)}</span></td><td>${fmtCount(x.curOrders)}</td><td>${x.curN}</td><td>${fmtCount(x.curTailCnt)}</td><td><b class="${bad?'tailStdBad':'tailStdOk'}">${fmtPct(x.curRate)}</b></td><td>${fmtCount(x.preOrders)}</td><td>${x.preN}</td><td>${fmtCount(x.preTailCnt)}</td><td>${fmtPct(x.preRate)}</td><td>${fmtSignedPct(x.deltaRate)}</td><td>${fmtSignedCount(x.deltaTailCnt)}</td></tr>`;
       });
       vt.innerHTML=stats.length?html+'</tbody>':'<tr><td class="empty">暂无车型责尾单率数据</td></tr>'
     }
     const worsens=tailWorseTop();
     if(wt){
-      let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>当前当周责尾单率</th><th>对比当周责尾单率</th><th>裂化值</th><th>当前个人责尾单率</th><th>当前跑单</th><th>操作</th></tr></thead><tbody>';
-      worsens.forEach((x,i)=>{html+=`<tr><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmtPct(x.curWeeklyTail)}</td><td>${fmtPct(x.preWeeklyTail)}</td><td><b class="dangerText">+${x.delta.toFixed(2)}%</b></td><td>${fmtPct(x.curPersonal)}</td><td>${fmt(val(x.cur,'orders'),'orders')}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>对比周骑手责尾单率</th><th>本周尾单单量</th><th>对比周尾单单量</th><th>裂化值尾单率</th><th>操作</th></tr></thead><tbody>';
+      worsens.forEach((x,i)=>{html+=`<tr><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmtPct(x.curPersonal)}</td><td>${fmtPct(x.prePersonal)}</td><td>${fmtCount(x.curTailCnt)}</td><td>${fmtCount(x.preTailCnt)}</td><td><b class="dangerText">+${x.delta.toFixed(2)}%</b></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
       wt.innerHTML=worsens.length?html+'</tbody>':'<tr><td class="empty">暂无裂化骑手</td></tr>';wt.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
     }
     const impacts=tailImpactItems();
@@ -2203,8 +2202,8 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
       list.innerHTML=blocks.length?blocks.join(''):'<div class="noDataBox"><b>暂无高影响骑手</b><span>当前所有骑手责尾单率均未明显高于目标上限，或影响阈值设置过高。</span></div>'
     }
     if(it){
-      let html='<thead><tr><th>骑手</th><th>车型分区</th><th>交通工具</th><th>当前个人责尾单率</th><th>当前当周责尾单率</th><th>目标上限</th><th>当前跑单</th><th>预计影响整体下降</th><th>提示</th><th>操作</th></tr></thead><tbody>';
-      impacts.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.group)}</td><td>${esc(x.vehicle)}</td><td><b class="dangerText">${fmtPct(x.curPersonal)}</b></td><td>${fmtPct(x.curWeeklyTail)}</td><td>≤ ${x.target}%</td><td>${fmt(val(x.cur,'orders'),'orders')}</td><td><span class="tailImpactTag">-${x.impact.toFixed(2)}%</span></td><td><span class="pill red">高影响</span></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      let html='<thead><tr><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>本周跑单量</th><th>本周尾单单量</th><th>预计影响整体下降</th><th>提示</th><th>操作</th></tr></thead><tbody>';
+      impacts.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td><b class="dangerText">${fmtPct(x.curPersonal)}</b></td><td>${fmt(val(x.cur,'orders'),'orders')}</td><td>${fmtCount(x.curTailCnt)}</td><td><span class="tailImpactTag">-${x.impact.toFixed(2)}%</span></td><td>${esc(x.tip)}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
       it.innerHTML=impacts.length?html+'</tbody>':'<tr><td class="empty">暂无符合影响阈值的骑手</td></tr>';it.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
     }
   }
@@ -2215,7 +2214,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   profileBackName=function(tab){if(tab==='tailOrderCenter')return '尾单骑手中心';return oldProfileBackName(tab)};
   setTimeout(()=>{
     ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手中心已刷新')}});
-    const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItems();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','车型分区','交通工具','当前个人责尾单率','当前当周责尾单率','目标上限','当前跑单','预计影响整体下降%'];const lines=[header,...items.map(x=>[x.id,x.name,x.group,x.vehicle,fmtPct(x.curPersonal),fmtPct(x.curWeeklyTail),x.target,plain(val(x.cur,'orders'),'orders'),x.impact.toFixed(2)])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
+    const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItems();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
   },0);
 })();
 
