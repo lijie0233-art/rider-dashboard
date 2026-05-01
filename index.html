@@ -1567,6 +1567,8 @@ function decorateRiderIds(){try{document.querySelectorAll('.mini').forEach(el=>{
 const ORDER_APPEALS_TABLE='order_appeals';
 let orderAppeals=[];
 let currentAppealId='';
+let appealPage=1;
+let appealPageSize=20;
 function appealStatusClass(v){return v==='通过'?'ok':(v==='拒绝'?'no':'')}
 function appealDate(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return String(v)}}
 function appealMonthKey(v){try{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit'}).formatToParts(v?new Date(v):new Date());const y=parts.find(p=>p.type==='year')?.value||'';const m=parts.find(p=>p.type==='month')?.value||'';return y&&m?`${y}-${m}`:''}catch(e){return ''}}
@@ -1578,7 +1580,30 @@ function appealPhotosHtml(v,label='照片'){const arr=normalizePhotoList(v);if(!
 function appealImagesHtml(v){const arr=normalizePhotoList(v);if(!arr.length)return '<span class="mini">暂无照片</span>';return `<div class="appealImageGrid">${arr.map(url=>`<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="申诉照片" loading="lazy"></a>`).join('')}</div>`}
 function getAppealPendingCount(){return orderAppeals.filter(x=>(x.review_result||'待审核')==='待审核').length}
 function updateOrderAppealMenuBadge(){const badge=byId('orderAppealMenuBadge');const btn=document.querySelector('.sideNav button[data-tab="orderAppeals"]');if(!badge)return;const n=getAppealPendingCount();badge.textContent=n>99?'99+':String(n);badge.style.display=n>0?'inline-flex':'none';if(btn)btn.title=n>0?`申诉订单处理中心：${n} 条待审核`:'申诉订单处理中心'}
-async function loadOrderAppeals(){try{const client=getCloudClient();const {data,error}=await client.from(ORDER_APPEALS_TABLE).select('*').order('created_at',{ascending:false}).limit(3000);if(error)throw error;orderAppeals=data||[];updateOrderAppealMenuBadge()}catch(e){console.warn('申诉订单读取失败：',e?.message||e);orderAppeals=[];updateOrderAppealMenuBadge();toast('申诉订单读取失败，请确认已执行 SQL')}}
+async function loadOrderAppeals(){
+  try{
+    const client=getCloudClient();
+    const pageSize=1000;
+    let from=0;
+    let all=[];
+    for(let i=0;i<100;i++){
+      const {data,error}=await client.from(ORDER_APPEALS_TABLE).select('*').order('created_at',{ascending:false}).range(from,from+pageSize-1);
+      if(error)throw error;
+      const batch=data||[];
+      all=all.concat(batch);
+      if(batch.length<pageSize)break;
+      from+=pageSize;
+    }
+    orderAppeals=all;
+    if(appealPage<1)appealPage=1;
+    updateOrderAppealMenuBadge();
+  }catch(e){
+    console.warn('申诉订单读取失败：',e?.message||e);
+    orderAppeals=[];
+    updateOrderAppealMenuBadge();
+    toast('申诉订单读取失败，请确认已执行 SQL');
+  }
+}
 function filteredOrderAppeals(){const status=byId('appealStatusFilter')?.value||'all',reason=byId('appealReasonFilter')?.value||'all',q=(byId('appealSearchInp')?.value||'').trim().toLowerCase();return orderAppeals.filter(x=>{if(status!=='all'&&(x.review_result||'待审核')!==status)return false;if(reason!=='all'&&x.reason_category!==reason)return false;if(q){const hay=[x.applicant_name,x.phone,x.order_no,x.reason_category,x.detail,x.remark,x.review_note].join(' ').toLowerCase();if(!hay.includes(q))return false}return true})}
 function renderAppealSummary(items=filteredOrderAppeals()){const grid=byId('appealSummaryGrid');if(!grid)return;const total=orderAppeals.length,pending=orderAppeals.filter(x=>(x.review_result||'待审核')==='待审核').length,ok=orderAppeals.filter(x=>x.review_result==='通过').length,no=orderAppeals.filter(x=>x.review_result==='拒绝').length,thisMonth=orderAppeals.filter(x=>appealMonthKey(x.created_at)===currentAppealMonthKey()).length;grid.innerHTML=`<div class="appealCard"><b>全部申诉</b><div class="num">${total}</div></div><div class="appealCard"><b>本月申诉</b><div class="num">${thisMonth}</div></div><div class="appealCard"><b>待审核</b><div class="num">${pending}</div></div><div class="appealCard"><b>已通过</b><div class="num">${ok}</div></div><div class="appealCard"><b>已拒绝</b><div class="num">${no}</div></div>`}
 function renderAppealPagination(totalItems){
