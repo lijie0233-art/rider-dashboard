@@ -1814,13 +1814,13 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     const bad = k==='tailRate' ? d>0 : d<0;
     const cls=good?'good':bad?'bad':'warn';
     const sign=d>0?'+':'';
-    return `<span class="delta ${cls}">${sign}${d.toFixed(1)}pp</span>`;
+    return `<span class="delta ${cls}">${sign}${d.toFixed(1)}%</span>`;
   }
   function rateDeltaText(cur,pre,k){
     const c=ratePercent(cur),p=ratePercent(pre);
     if(c==null||p==null||!Number.isFinite(p))return '无对比';
     const d=c-p,sign=d>0?'+':'';
-    return `${sign}${d.toFixed(1)}pp`;
+    return `${sign}${d.toFixed(1)}%`;
   }
   deltaHTML=function(cur,pre,k){if(k==='acceptanceRate'||k==='tailRate')return rateDeltaHTML(cur,pre,k);return __deltaHTML(cur,pre,k)};
   deltaText=function(cur,pre,k){if(k==='acceptanceRate'||k==='tailRate')return rateDeltaText(cur,pre,k);return __deltaText(cur,pre,k)};
@@ -1917,6 +1917,47 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   };
 })();
 
+
+
+
+/* === 问题骑手新增标签：骑手责尾单率裂化 / 疑似挑单 + 接单率/责尾单率差值显示为 % === */
+(function(){
+  try{
+    if(Array.isArray(issueDefs)){
+      if(!issueDefs.some(x=>x[0]==='tailWorse')) issueDefs.push(['tailWorse','骑手责尾单率裂化']);
+      if(!issueDefs.some(x=>x[0]==='acceptanceDrop')) issueDefs.push(['acceptanceDrop','疑似挑单']);
+    }
+    const originalAnalyzeForExtraIssues = analyze;
+    function hasIssue(item,key){return item&&Array.isArray(item.issues)&&item.issues.some(i=>i.key===key)}
+    function pushExtraIssue(item,key,label,tone,weight){
+      if(!item||hasIssue(item,key))return;
+      item.issues.push({key,label,tone,weight});
+      item.score=Math.min(100,Math.round((Number(item.score)||0)+weight));
+    }
+    analyze=function(c=state.cycle,comp=state.compare){
+      const result=originalAnalyzeForExtraIssues(c,comp);
+      const items=(result&&Array.isArray(result.items))?result.items:[];
+      items.forEach(item=>{
+        const cur=item.cur,pre=item.pre;
+        const curTail=ratePercent(cur&&cur.tailRate),preTail=ratePercent(pre&&pre.tailRate);
+        if(curTail!=null&&preTail!=null&&Number.isFinite(curTail)&&Number.isFinite(preTail)&&curTail>preTail){
+          pushExtraIssue(item,'tailWorse','骑手责尾单率裂化','red',16);
+        }
+        const curAcc=ratePercent(cur&&cur.acceptanceRate),preAcc=ratePercent(pre&&pre.acceptanceRate);
+        if(curAcc!=null&&preAcc!=null&&Number.isFinite(curAcc)&&Number.isFinite(preAcc)&&curAcc<preAcc){
+          pushExtraIssue(item,'acceptanceDrop','疑似挑单','amber',14);
+        }
+        item.level=item.score>=nRule('highRiskScore')?'high':item.score>=nRule('midRiskScore')?'mid':'low';
+        if(item.issues.some(i=>i.key==='lost')||item.score>=nRule('highRiskScore'))item.action='优先联系';
+        else if(item.issues.some(i=>i.key==='anomaly'))item.action='数据核查';
+        else if(item.issues.some(i=>i.key==='efficiency'||i.key==='hourlyDrop'||i.key==='acceptanceDrop'||i.key==='tailWorse'))item.action='效率辅导';
+        else if(item.issues.some(i=>i.key==='continuous'||i.key==='durationDrop'))item.action='复盘排班';
+      });
+      items.sort((a,b)=>b.score-a.score||val(b.pre,state.metric)-val(b.cur,state.metric)-(val(a.pre,state.metric)-val(a.cur,state.metric)));
+      return result;
+    };
+  }catch(e){console.warn('额外问题标签逻辑加载失败：',e?.message||e)}
+})();
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
