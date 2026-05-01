@@ -1764,6 +1764,160 @@ function returnPoolItems(){if(!rows.length||!state.cycle)return[];const idx=cycl
 function potentialPoolItems(){if(!rows.length||!state.cycle)return[];const lookback=Number(returnPotentialConfig.lookback)||4,threshold=Number(returnPotentialConfig.threshold)||0,win=cycleWindowEnding(state.cycle,lookback);if(win.length<2)return[];return riders.map(r=>{const vals=win.map(c=>val(rec(c,r.id),'orders'));const base=vals[0];if(base<threshold)return null;const allAboveBase=vals.slice(1).every(v=>v>=base);const nonDecreasing=vals.every((v,i)=>i===0||v>=vals[i-1]);if(!(allAboveBase||nonDecreasing))return null;const cur=rec(state.cycle,r.id)||{},pre=rec(win[Math.max(0,win.length-2)],r.id)||{};const gain=vals[vals.length-1]-base;return{id:r.id,name:r.name,cur,window:win,values:vals,base,current:vals[vals.length-1],gain,rule:allAboveBase?'连续不低于首周基准':'逐周递增',income:val(cur,'income'),hourly:val(cur,'hourly'),duration:val(cur,'duration'),preOrders:val(pre,'orders')}}).filter(Boolean).sort((a,b)=>b.gain-a.gain||b.current-a.current)}
 function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),potentialTable=byId('potentialPoolTable');if(!returnTable&&!potentialTable)return;applyReturnPotentialConfigToInputs();applyReturnPotentialView();const hint=byId('returnPotentialRuleHint');if(hint)hint.innerHTML=`当前周期：<b>${esc(state.cycle||'-')}</b>；回归判定：前 <b>${returnPotentialConfig.noRunWeeks||1}</b> 周无跑单，本周跑单量 &gt; 0；高潜判定：近 <b>${returnPotentialConfig.lookback||4}</b> 周，首周跑单量 ≥ <b>${returnPotentialConfig.threshold??30}</b>，后续持续不低于首周或逐周递增。`;if(!rows.length){if(returnTable)returnTable.innerHTML='<tr><td class="empty">暂无数据</td></tr>';if(potentialTable)potentialTable.innerHTML='<tr><td class="empty">暂无数据</td></tr>';const s=byId('returnPotentialSummaryGrid');if(s)s.innerHTML='';return}const returns=returnPoolItems(),pots=potentialPoolItems(),dedup=new Set(returns.map(x=>x.id)),potentialOnly=pots.filter(x=>!dedup.has(x.id));const summary=byId('returnPotentialSummaryGrid');if(summary)summary.innerHTML=[['回归骑手',returns.length,`本周重新产生跑单`, 'blue'],['高潜骑手',potentialOnly.length,`已排除回归重复骑手`, 'green'],['高潜周期',returnPotentialConfig.lookback||4,`近 ${returnPotentialConfig.lookback||4} 周`, 'amber'],['基准阈值',returnPotentialConfig.threshold??30,`首周跑单量 ≥ X`, 'purple']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');if(returnTable){let html='<thead><tr><th>骑手</th><th>判定</th><th>无跑单周期</th><th>本周跑单</th><th>本周关键指标</th><th>交通工具 / 接单 / 责尾单</th><th>操作</th></tr></thead><tbody>';returns.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="poolStatusPill return">回归骑手</span></td><td>${esc(x.prevCycles||'-')}</td><td><b>${fmt(x.curOrders,'orders')}</b></td><td><div class="poolMetricLine"><span>收入 ${fmt(x.income,'income')}</span><span>时薪 ${fmt(x.hourly,'hourly')}</span><span>背单 ${fmt(x.duration,'duration')}</span></div></td><td>${metricExtraBadges(x.cur)}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});returnTable.innerHTML=returns.length?html+'</tbody>':'<tr><td class="empty">当前配置下暂无回归骑手</td></tr>';returnTable.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))}if(potentialTable){let html='<thead><tr><th>骑手</th><th>判定</th><th>窗口跑单序列</th><th>首周基准</th><th>本周跑单</th><th>净增长</th><th>本周关键指标</th><th>交通工具 / 接单 / 责尾单</th><th>操作</th></tr></thead><tbody>';potentialOnly.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="poolStatusPill potential">${esc(x.rule)}</span></td><td><span class="mini">${x.window.map((c,i)=>`${esc(c)}:${fmt(x.values[i],'orders')}`).join(' → ')}</span></td><td>${fmt(x.base,'orders')}</td><td><b>${fmt(x.current,'orders')}</b></td><td>${x.gain>=0?'+':''}${fmt(x.gain,'orders')}</td><td><div class="poolMetricLine"><span>收入 ${fmt(x.income,'income')}</span><span>时薪 ${fmt(x.hourly,'hourly')}</span><span>背单 ${fmt(x.duration,'duration')}</span></div></td><td>${metricExtraBadges(x.cur)}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});potentialTable.innerHTML=potentialOnly.length?html+'</tbody>':'<tr><td class="empty">当前配置下暂无高潜骑手</td></tr>';potentialTable.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))}}
 
+
+/* === patch: extra field comparison, vehicle filters, compare toggle, return/potential split columns === */
+(function(){
+  state.problemVehicle = state.problemVehicle || 'all';
+  state.followVehicle = state.followVehicle || 'all';
+
+  function normVehicle(v){return String(v||'').trim() || '__blank__'}
+  function vehicleLabel(v){return v==='__blank__'?'空白':v}
+  function currentVehicleOfItem(x){return normVehicle((x&&x.cur&&x.cur.vehicle) || (x&&x.id&&rec(state.cycle,x.id)?.vehicle) || '')}
+  function distinctVehicles(){
+    const set=new Set();
+    rows.forEach(r=>set.add(normVehicle(r.vehicle)));
+    return Array.from(set).sort((a,b)=>vehicleLabel(a).localeCompare(vehicleLabel(b),'zh-CN'));
+  }
+  function vehicleOptions(selected){
+    return '<option value="all">全部交通工具</option>'+distinctVehicles().map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(vehicleLabel(v))}</option>`).join('');
+  }
+  function ensureVehicleFilterControls(){
+    const problemGrid=document.querySelector('#filterPanel .filterGrid');
+    if(problemGrid&&!byId('problemVehicleFilter')){
+      const label=document.createElement('label');
+      label.className='field';
+      label.innerHTML='<span>交通工具</span><select id="problemVehicleFilter"></select>';
+      const summary=byId('filterSummary')?.closest('.field');
+      problemGrid.insertBefore(label,summary||problemGrid.lastElementChild);
+      label.querySelector('select').onchange=e=>{state.problemVehicle=e.target.value;renderProblems()};
+    }
+    const followGrid=byId('followOwnerFilter')?.closest('.compareControlGrid');
+    if(followGrid&&!byId('followVehicleFilter')){
+      const label=document.createElement('label');
+      label.className='field';
+      label.innerHTML='<span>交通工具</span><select id="followVehicleFilter"></select>';
+      const cycleHint=byId('followCycleHint')?.closest('.field');
+      followGrid.insertBefore(label,cycleHint||followGrid.lastElementChild);
+      label.querySelector('select').onchange=e=>{state.followVehicle=e.target.value;renderFollowup()};
+    }
+    const p=byId('problemVehicleFilter');if(p){p.innerHTML=vehicleOptions(state.problemVehicle||'all');p.value=state.problemVehicle||'all'}
+    const f=byId('followVehicleFilter');if(f){f.innerHTML=vehicleOptions(state.followVehicle||'all');f.value=state.followVehicle||'all'}
+  }
+
+  const __deltaHTML = deltaHTML;
+  const __deltaText = deltaText;
+  function rateDeltaHTML(cur,pre,k){
+    const c=ratePercent(cur),p=ratePercent(pre);
+    if(c==null||p==null||!Number.isFinite(p))return '<span class="delta warn">无对比</span>';
+    const d=c-p;
+    const good = k==='tailRate' ? d<0 : d>0;
+    const bad = k==='tailRate' ? d>0 : d<0;
+    const cls=good?'good':bad?'bad':'warn';
+    const sign=d>0?'+':'';
+    return `<span class="delta ${cls}">${sign}${d.toFixed(1)}pp</span>`;
+  }
+  function rateDeltaText(cur,pre,k){
+    const c=ratePercent(cur),p=ratePercent(pre);
+    if(c==null||p==null||!Number.isFinite(p))return '无对比';
+    const d=c-p,sign=d>0?'+':'';
+    return `${sign}${d.toFixed(1)}pp`;
+  }
+  deltaHTML=function(cur,pre,k){if(k==='acceptanceRate'||k==='tailRate')return rateDeltaHTML(cur,pre,k);return __deltaHTML(cur,pre,k)};
+  deltaText=function(cur,pre,k){if(k==='acceptanceRate'||k==='tailRate')return rateDeltaText(cur,pre,k);return __deltaText(cur,pre,k)};
+
+  const __oldFmtField = typeof fmtField==='function'?fmtField:null;
+  fmtField=function(r,k){
+    if(k==='vehicle')return emptyText(r&&r.vehicle);
+    if(!r||!Number.isFinite(r[k]))return '空白';
+    return fmt(r[k],k);
+  };
+  function compareRecFor(r){return r&&r.id?rec(state.compare,r.id):null}
+  riderExtraCells=function(r,pre){
+    pre=pre||compareRecFor(r)||{};
+    return `<td>${esc(fmtField(r,'vehicle'))}</td><td>${esc(fmtField(r,'acceptanceRate'))}<br>${rateDeltaHTML(r&&r.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</td><td>${esc(fmtField(r,'tailRate'))}<br>${rateDeltaHTML(r&&r.tailRate,pre&&pre.tailRate,'tailRate')}</td>`;
+  };
+  riderExtraLine=function(r,pre){
+    pre=pre||compareRecFor(r)||{};
+    return `<div class="mini">交通工具 ${esc(fmtField(r,'vehicle'))} ｜ 接单率 ${esc(fmtField(r,'acceptanceRate'))}（${rateDeltaText(r&&r.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}） ｜ 骑手责尾单率 ${esc(fmtField(r,'tailRate'))}（${rateDeltaText(r&&r.tailRate,pre&&pre.tailRate,'tailRate')}）</div>`;
+  };
+  metricExtraBadges=function(r,pre){
+    pre=pre||compareRecFor(r)||{};
+    return `<div class="poolMetricLine"><span>交通工具 ${esc(fmtField(r,'vehicle'))}</span><span>接单率 ${esc(fmtField(r,'acceptanceRate'))} ${rateDeltaText(r&&r.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</span><span>责尾单率 ${esc(fmtField(r,'tailRate'))} ${rateDeltaText(r&&r.tailRate,pre&&pre.tailRate,'tailRate')}</span></div>`;
+  };
+
+  const __filteredProblems = filteredProblems;
+  filteredProblems=function(){
+    let items=__filteredProblems();
+    if(state.problemVehicle&&state.problemVehicle!=='all')items=items.filter(x=>currentVehicleOfItem(x)===state.problemVehicle);
+    return items;
+  };
+  const __followItems = followItems;
+  followItems=function(){
+    let items=__followItems();
+    if(state.followVehicle&&state.followVehicle!=='all')items=items.filter(x=>currentVehicleOfItem(x)===state.followVehicle);
+    return items;
+  };
+  const __renderProblems = renderProblems;
+  renderProblems=function(){ensureVehicleFilterControls();__renderProblems();ensureVehicleFilterControls()};
+  const __renderFollowup = renderFollowup;
+  renderFollowup=function(){ensureVehicleFilterControls();__renderFollowup();ensureVehicleFilterControls()};
+  const __renderFollowFilterControls = renderFollowFilterControls;
+  renderFollowFilterControls=function(){__renderFollowFilterControls();ensureVehicleFilterControls()};
+  const __bind = bind;
+  bind=function(){
+    __bind();
+    ensureVehicleFilterControls();
+    const reset=byId('resetFiltersBtn');
+    if(reset&&!reset.__vehiclePatched){
+      const old=reset.onclick;
+      reset.onclick=function(e){state.problemVehicle='all';if(old)old.call(this,e);ensureVehicleFilterControls()};
+      reset.__vehiclePatched=true;
+    }
+  };
+
+  toggleCompareRider=function(id){
+    if(!id||!riderMap.has(id)){if(id)toast('未找到该骑手');return;}
+    state.compareRiders=state.compareRiders||[];
+    if(state.compareRiders.includes(id))state.compareRiders=state.compareRiders.filter(x=>x!==id);
+    else{
+      if(state.compareRiders.length>=8){toast('最多同时对比 8 名骑手');return;}
+      state.compareRiders.push(id);
+    }
+    renderCompare();drawMulti();
+  };
+
+  renderReturnPotentialPool=function(){
+    const returnTable=byId('returnPoolTable'),potentialTable=byId('potentialPoolTable');
+    if(!returnTable&&!potentialTable)return;
+    applyReturnPotentialConfigToInputs();
+    applyReturnPotentialView();
+    const hint=byId('returnPotentialRuleHint');
+    if(hint)hint.innerHTML=`当前周期：<b>${esc(state.cycle||'-')}</b>；回归判定：前 <b>${returnPotentialConfig.noRunWeeks||1}</b> 周无跑单，本周跑单量 &gt; 0；高潜判定：近 <b>${returnPotentialConfig.lookback||4}</b> 周，首周跑单量 ≥ <b>${returnPotentialConfig.threshold??30}</b>，后续持续不低于首周或逐周递增。`;
+    if(!rows.length){
+      if(returnTable)returnTable.innerHTML='<tr><td class="empty">暂无数据</td></tr>';
+      if(potentialTable)potentialTable.innerHTML='<tr><td class="empty">暂无数据</td></tr>';
+      const s=byId('returnPotentialSummaryGrid');if(s)s.innerHTML='';
+      return;
+    }
+    const returns=returnPoolItems(),pots=potentialPoolItems(),dedup=new Set(returns.map(x=>x.id)),potentialOnly=pots.filter(x=>!dedup.has(x.id));
+    const summary=byId('returnPotentialSummaryGrid');
+    if(summary)summary.innerHTML=[['回归骑手',returns.length,'本周重新产生跑单','blue'],['高潜骑手',potentialOnly.length,'已排除回归重复骑手','green'],['高潜周期',returnPotentialConfig.lookback||4,`近 ${returnPotentialConfig.lookback||4} 周`,'amber'],['基准阈值',returnPotentialConfig.threshold??30,'首周跑单量 ≥ X','purple']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');
+    if(returnTable){
+      let html='<thead><tr><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>判定</th><th>无跑单周期</th><th>本周跑单</th><th>本周关键指标</th><th>操作</th></tr></thead><tbody>';
+      returns.forEach(x=>{const pre=rec(state.compare,x.id)||{};html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(fmtField(x.cur,'vehicle'))}</td><td>${esc(fmtField(x.cur,'acceptanceRate'))}<br>${rateDeltaHTML(x.cur&&x.cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</td><td>${esc(fmtField(x.cur,'tailRate'))}<br>${rateDeltaHTML(x.cur&&x.cur.tailRate,pre&&pre.tailRate,'tailRate')}</td><td><span class="poolStatusPill return">回归骑手</span></td><td>${esc(x.prevCycles||'-')}</td><td><b>${fmt(x.curOrders,'orders')}</b></td><td><div class="poolMetricLine"><span>收入 ${fmt(x.income,'income')}</span><span>时薪 ${fmt(x.hourly,'hourly')}</span><span>背单 ${fmt(x.duration,'duration')}</span></div></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      returnTable.innerHTML=returns.length?html+'</tbody>':'<tr><td class="empty">当前配置下暂无回归骑手</td></tr>';
+      returnTable.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+    }
+    if(potentialTable){
+      let html='<thead><tr><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>判定</th><th>窗口跑单序列</th><th>首周基准</th><th>本周跑单</th><th>净增长</th><th>本周关键指标</th><th>操作</th></tr></thead><tbody>';
+      potentialOnly.forEach(x=>{const pre=rec(state.compare,x.id)||{};html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(fmtField(x.cur,'vehicle'))}</td><td>${esc(fmtField(x.cur,'acceptanceRate'))}<br>${rateDeltaHTML(x.cur&&x.cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</td><td>${esc(fmtField(x.cur,'tailRate'))}<br>${rateDeltaHTML(x.cur&&x.cur.tailRate,pre&&pre.tailRate,'tailRate')}</td><td><span class="poolStatusPill potential">${esc(x.rule)}</span></td><td><span class="mini">${x.window.map((c,i)=>`${esc(c)}:${fmt(x.values[i],'orders')}`).join(' → ')}</span></td><td>${fmt(x.base,'orders')}</td><td><b>${fmt(x.current,'orders')}</b></td><td>${x.gain>=0?'+':''}${fmt(x.gain,'orders')}</td><td><div class="poolMetricLine"><span>收入 ${fmt(x.income,'income')}</span><span>时薪 ${fmt(x.hourly,'hourly')}</span><span>背单 ${fmt(x.duration,'duration')}</span></div></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      potentialTable.innerHTML=potentialOnly.length?html+'</tbody>':'<tr><td class="empty">当前配置下暂无高潜骑手</td></tr>';
+      potentialTable.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+    }
+  };
+})();
+
+
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
