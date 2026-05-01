@@ -1370,6 +1370,16 @@ function riskText(level){return level==='high'?'高风险':level==='mid'?'中风
 function rebuildData(keep=false){rows=raw.map(r=>({id:String(r[0]??'').trim(),name:String(r[1]??'').trim(),orders:num(r[2]),income:num(r[3]),hourly:num(r[4]),duration:num(r[5]),periodAvg:num(r[6]),vehicle:String(r[7]??'').trim(),acceptanceRate:num(r[8]),tailRate:num(r[9]),cycle:String(r[10]??'').trim()})).filter(r=>r.id&&r.name&&r.cycle);cycles=[...new Set(rows.map(r=>r.cycle))].sort((a,b)=>cycleNo(a)-cycleNo(b)||String(a).localeCompare(String(b),'zh-CN'));recMap=new Map();riderMap=new Map();rows.forEach(r=>{recMap.set(r.cycle+'|'+r.id,r);if(!riderMap.has(r.id))riderMap.set(r.id,{id:r.id,name:r.name})});riders=[...riderMap.values()].sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));meta.rowCount=rows.length;meta.riderCount=riders.length;meta.cycles=cycles;if(!cycles.length){Object.assign(state,{cycle:'',compare:'',selected:null});return}if(!keep||!cycles.includes(state.cycle))state.cycle=cycles[cycles.length-1];if(!keep||!cycles.includes(state.compare)||state.compare===state.cycle){const idx=cycles.indexOf(state.cycle);state.compare=cycles[Math.max(0,idx-1)]||state.cycle}if(state.selected&&!riderMap.has(state.selected))state.selected=null}
 function refreshControls(){byId('cycleSel').innerHTML=cycles.length?cycles.map(c=>`<option ${c===state.cycle?'selected':''}>${esc(c)}</option>`).join(''):'<option>暂无数据</option>';byId('compareSel').innerHTML=cycles.length?cycles.map(c=>`<option ${c===state.compare?'selected':''}>${esc(c)}</option>`).join(''):'<option>暂无数据</option>';byId('metricSel').innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');const cms=byId('compareMetricSel');if(cms)cms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');const dms=byId('diagnosisMetricSel');if(dms)dms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.diagnosisMetric||state.metric)?'selected':''}>${m.label}</option>`).join('');byId('searchInp').value=state.search;const ps=byId('profileSearchInp');if(ps)ps.value=state.search}
 
+
+function filteredRiders(){
+  const q=String(state.search||'').trim().toLowerCase();
+  if(!q)return riders;
+  const nq=normalizeSearchText(q);
+  return riders.filter(r=>{
+    const name=String(r.name||''),id=String(r.id||'');
+    return name.toLowerCase().includes(q)||id.toLowerCase().includes(q)||normalizeSearchText(name).includes(nq)||normalizeSearchText(id).includes(nq);
+  });
+}
 function riderIds(){return filteredRiders().map(r=>r.id)}function ensureSelectedFromSearch(){if(!rows.length)return;const list=filteredRiders();if(!list.length){state.selected=null;return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id}
 function compareSearchText(){return String(byId('compareSearchInp')?.value||'').trim().toLowerCase()}
 function normalizeSearchText(v){return String(v??'').toLowerCase().replace(/\s+/g,'').replace(/[\-_.]/g,'')}
