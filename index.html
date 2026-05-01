@@ -391,15 +391,16 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="compareControlGrid">
       <label class="field"><span>当前周期</span><b id="tailCurrentHint">-</b></label>
       <label class="field"><span>对比周期</span><b id="tailCompareHint">-</b></label>
-      <label class="field"><span>自行车 / 步行目标上限</span><input id="tailLowTargetInp" type="number" min="0" step="0.1" value="1" /></label>
-      <label class="field"><span>电动 / 摩托 / 汽车目标上限</span><input id="tailHighTargetInp" type="number" min="0" step="0.1" value="6" /></label>
+      <label class="field"><span>机动车目标上限</span><input id="tailMotorTargetInp" type="number" min="0" step="0.1" value="6" /></label>
+      <label class="field"><span>自行车目标上限</span><input id="tailBikeTargetInp" type="number" min="0" step="0.1" value="1" /></label>
+      <label class="field"><span>步行目标上限</span><input id="tailWalkTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>影响提示阈值 ≥</span><input id="tailImpactMinInp" type="number" min="0" step="0.01" value="0.05" /></label>
     </div>
-    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：个人责尾单率自行车/步行 ≤ 1%；电动自行车/摩托车/汽车 ≤ 6%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
+    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车包含摩托车和汽车。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
   </div>
   <div class="snapshotGrid" id="tailSummaryGrid"></div>
   <div class="panel">
-    <div class="panelHead"><div><h2>不同车型责尾单率对比</h2><div class="sub">按公式统计：骑手责尾单单量 = 骑手跑单量 × 骑手责尾单率；当周骑手责尾单率 = 骑手责尾单单量 / 当周单量总数。</div></div></div>
+    <div class="panelHead"><div><h2>不同车型责尾单率对比</h2><div class="sub">车型分为机动车、自行车、步行三类；机动车包含摩托车和汽车。按公式统计：骑手责尾单单量 = 骑手跑单量 × 骑手责尾单率；当周骑手责尾单率 = 骑手责尾单单量 / 当周单量总数。</div></div></div>
     <div class="tableWrap"><table id="tailVehicleTable"></table></div>
   </div>
   <div class="panel">
@@ -2084,15 +2085,14 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
 
 /* === 尾单骑手中心 === */
 (function(){
-  const DEFAULT_LOW_STD=1, DEFAULT_HIGH_STD=6;
+  const DEFAULT_MOTOR_STD=6, DEFAULT_BIKE_STD=1, DEFAULT_WALK_STD=1;
   const vehicleGroups=[
-    {key:'walk_bike',label:'自行车 / 步行',match:v=>/(自行车|单车|bike|bicycle|步行|walk|walking)/i.test(v||''),std:DEFAULT_LOW_STD},
-    {key:'ebike_moto_car',label:'电动自行车 / 摩托车 / 汽车',match:v=>/(电动|e-?bike|ebike|摩托|motor|scooter|汽车|car|vehicle)/i.test(v||''),std:DEFAULT_HIGH_STD},
-    {key:'unknown',label:'未填写车型',match:v=>!String(v||'').trim(),std:DEFAULT_HIGH_STD},
-    {key:'other',label:'其他车型',match:v=>true,std:DEFAULT_HIGH_STD}
+    {key:'motor',label:'机动车',match:v=>/(机动车|摩托|motor|motorcycle|scooter|汽车|car|auto|vehicle)/i.test(v||''),std:DEFAULT_MOTOR_STD},
+    {key:'bike',label:'自行车',match:v=>/(自行车|单车|bike|bicycle|电动自行车|电动车|e-?bike|ebike)/i.test(v||''),std:DEFAULT_BIKE_STD},
+    {key:'walk',label:'步行',match:v=>/(步行|walk|walking)/i.test(v||''),std:DEFAULT_WALK_STD}
   ];
   function normVehicle(v){return String(v||'').trim()||'空白'}
-  function groupOfVehicle(v){const s=normVehicle(v);return vehicleGroups.find(g=>g.match(s))||vehicleGroups[vehicleGroups.length-1]}
+  function groupOfVehicle(v){const s=normVehicle(v);const matched=vehicleGroups.find(g=>g.match(s));return matched||vehicleGroups[0]}
   function personalTailPct(r){const x=ratePercent(r&&r.tailRate);return Number.isFinite(x)?x:null}
   function rowOrders(r){const n=val(r,'orders');return Number.isFinite(n)?n:0}
   function tailOrderCount(r){const t=personalTailPct(r);if(t==null)return null;return rowOrders(r)*t/100}
@@ -2106,6 +2106,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   function groupRateFromSum(sum,total){return total?sum/total*100:null}
   function tailVehicleStats(){
     const map=new Map();
+    vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0,curOver:0,preOver:0}));
     function ensure(g){
       if(!map.has(g.key))map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0,curOver:0,preOver:0});
       return map.get(g.key);
@@ -2152,12 +2153,12 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     }).filter(x=>x&&x.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,10)
   }
   function tailImpactItems(){
-    const low=Number(byId('tailLowTargetInp')?.value)||DEFAULT_LOW_STD, high=Number(byId('tailHighTargetInp')?.value)||DEFAULT_HIGH_STD, min=Number(byId('tailImpactMinInp')?.value)||0;
+    const motor=Number(byId('tailMotorTargetInp')?.value)||DEFAULT_MOTOR_STD, bike=Number(byId('tailBikeTargetInp')?.value)||DEFAULT_BIKE_STD, walk=Number(byId('tailWalkTargetInp')?.value)||DEFAULT_WALK_STD, min=Number(byId('tailImpactMinInp')?.value)||0;
     const total=periodTotalOrders(state.cycle)||1;
     return activeCurrentRows().map(r=>{
       const personal=personalTailPct(r);if(personal==null)return null;
       const g=groupOfVehicle(r.vehicle);
-      const target=(g.key==='walk_bike')?low:high;
+      const target=g.key==='walk'?walk:(g.key==='bike'?bike:motor);
       const over=Math.max(0,personal-target);
       const impact=rowOrders(r)*over/100/total*100;
       return {id:r.id,name:r.name,vehicle:normVehicle(r.vehicle),group:g.label,cur:r,curPersonal:personal,curWeeklyTail:weeklyTailPctForRow(r,state.cycle),target,impact,standard:g.std,tag:impact>=min};
@@ -2213,7 +2214,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   const oldProfileBackName=profileBackName;
   profileBackName=function(tab){if(tab==='tailOrderCenter')return '尾单骑手中心';return oldProfileBackName(tab)};
   setTimeout(()=>{
-    ['refreshTailCenterBtn','tailLowTargetInp','tailHighTargetInp','tailImpactMinInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手中心已刷新')}});
+    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手中心已刷新')}});
     const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItems();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','车型分区','交通工具','当前个人责尾单率','当前当周责尾单率','目标上限','当前跑单','预计影响整体下降%'];const lines=[header,...items.map(x=>[x.id,x.name,x.group,x.vehicle,fmtPct(x.curPersonal),fmtPct(x.curWeeklyTail),x.target,plain(val(x.cur,'orders'),'orders'),x.impact.toFixed(2)])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
   },0);
 })();
