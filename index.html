@@ -227,6 +227,13 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 @media(max-width:980px){.equipmentCoverageGrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.equipmentCoverageGrid{grid-template-columns:1fr}}
 
+.equipmentManageGrid{display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.equipmentManageGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.equipmentManageGrid .field span{color:var(--muted)}
+.equipmentStockSummary{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.equipmentStockPill{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:850;background:#f2f4f7;color:#475467}.equipmentStockPill.low{background:var(--red2);color:var(--red)}
+.equipmentInlineControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.equipmentInlineControls .equipmentQtyInput{width:90px}.equipmentDangerLink{color:var(--red);font-weight:900}
+@media(max-width:980px){.equipmentManageGrid{grid-template-columns:1fr 1fr}.equipmentInlineControls{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}.equipmentInlineControls .equipmentQtyInput,.equipmentInlineControls .equipmentSelect{width:100%}}
+@media(max-width:640px){.equipmentManageGrid{grid-template-columns:1fr}.equipmentInlineControls{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -497,7 +504,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="panelHead">
       <div>
         <h2>骑手装备中心</h2>
-        <div class="sub">管理骑手物料库存与骑手装备配备状态。库存最低为 0，装备标记为“是”时会自动尝试扣减对应库存。</div>
+        <div class="sub">管理骑手物料库存与骑手装备规格配备状态。库存最低为 0，选择具体规格时会自动尝试扣减对应规格库存。</div>
       </div>
       <div class="inlineActions"><button class="btn small" id="refreshEquipmentBtn">刷新装备数据</button></div>
     </div>
@@ -507,11 +514,11 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
   <div class="grid2">
     <div class="panel">
       <div class="panelHead">
-        <div><h2>骑手物料库存情况</h2><div class="sub">预置马甲、雨衣、配送箱、配送包四类装备。可按规格新增或更新库存，数量不能低于 0。</div></div>
+        <div><h2>骑手物料库存情况</h2><div class="sub">同一装备名称下不同规格不再拆成多行，可直接切换规格并修改对应规格库存。支持删除无用装备。</div></div>
       </div>
-      <div class="compareControlGrid">
+      <div class="equipmentManageGrid">
         <label class="field"><span>装备名称</span><input id="equipmentNameInp" placeholder="例如：马甲" /></label>
-        <label class="field"><span>规格</span><select id="equipmentSizeSel"><option>S</option><option>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></label>
+        <label class="field"><span>规格</span><select id="equipmentSizeSel"><option>标准</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></label>
         <label class="field"><span>剩余数量</span><input id="equipmentQtyInp" type="number" min="0" step="1" value="0" /></label>
         <button class="btn primary" id="saveEquipmentInventoryBtn">保存库存</button>
       </div>
@@ -519,7 +526,11 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     </div>
     <div class="panel">
       <div class="panelHead">
-        <div><h2>库存提醒</h2><div class="sub">库存为 0 时不会继续扣减，避免出现负库存。</div></div>
+        <div><h2>库存提醒</h2><div class="sub">库存达到或低于自定义预警阈值时提醒；库存为 0 时不会继续扣减。</div></div>
+      </div>
+      <div class="compareControlGrid" style="grid-template-columns:1fr auto;margin-bottom:10px">
+        <label class="field"><span>库存预警阈值</span><input id="equipmentLowThresholdInp" type="number" min="0" step="1" value="0" /></label>
+        <button class="btn primary" id="saveEquipmentLowThresholdBtn">保存阈值</button>
       </div>
       <div class="priorityList" id="equipmentInventoryAlerts"></div>
     </div>
@@ -527,18 +538,17 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 
   <div class="panel">
     <div class="panelHead">
-      <div><h2>骑手装备明细</h2><div class="sub">按骑手维护装备是否配备；任意装备缺失显示“未完成”，全部齐全显示“合规”。</div></div>
+      <div><h2>骑手装备明细</h2><div class="sub">每项装备改为规格下拉选择，默认“无”；选择具体规格后按规格精准扣减库存。任意装备为“无”显示“未完成”，全部齐全显示“合规”。</div></div>
     </div>
     <div class="compareControlGrid">
       <label class="field"><span>车型筛选</span><select id="equipmentVehicleFilterSel"><option value="all">全部车型</option><option value="机动车">机动车</option><option value="自行车">自行车</option><option value="步行">步行</option><option value="其他">其他/空白</option></select></label>
       <label class="field"><span>搜索骑手 / ID</span><input id="equipmentSearchInp" placeholder="输入姓名或 ID" /></label>
       <div class="field"><span>骑手总人数</span><b id="equipmentTotalRidersHint">-</b></div>
-      <div class="field"><span>说明</span><b>选择“是”将自动联动库存 -1</b></div>
+      <div class="field"><span>说明</span><b>默认“无”不扣库存，选择规格才扣减</b></div>
     </div>
     <div class="tableWrap"><table id="riderEquipmentTable"></table></div>
   </div>
 </section>
-
 <section id="followup" class="tab">
   <div class="panel">
     <div class="toolbar">
@@ -2579,16 +2589,19 @@ ${qualityReturnText}
 
 
 
-/* === 骑手装备中心：库存与配备状态 === */
+/* === 骑手装备中心：库存与配备规格状态 v2 === */
 (function(){
   const EQUIP_KEYS=[
-    {key:'vest',name:'马甲'},
-    {key:'raincoat',name:'雨衣'},
-    {key:'delivery_box',name:'配送箱'},
-    {key:'delivery_bag',name:'配送包'}
+    {key:'vest',name:'马甲',spec:'vest_spec'},
+    {key:'raincoat',name:'雨衣',spec:'raincoat_spec'},
+    {key:'delivery_box',name:'配送箱',spec:'delivery_box_spec'},
+    {key:'delivery_bag',name:'配送包',spec:'delivery_bag_spec'}
   ];
-  const EQUIP_SIZES=['S','M','L','XL','2XL','3XL'];
-  const DEFAULT_EQUIPMENT_INVENTORY=EQUIP_KEYS.map(x=>({equipment_name:x.name,size:'M',quantity:0}));
+  const EQUIP_SIZES=['标准','S','M','L','XL','2XL','3XL'];
+  const NO_EQUIP='无';
+  const DEFAULT_EQUIPMENT_INVENTORY=EQUIP_KEYS.map(x=>({equipment_name:x.name,size:'标准',quantity:0}));
+  let equipmentSelectedSizes=safeGet('rider_equipment_selected_sizes',{});
+  let equipmentLowThreshold=equipNum(safeGet('rider_equipment_low_threshold',0));
   function equipToast(msg){try{toast(msg)}catch(e){console.log(msg)}}
   function equipNum(v){const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.floor(n)):0}
   function equipVehicleGroup(v){
@@ -2604,21 +2617,26 @@ ${qualityReturnText}
     for(let i=cycles.length-1;i>=0;i--){const r=rec(cycles[i],id);if(r&&r.vehicle)return r.vehicle}
     return '';
   }
-  function defaultAssignment(id){return {rider_id:String(id),vest:false,raincoat:false,delivery_box:false,delivery_bag:false}}
-  function getEquipAssign(id){return {...defaultAssignment(id),...(riderEquipmentAssignments[String(id)]||{})}}
-  function equipAllComplete(a){return EQUIP_KEYS.every(k=>!!a[k.key])}
-  function inventoryKey(x){return `${String(x.equipment_name||'').trim()}__${String(x.size||'').trim()}`}
+  function defaultAssignment(id){return {rider_id:String(id),vest:false,raincoat:false,delivery_box:false,delivery_bag:false,vest_spec:NO_EQUIP,raincoat_spec:NO_EQUIP,delivery_box_spec:NO_EQUIP,delivery_bag_spec:NO_EQUIP}}
+  function assignmentSpec(a,k){const raw=a?.[k.spec];if(raw&&raw!==true&&raw!==false)return String(raw);return a?.[k.key]?'标准':NO_EQUIP}
+  function getEquipAssign(id){const raw={...defaultAssignment(id),...(riderEquipmentAssignments[String(id)]||{})};EQUIP_KEYS.forEach(k=>{raw[k.spec]=assignmentSpec(raw,k);raw[k.key]=raw[k.spec]!==NO_EQUIP});return raw}
+  function equipAllComplete(a){return EQUIP_KEYS.every(k=>assignmentSpec(a,k)!==NO_EQUIP)}
+  function inventoryKey(x){return `${String(x.equipment_name||'').trim()}__${String(x.size||'标准').trim()}`}
+  function normalizeSize(size){const s=String(size||'标准').trim()||'标准';return EQUIP_SIZES.includes(s)?s:'标准'}
   function normalizeInventoryList(list){
     const map=new Map();
     [...DEFAULT_EQUIPMENT_INVENTORY,...(Array.isArray(list)?list:[])].forEach(x=>{
       const name=String(x.equipment_name||x.name||'').trim();
-      const size=String(x.size||'M').trim()||'M';
+      const size=normalizeSize(x.size);
       if(!name)return;
-      const item={id:x.id||null,equipment_name:name,size:EQUIP_SIZES.includes(size)?size:'M',quantity:equipNum(x.quantity),updated_at:x.updated_at||x.created_at||''};
+      const item={id:x.id||null,equipment_name:name,size,quantity:equipNum(x.quantity),updated_at:x.updated_at||x.created_at||'',updated_by:x.updated_by||null};
       map.set(inventoryKey(item),item);
     });
     return [...map.values()].sort((a,b)=>String(a.equipment_name).localeCompare(String(b.equipment_name),'zh-CN')||EQUIP_SIZES.indexOf(a.size)-EQUIP_SIZES.indexOf(b.size));
   }
+  function inventoryNames(){return [...new Set(normalizeInventoryList(equipmentInventory).map(x=>x.equipment_name))].sort((a,b)=>a.localeCompare(b,'zh-CN'))}
+  function inventoryByName(name){return normalizeInventoryList(equipmentInventory).filter(x=>String(x.equipment_name)===String(name))}
+  function getInventoryItem(name,size){return normalizeInventoryList(equipmentInventory).find(x=>String(x.equipment_name)===String(name)&&String(x.size)===String(size))||null}
   async function pagedSelect(table,orderCol){
     const client=getCloudClient();let from=0,all=[],pageSize=1000;
     for(let page=0;page<100;page++){let q=client.from(table).select('*').range(from,from+pageSize-1);if(orderCol)q=q.order(orderCol,{ascending:true});const {data,error}=await q;if(error)throw error;const batch=data||[];all=all.concat(batch);if(batch.length<pageSize)break;from+=pageSize}
@@ -2628,7 +2646,7 @@ ${qualityReturnText}
     try{
       const inv=await pagedSelect(EQUIPMENT_INVENTORY_TABLE,'equipment_name');
       equipmentInventory=normalizeInventoryList(inv);
-      if(!inv.length){try{await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).upsert(DEFAULT_EQUIPMENT_INVENTORY,{onConflict:'equipment_name,size'});}catch(e){console.warn('init equipment inventory failed',e)}}
+      if(!inv.length){try{await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).upsert(DEFAULT_EQUIPMENT_INVENTORY,{onConflict:'equipment_name,size'});equipmentInventory=normalizeInventoryList(DEFAULT_EQUIPMENT_INVENTORY)}catch(e){console.warn('init equipment inventory failed',e)}}
       const assignments=await pagedSelect(RIDER_EQUIPMENT_TABLE,'rider_id');
       riderEquipmentAssignments={};assignments.forEach(x=>{riderEquipmentAssignments[String(x.rider_id)]=x});
       equipmentLoaded=true;
@@ -2642,58 +2660,65 @@ ${qualityReturnText}
     }
   }
   async function saveInventoryItem(payload){
-    payload={equipment_name:String(payload.equipment_name||'').trim(),size:String(payload.size||'M').trim(),quantity:equipNum(payload.quantity),updated_at:new Date().toISOString(),updated_by:cloudUser?.id||null};
+    payload={equipment_name:String(payload.equipment_name||'').trim(),size:normalizeSize(payload.size),quantity:equipNum(payload.quantity),updated_at:new Date().toISOString(),updated_by:cloudUser?.id||null};
     if(!payload.equipment_name){equipToast('请填写装备名称');return null}
     try{const {data,error}=await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).upsert(payload,{onConflict:'equipment_name,size'}).select('*').single();if(error)throw error;equipmentInventory=normalizeInventoryList(equipmentInventory.filter(x=>inventoryKey(x)!==inventoryKey(data)).concat([data]));safeSet('rider_equipment_inventory_local',equipmentInventory);return data}catch(e){equipToast('库存保存失败：'+(e.message||e));return null}
   }
   async function saveEquipmentInventoryFromForm(){
-    const payload={equipment_name:byId('equipmentNameInp')?.value||'',size:byId('equipmentSizeSel')?.value||'M',quantity:byId('equipmentQtyInp')?.value||0};
-    const data=await saveInventoryItem(payload);if(data){byId('equipmentNameInp').value='';byId('equipmentQtyInp').value=0;renderRiderEquipmentCenter();equipToast('库存已保存')}
+    const payload={equipment_name:byId('equipmentNameInp')?.value||'',size:byId('equipmentSizeSel')?.value||'标准',quantity:byId('equipmentQtyInp')?.value||0};
+    const data=await saveInventoryItem(payload);if(data){equipmentSelectedSizes[data.equipment_name]=data.size;safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);byId('equipmentNameInp').value='';byId('equipmentQtyInp').value=0;renderRiderEquipmentCenter();equipToast('库存已保存')}
   }
-  async function updateInventoryQty(key,qty){
-    const idx=equipmentInventory.findIndex(x=>inventoryKey(x)===key);if(idx<0)return;
-    const item={...equipmentInventory[idx],quantity:equipNum(qty)};
-    const data=await saveInventoryItem(item);if(data){renderRiderEquipmentCenter();equipToast('库存数量已更新')}
+  async function updateInventoryQty(name,size,qty){
+    const data=await saveInventoryItem({equipment_name:name,size,quantity:qty});if(data){equipmentSelectedSizes[name]=size;safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);renderRiderEquipmentCenter();equipToast('库存数量已更新')}
   }
-  async function decrementInventoryForEquip(equipName){
-    let idx=equipmentInventory.findIndex(x=>String(x.equipment_name)===equipName&&equipNum(x.quantity)>0);
-    if(idx<0)return false;
-    const item={...equipmentInventory[idx],quantity:equipNum(equipmentInventory[idx].quantity)-1};
-    await saveInventoryItem(item);
+  async function deleteInventoryName(name){
+    if(!name)return;if(!confirm(`确认删除装备「${name}」及其全部规格库存？已配备记录不会被删除。`))return;
+    try{const {error}=await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).delete().eq('equipment_name',name);if(error)throw error;equipmentInventory=equipmentInventory.filter(x=>String(x.equipment_name)!==String(name));delete equipmentSelectedSizes[name];safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);safeSet('rider_equipment_inventory_local',equipmentInventory);renderRiderEquipmentCenter();equipToast('已删除该装备库存')}catch(e){equipToast('删除库存失败：'+(e.message||e))}
+  }
+  async function decrementInventoryForEquip(equipName,size){
+    const item=getInventoryItem(equipName,size);
+    if(!item||equipNum(item.quantity)<=0)return false;
+    await saveInventoryItem({...item,quantity:equipNum(item.quantity)-1});
     return true;
   }
   async function saveRiderEquipment(id,patch){
     const before=getEquipAssign(id);
     const after={...before,...patch,rider_id:String(id),updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()};
-    try{const {data,error}=await getCloudClient().from(RIDER_EQUIPMENT_TABLE).upsert(after,{onConflict:'rider_id'}).select('*').single();if(error)throw error;riderEquipmentAssignments[String(id)]=data;safeSet('rider_equipment_assignments_local',riderEquipmentAssignments);return data}catch(e){equipToast('装备状态保存失败：'+(e.message||e));return null}
+    EQUIP_KEYS.forEach(k=>{after[k.spec]=assignmentSpec(after,k);after[k.key]=after[k.spec]!==NO_EQUIP});
+    try{const {data,error}=await getCloudClient().from(RIDER_EQUIPMENT_TABLE).upsert(after,{onConflict:'rider_id'}).select('*').single();if(error)throw error;riderEquipmentAssignments[String(id)]=data;safeSet('rider_equipment_assignments_local',riderEquipmentAssignments);return data}catch(e){equipToast('装备规格保存失败：'+(e.message||e));return null}
   }
-  async function updateRiderEquipStatus(id,key,val){
-    const before=getEquipAssign(id);
-    const want=String(val)==='true';
-    if(want&&!before[key]){
-      const name=(EQUIP_KEYS.find(x=>x.key===key)||{}).name||key;
-      const deducted=await decrementInventoryForEquip(name);
-      if(!deducted)equipToast(`${name}库存为 0，已记录配备状态但未扣减库存`);
+  async function updateRiderEquipSpec(id,key,newSpec){
+    const k=EQUIP_KEYS.find(x=>x.key===key);if(!k)return;
+    newSpec=String(newSpec||NO_EQUIP);
+    const before=getEquipAssign(id);const oldSpec=assignmentSpec(before,k);
+    if(newSpec!==NO_EQUIP&&newSpec!==oldSpec){
+      const deducted=await decrementInventoryForEquip(k.name,newSpec);
+      if(!deducted)equipToast(`${k.name} · ${newSpec} 库存为 0，已记录配备规格但未扣减库存`);
     }
-    const saved=await saveRiderEquipment(id,{[key]:want});
+    const saved=await saveRiderEquipment(id,{[k.spec]:newSpec,[k.key]:newSpec!==NO_EQUIP});
     if(saved){renderRiderEquipmentCenter();}
   }
   function renderEquipmentCoverage(){
     const el=byId('equipmentCoverageGrid');if(!el)return;const total=riders.length||0;
-    el.innerHTML=EQUIP_KEYS.map(k=>{const n=riders.filter(r=>getEquipAssign(r.id)[k.key]).length;const pct=total?Math.round(n/total*100):0;return `<div class="snap ${pct>=100?'green':pct>=60?'blue':'amber'}"><b>${esc(k.name)}覆盖率</b><div class="n">${pct}%</div><div class="t">已配备 ${n} / 骑手总人数 ${total}</div></div>`}).join('');
+    el.innerHTML=EQUIP_KEYS.map(k=>{const n=riders.filter(r=>assignmentSpec(getEquipAssign(r.id),k)!==NO_EQUIP).length;const pct=total?Math.round(n/total*100):0;return `<div class="snap ${pct>=100?'green':pct>=60?'blue':'amber'}"><b>${esc(k.name)}覆盖率</b><div class="n">${pct}%</div><div class="t">已配备 ${n} / 骑手总人数 ${total}</div></div>`}).join('');
   }
+  function sizeOptions(selected){return EQUIP_SIZES.map(s=>`<option value="${esc(s)}" ${s===selected?'selected':''}>${esc(s)}</option>`).join('')}
+  function riderSizeOptions(selected){return [`<option value="${NO_EQUIP}" ${selected===NO_EQUIP?'selected':''}>${NO_EQUIP}</option>`].concat(EQUIP_SIZES.map(s=>`<option value="${esc(s)}" ${s===selected?'selected':''}>${esc(s)}</option>`)).join('')}
   function renderInventory(){
     const table=byId('equipmentInventoryTable');if(!table)return;
     equipmentInventory=normalizeInventoryList(equipmentInventory);
-    let html='<thead><tr><th>装备名称</th><th>规格</th><th>剩余数量</th><th>库存状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';
-    equipmentInventory.forEach(x=>{const key=inventoryKey(x),qty=equipNum(x.quantity);html+=`<tr class="${qty===0?'equipmentLowStock':''}"><td><b>${esc(x.equipment_name)}</b></td><td>${esc(x.size)}</td><td><input class="equipmentQtyInput" type="number" min="0" step="1" value="${qty}" data-equipment-qty="${esc(key)}"></td><td>${qty===0?'<span class="pill red">库存为 0</span>':'<span class="pill green">库存正常</span>'}</td><td><span class="mini">${formatDateTimeLocal(x.updated_at)}</span></td><td><button class="btn small" data-equipment-update="${esc(key)}">更新数量</button></td></tr>`});
+    const names=inventoryNames();
+    let html='<thead><tr><th>装备名称</th><th>规格库存</th><th>切换规格并修改库存</th><th>库存状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';
+    names.forEach(name=>{const items=inventoryByName(name);const selected=normalizeSize(equipmentSelectedSizes[name]||items[0]?.size||'标准');const item=getInventoryItem(name,selected)||{equipment_name:name,size:selected,quantity:0,updated_at:''};const qty=equipNum(item.quantity);const summary=EQUIP_SIZES.map(sz=>{const it=getInventoryItem(name,sz);if(!it)return '';const q=equipNum(it.quantity);return `<span class="equipmentStockPill ${q<=equipmentLowThreshold?'low':''}">${esc(sz)}：${q}</span>`}).filter(Boolean).join('')||'<span class="mini">暂无规格库存</span>';html+=`<tr class="${qty<=equipmentLowThreshold?'equipmentLowStock':''}"><td><b>${esc(name)}</b></td><td><div class="equipmentStockSummary">${summary}</div></td><td><div class="equipmentInlineControls"><select class="equipmentSelect" data-equipment-size-switch="${esc(name)}">${sizeOptions(selected)}</select><input class="equipmentQtyInput" type="number" min="0" step="1" value="${qty}" data-equipment-qty-name="${esc(name)}"><button class="btn small" data-equipment-update-name="${esc(name)}">保存</button></div></td><td>${qty<=equipmentLowThreshold?`<span class="pill red">≤ 预警阈值 ${equipmentLowThreshold}</span>`:'<span class="pill green">库存正常</span>'}</td><td><span class="mini">${formatDateTimeLocal(item.updated_at)}</span></td><td><button class="btn small danger" data-equipment-delete-name="${esc(name)}">删除</button></td></tr>`});
     table.innerHTML=html+'</tbody>';
-    table.querySelectorAll('[data-equipment-update]').forEach(btn=>btn.onclick=()=>{const key=btn.dataset.equipmentUpdate;const input=table.querySelector(`[data-equipment-qty="${CSS.escape(key)}"]`);updateInventoryQty(key,input?.value||0)});
+    table.querySelectorAll('[data-equipment-size-switch]').forEach(sel=>sel.onchange=e=>{const name=e.target.dataset.equipmentSizeSwitch;equipmentSelectedSizes[name]=e.target.value;safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);renderInventory();renderInventoryAlerts()});
+    table.querySelectorAll('[data-equipment-update-name]').forEach(btn=>btn.onclick=()=>{const name=btn.dataset.equipmentUpdateName;const size=table.querySelector(`[data-equipment-size-switch="${CSS.escape(name)}"]`)?.value||'标准';const qty=table.querySelector(`[data-equipment-qty-name="${CSS.escape(name)}"]`)?.value||0;updateInventoryQty(name,size,qty)});
+    table.querySelectorAll('[data-equipment-delete-name]').forEach(btn=>btn.onclick=()=>deleteInventoryName(btn.dataset.equipmentDeleteName));
   }
   function renderInventoryAlerts(){
     const el=byId('equipmentInventoryAlerts');if(!el)return;
-    const lows=normalizeInventoryList(equipmentInventory).filter(x=>equipNum(x.quantity)<=0);
-    el.innerHTML=lows.length?lows.map((x,i)=>`<div class="priorityItem"><div class="rank">${i+1}</div><div><div class="name">${esc(x.equipment_name)} · ${esc(x.size)}</div><div class="reason">剩余库存为 0，请及时补货或调整配备计划。</div></div><div class="right"><span class="pill red">低库存</span></div></div>`).join(''):'<div class="noDataBox"><b>暂无低库存提醒</b><span>所有装备当前库存均大于 0。</span></div>';
+    const lows=normalizeInventoryList(equipmentInventory).filter(x=>equipNum(x.quantity)<=equipmentLowThreshold);
+    el.innerHTML=lows.length?lows.map((x,i)=>`<div class="priorityItem"><div class="rank">${i+1}</div><div><div class="name">${esc(x.equipment_name)} · ${esc(x.size)}</div><div class="reason">剩余库存 ${equipNum(x.quantity)}，已达到或低于预警阈值 ${equipmentLowThreshold}。</div></div><div class="right"><span class="pill red">库存预警</span></div></div>`).join(''):'<div class="noDataBox"><b>暂无库存预警</b><span>所有装备当前库存均高于预警阈值。</span></div>';
   }
   function equipmentRiderList(){
     const q=String(byId('equipmentSearchInp')?.value||'').trim().toLowerCase(), v=byId('equipmentVehicleFilterSel')?.value||'all';
@@ -2707,26 +2732,27 @@ ${qualityReturnText}
   function renderEquipmentDetails(){
     const table=byId('riderEquipmentTable');if(!table)return;const list=equipmentRiderList();const hint=byId('equipmentTotalRidersHint');if(hint)hint.textContent=`${riders.length} 人`;
     if(!list.length){table.innerHTML='<tr><td class="empty">暂无符合筛选条件的骑手</td></tr>';return}
-    let html='<thead><tr><th>骑手</th><th>交通工具</th><th>马甲</th><th>雨衣</th><th>配送箱</th><th>配送包</th><th>状态标签</th><th>更新时间</th></tr></thead><tbody>';
-    list.forEach(r=>{const a=getEquipAssign(r.id),ok=equipAllComplete(a);const vehicle=equipRiderVehicle(r.id)||'空白';html+=`<tr><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>`<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}"><option value="false" ${!a[k.key]?'selected':''}>否</option><option value="true" ${a[k.key]?'selected':''}>是</option></select></td>`).join('')}<td><span class="equipmentStatusTag ${ok?'ok':'bad'}">${ok?'合规':'未完成'}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
+    let html='<thead><tr><th>骑手</th><th>交通工具</th><th>马甲规格</th><th>雨衣规格</th><th>配送箱规格</th><th>配送包规格</th><th>状态标签</th><th>更新时间</th></tr></thead><tbody>';
+    list.forEach(r=>{const a=getEquipAssign(r.id),ok=equipAllComplete(a);const vehicle=equipRiderVehicle(r.id)||'空白';html+=`<tr><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>{const sp=assignmentSpec(a,k);return `<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}">${riderSizeOptions(sp)}</select></td>`}).join('')}<td><span class="equipmentStatusTag ${ok?'ok':'bad'}">${ok?'合规':'未完成'}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
     table.innerHTML=html+'</tbody>';
-    table.querySelectorAll('[data-rider-equip]').forEach(el=>el.onchange=e=>updateRiderEquipStatus(e.target.dataset.riderEquip,e.target.dataset.equipKey,e.target.value));
+    table.querySelectorAll('[data-rider-equip]').forEach(el=>el.onchange=e=>updateRiderEquipSpec(e.target.dataset.riderEquip,e.target.dataset.equipKey,e.target.value));
     table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
   }
   window.renderRiderEquipmentCenter=function(){
     if(!byId('riderEquipmentTable'))return;
     if(!equipmentLoaded){loadRiderEquipmentData().then(renderRiderEquipmentCenter).catch(e=>console.warn(e));}
+    const th=byId('equipmentLowThresholdInp');if(th)th.value=equipmentLowThreshold;
     renderEquipmentCoverage();renderInventory();renderInventoryAlerts();renderEquipmentDetails();
   }
   function bindEquipmentControls(){
     const save=byId('saveEquipmentInventoryBtn');if(save)save.onclick=saveEquipmentInventoryFromForm;
     const refresh=byId('refreshEquipmentBtn');if(refresh)refresh.onclick=async()=>{equipmentLoaded=false;await loadRiderEquipmentData();renderRiderEquipmentCenter();equipToast('装备数据已刷新')};
+    const saveThreshold=byId('saveEquipmentLowThresholdBtn');if(saveThreshold)saveThreshold.onclick=()=>{equipmentLowThreshold=equipNum(byId('equipmentLowThresholdInp')?.value||0);safeSet('rider_equipment_low_threshold',equipmentLowThreshold);renderRiderEquipmentCenter();equipToast('库存预警阈值已保存')};
     ['equipmentVehicleFilterSel','equipmentSearchInp'].forEach(id=>{const el=byId(id);if(el){el.oninput=renderRiderEquipmentCenter;el.onchange=renderRiderEquipmentCenter}});
   }
   const oldRenderAll=renderAll;renderAll=function(){oldRenderAll();renderRiderEquipmentCenter();};
   setTimeout(bindEquipmentControls,0);
 })();
-
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
