@@ -243,6 +243,24 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 .equipmentRowCheck{width:16px;height:16px;accent-color:#101828}
 @media(max-width:640px){.equipmentPager{justify-content:stretch}.equipmentPager .mini{width:100%}.equipmentPager .btn,.equipmentPager select{flex:1}.equipmentBulkSpecGroup{display:grid;grid-template-columns:1fr}.equipmentBulkSpecGroup label{width:100%}}
 
+
+
+/* Appeal detail v2 layout fix */
+#appealTable td{vertical-align:top}
+#appealTable td:nth-child(6){min-width:260px;max-width:420px;white-space:normal;line-height:1.55}
+.appealDetailPanel{width:min(1040px,100%)}
+.appealDetailGrid.appealDetailGridV2{display:grid;grid-template-columns:1fr 1fr;gap:12px;border:0;border-radius:0;padding:0;background:transparent}
+.appealSection{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;box-shadow:var(--shadow2)}
+.appealSection.full{grid-column:1/-1}
+.appealSection h3{margin:0 0 10px;font-size:15px;letter-spacing:-.02em;color:#111827}
+.appealKv{display:grid;grid-template-columns:132px 1fr;gap:8px 12px;align-items:start}
+.appealKv b{font-size:12px;color:#667085;font-weight:900;line-height:1.5}
+.appealKv span{font-size:13px;color:#111827;line-height:1.6;min-width:0;word-break:break-word}
+.appealLongText{white-space:pre-wrap;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;line-height:1.75;color:#344054;font-size:13px}
+.appealImageGroupTitle{font-weight:950;font-size:13px;margin:8px 0 6px;color:#344054}
+.appealReviewBox{grid-template-columns:1fr 2fr auto}
+@media(max-width:760px){.appealDetailGrid.appealDetailGridV2{grid-template-columns:1fr}.appealKv{grid-template-columns:1fr}.appealReviewBox{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -426,7 +444,6 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>步行目标上限</span><input id="tailWalkTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>影响提示阈值 ≥</span><input id="tailImpactMinInp" type="number" min="0" step="0.01" value="0.05" /></label>
       <label class="field"><span>连续裂化维度</span><select id="tailContinuousWindowSel"><option value="2">连续 2 周</option><option value="3">连续 3 周</option><option value="4">连续 4 周</option></select></label>
-      <label class="field"><span>连续裂化单量 &gt; X</span><input id="tailContinuousOrdersMinInp" type="number" min="0" step="1" value="0" placeholder="例如 30" /></label>
     </div>
     <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车=电动自行车/摩托车/汽车，自行车=自行车，步行=步行。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
   </div>
@@ -445,6 +462,10 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
   </div>
   <div class="panel">
     <div class="panelHead"><div><h2>连续周维度持续裂化名单</h2><div class="sub">按所选连续 2 / 3 / 4 周判断骑手责尾单率是否持续上升。</div></div></div>
+    <div class="compareControlGrid" style="grid-template-columns:260px 1fr;margin-bottom:12px">
+      <label class="field"><span>连续裂化单量 &gt; X</span><input id="tailContinuousOrdersMinInp" type="number" min="0" step="1" value="0" placeholder="例如 30" /></label>
+      <div class="field"><span>筛选说明</span><b>仅作用于连续周维度持续裂化名单，不影响其他尾单分析区域。</b></div>
+    </div>
     <div class="tableWrap"><table id="tailContinuousTable"></table></div>
   </div>
   <div class="panel">
@@ -2976,6 +2997,67 @@ ${qualityReturnText}
   renderTailOrderCenter=function(){oldRenderTailOrderCenterFinal();const ct=byId('tailContinuousTable');if(!ct)return;const cont=tailPatchContItems();let html='<thead><tr><th>骑手</th><th>交通工具</th><th>本周跑单量</th><th>连续周期</th><th>起始责尾单率</th><th>当前责尾单率</th><th>累计裂化值</th><th>每周走势</th><th>操作</th></tr></thead><tbody>';cont.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmt(tailPatchOrders(x.cur),'orders')}</td><td>${esc(x.window.join(' → '))}</td><td>${tailPatchFmtPct(x.values[0])}</td><td>${tailPatchFmtPct(x.values[x.values.length-1])}</td><td><b class="dangerText">+${x.delta.toFixed(2)}%</b></td><td><span class="mini">${x.values.map(v=>tailPatchFmtPct(v)).join(' → ')}</span></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});ct.innerHTML=cont.length?html+'</tbody>':'<tr><td class="empty">暂无符合连续裂化与单量条件的骑手</td></tr>';ct.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));}
   const oldRenderAllFinal=renderAll;renderAll=function(){oldRenderAllFinal();renderTailOrderCenter();};
   setTimeout(()=>{const el=byId('tailContinuousOrdersMinInp');if(el)el.oninput=renderTailOrderCenter;refreshControls();},0);
+})();
+
+
+
+/* === Final fix: order appeal detail modal layout === */
+(function(){
+  const originalOpenAppealDetail = typeof openAppealDetail==='function' ? openAppealDetail : null;
+  openAppealDetail=function(id){
+    currentAppealId=id;
+    const x=orderAppeals.find(a=>a.id===id);
+    if(!x){toast('未找到申诉记录');return}
+    const sub=byId('appealDetailSub');
+    if(sub)sub.textContent=`订单号：${x.order_no||'-'} · ${appealDate(x.created_at)}`;
+    const monthCount=appealMonthlyCount(x.phone);
+    const totalCount=typeof appealTotalCount==='function'?appealTotalCount(x.phone):orderAppeals.filter(a=>normalizeAppealPhone(a.phone)===normalizeAppealPhone(x.phone)).length;
+    const status=x.review_result||'待审核';
+    const field=(label,value)=>`<b>${label}</b><span>${value}</span>`;
+    const grid=byId('appealDetailGrid');
+    if(grid){
+      grid.classList.add('appealDetailGridV2');
+      grid.innerHTML=`
+        <div class="appealSection">
+          <h3>申请人信息</h3>
+          <div class="appealKv">
+            ${field('申请提交时间',appealDate(x.created_at))}
+            ${field('姓名',esc(x.applicant_name||'-'))}
+            ${field('手机号',esc(x.phone||'-'))}
+            ${field('提交次数',`<span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span> <span class="mini">本月/累计</span>`)}
+          </div>
+        </div>
+        <div class="appealSection">
+          <h3>订单与审核</h3>
+          <div class="appealKv">
+            ${field('问题订单号',`<b>${esc(x.order_no||'-')}</b>`)}
+            ${field('申诉原因分类',`<span class="appealReasonTag">${esc(x.reason_category||'其他')}</span>`)}
+            ${field('处理人审核结果',`<span class="appealStatusTag ${appealStatusClass(status)}">${esc(status)}</span>`)}
+            ${field('处理人备注',esc(x.review_note||'-'))}
+          </div>
+        </div>
+        <div class="appealSection full">
+          <h3>详细说明订单情况</h3>
+          <div class="appealLongText">${esc(x.detail||'-')}</div>
+        </div>
+        <div class="appealSection full">
+          <h3>图片凭证</h3>
+          <div class="appealImageGroupTitle">放餐照片</div>
+          ${appealImagesHtml(x.meal_photo_urls)}
+          <div class="appealImageGroupTitle">通话记录照片</div>
+          ${appealImagesHtml(x.call_photo_urls)}
+          <div class="appealImageGroupTitle">更多照片</div>
+          ${appealImagesHtml(x.more_photo_urls)}
+        </div>
+        <div class="appealSection full">
+          <h3>备注</h3>
+          <div class="appealLongText">${esc(x.remark||'-')}</div>
+        </div>`;
+    }
+    const sel=byId('appealReviewResultSel');if(sel)sel.value=status;
+    const note=byId('appealReviewNoteInp');if(note)note.value=x.review_note||'';
+    byId('appealDetailModal')?.classList.add('show');
+  };
 })();
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
