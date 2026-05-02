@@ -395,17 +395,22 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>自行车目标上限</span><input id="tailBikeTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>步行目标上限</span><input id="tailWalkTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>影响提示阈值 ≥</span><input id="tailImpactMinInp" type="number" min="0" step="0.01" value="0.05" /></label>
+      <label class="field"><span>连续裂化维度</span><select id="tailContinuousWindowSel"><option value="2">连续 2 周</option><option value="3">连续 3 周</option><option value="4">连续 4 周</option></select></label>
     </div>
-    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车包含电动自行车、摩托车和汽车。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
+    <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车=电动自行车/摩托车/汽车，自行车=自行车，步行=步行。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
   </div>
   <div class="snapshotGrid" id="tailSummaryGrid"></div>
   <div class="panel">
-    <div class="panelHead"><div><h2>不同车型责尾单率对比</h2><div class="sub">车型分为机动车、自行车、步行三类；机动车包含摩托车和汽车。按公式统计：骑手责尾单单量 = 骑手跑单量 × 骑手责尾单率；当周骑手责尾单率 = 骑手责尾单单量 / 当周单量总数。</div></div></div>
+    <div class="panelHead"><div><h2>不同车型责尾单率对比</h2><div class="sub">车型分为机动车、自行车、步行三类；机动车=电动自行车/摩托车/汽车，自行车=自行车，步行=步行。按公式统计：骑手责尾单单量 = 骑手跑单量 × 骑手责尾单率；当周骑手责尾单率 = 骑手责尾单单量 / 当周单量总数。</div></div></div>
     <div class="tableWrap"><table id="tailVehicleTable"></table></div>
   </div>
   <div class="panel">
-    <div class="panelHead"><div><h2>裂化值骑手 TOP10</h2><div class="sub">按当前周期较对比周期的“当周骑手责尾单率”上升幅度排序。</div></div></div>
+    <div class="panelHead"><div><h2>本周尾单单量骑手 TOP10</h2><div class="sub">按本周骑手责尾单单量排序，并展示对比周尾单单量和骑手责尾单率裂化值。</div></div></div>
     <div class="tableWrap"><table id="tailWorseTopTable"></table></div>
+  </div>
+  <div class="panel">
+    <div class="panelHead"><div><h2>连续周维度持续裂化名单</h2><div class="sub">按所选连续 2 / 3 / 4 周判断骑手责尾单率是否持续上升。</div></div></div>
+    <div class="tableWrap"><table id="tailContinuousTable"></table></div>
   </div>
   <div class="panel">
     <div class="panelHead"><div><h2>分车型分析提示</h2><div class="sub">识别若个人责尾单率降至目标上限后，对整体当周骑手责尾单率改善影响较大的骑手。</div></div></div>
@@ -1878,7 +1883,7 @@ function renderFollowOwnerBoard(){const wrap=byId('followOwnerBoard');if(!wrap)r
 
 function renderDiagnosis(){const table=byId('diagnosisTable');if(!table)return;const ms=byId('diagnosisMetricSel');if(ms)ms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.diagnosisMetric||state.metric)?'selected':''}>${m.label}</option>`).join('');const ls=byId('diagnosisLookbackSel');if(ls)ls.value=state.diagnosisLookback;if(!rows.length){byId('diagnosisSummaryGrid').innerHTML='';byId('diagnosisInsight').innerHTML='请先检查 Supabase 云表是否有数据';table.innerHTML='<tr><td class="empty">暂无数据</td></tr>';drawDiagnosis();return}const items=diagnosisItems(),counts={};items.forEach(x=>counts[x.tag]=(counts[x.tag]||0)+1);byId('diagnosisRuleHint').textContent=`系统默认：连续下滑 ${nRule('continuousWeeks')} 次，每次 ≥${nRule('continuousPct')}%`;byId('diagnosisSummaryGrid').innerHTML=[['持续变差',counts['持续变差']||0,'建议优先处理','red'],['疑似流失',counts['疑似流失']||0,'最新周期无活跃','amber'],['恢复中',counts['恢复中']||0,'仍需继续观察','green'],['稳定优秀',counts['稳定优秀']||0,'可重点维护','blue']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');const need=items.filter(x=>['疑似流失','持续变差'].includes(x.tag)).slice(0,5);byId('diagnosisInsight').innerHTML=`观察窗口：<b>${trendWindow().join(' → ')}</b>。当前识别出持续变差 <b>${counts['持续变差']||0}</b> 人、疑似流失 <b>${counts['疑似流失']||0}</b> 人、恢复中 <b>${counts['恢复中']||0}</b> 人。`;byId('diagnosisPriorityList').innerHTML=need.length?need.map((x,i)=>`<div class="priorityItem"><div class="rank">${i+1}</div><button class="nameBtn" data-track="${esc(x.id)}"><div class="name">${esc(x.name)}</div><div class="reason">${esc(x.tag)}｜${x.pctChange==null?'无首值':x.pctChange.toFixed(1)+'%'}</div></button><div class="right"><span class="trendTag ${x.cls}">${x.action}</span><div class="mini">${fmt(x.last,state.diagnosisMetric)}</div></div></div>`).join(''):'<div class="empty">当前窗口暂无高优先级趋势风险</div>';let html='<thead><tr><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>趋势状态</th><th>首值</th><th>末值</th><th>变化率</th><th>下滑次数</th><th>窗口序列</th><th>建议动作</th></tr></thead><tbody>';items.forEach(x=>{const cur=rec(state.cycle,x.id)||{};html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td>${riderExtraCells(cur)}<td><span class="trendTag ${x.cls}">${esc(x.tag)}</span></td><td>${fmt(x.first,state.diagnosisMetric)}</td><td>${fmt(x.last,state.diagnosisMetric)}</td><td>${x.pctChange==null?'-':(x.pctChange>=0?'+':'')+x.pctChange.toFixed(1)+'%'}</td><td>${x.drops}</td><td><span class="mini">${x.values.map(v=>fmt(v,state.diagnosisMetric)).join(' → ')}</span></td><td><b>${esc(x.action)}</b></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));drawDiagnosis()}
 
-function renderProfile(){const sel=byId('riderSel'),search=byId('profileSearchInp');if(search)search.value=state.search;if(!rows.length){sel.innerHTML='<option>暂无数据</option>';byId('profileSummary').innerHTML='<div class="empty">请先检查 Supabase 云表是否有数据</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无数据</td></tr>';return}const list=filteredRiders();if(!list.length){state.selected=null;sel.innerHTML='<option>未找到骑手</option>';byId('profileSummary').innerHTML='<div class="empty">没有匹配“'+esc(state.search)+'”的骑手，请调整搜索关键词。</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无匹配骑手</td></tr>';drawProfile();return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id;sel.innerHTML=list.map(r=>`<option value="${esc(r.id)}" ${r.id===state.selected?'selected':''}>${esc(r.name)} · ${esc(r.id)}</option>`).join('');const rider=riderMap.get(state.selected);const cur=rec(state.cycle,state.selected),pre=rec(state.compare,state.selected);const item=analyze().items.find(x=>x.id===state.selected)||{issues:[],score:0,level:'low',action:'持续观察',cOrders:0,cIncome:0};byId('profileSummary').innerHTML=`<div class="profileTitle">${esc(rider?.name||'')}</div><div class="mini">ID ${esc(state.selected)} ｜ ${state.cycle} vs ${state.compare}</div>${riderExtraLine(cur)}<div style="margin-top:10px"><span class="pill ${item.level==='high'?'red':item.level==='mid'?'amber':'green'}">${riskText(item.level)} ${item.score}分</span><span class="pill blue">${esc(item.action)}</span>${item.issues.slice(0,4).map(i=>`<span class="pill ${i.tone}">${esc(i.label)}</span>`).join('')}</div><div class="profileHint">下方展示该骑手当前周期、对比周期、排名和每周变化；顶部切换“重点指标”可改变趋势图。</div>`;byId('profileMetrics').innerHTML=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].map(m=>{const rCur=rankFor(state.cycle,m.key,state.selected),rPre=rankFor(state.compare,m.key,state.selected);const rankDelta=(rCur&&rPre)?rPre-rCur:null;return `<div class="kpi"><div class="label">${m.label}</div><div class="value">${fmt(val(cur,m.key),m.key)}</div><div class="mini">排名 ${rCur?('#'+rCur):'-'}${rankDelta!==null?`｜较对比 ${rankDelta>0?'+':''}${rankDelta}`:''}</div></div>`}).join('');byId('profileCompareGrid').innerHTML=metrics.map(m=>`<div class="compareCard"><b>${m.label}</b><div class="v">${fmt(val(cur,m.key),m.key)}</div><div class="mini">对比：${fmt(val(pre,m.key),m.key)}</div>${deltaHTML(val(cur,m.key),val(pre,m.key),m.key)}</div>`).join('');let html='<thead><tr><th>周期</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;html+=`<tr><td><b>${esc(c)}</b></td>${riderExtraCells(r)}<td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`});byId('profileTable').innerHTML=html+'</tbody>';byId('profileChartTitle').textContent=`${(rider?.name||'').split('-').pop()} · ${mMap[state.metric].label}趋势`;drawProfile()}
+function renderProfile(){const sel=byId('riderSel'),search=byId('profileSearchInp');if(search)search.value=state.search;if(!rows.length){sel.innerHTML='<option>暂无数据</option>';byId('profileSummary').innerHTML='<div class="empty">请先检查 Supabase 云表是否有数据</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无数据</td></tr>';return}const list=filteredRiders();if(!list.length){state.selected=null;sel.innerHTML='<option>未找到骑手</option>';byId('profileSummary').innerHTML='<div class="empty">没有匹配“'+esc(state.search)+'”的骑手，请调整搜索关键词。</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无匹配骑手</td></tr>';drawProfile();return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id;sel.innerHTML=list.map(r=>`<option value="${esc(r.id)}" ${r.id===state.selected?'selected':''}>${esc(r.name)} · ${esc(r.id)}</option>`).join('');const rider=riderMap.get(state.selected);const cur=rec(state.cycle,state.selected),pre=rec(state.compare,state.selected);const item=analyze().items.find(x=>x.id===state.selected)||{issues:[],score:0,level:'low',action:'持续观察',cOrders:0,cIncome:0};byId('profileSummary').innerHTML=`<div class="profileTitle">${esc(rider?.name||'')}</div><div class="mini">ID ${esc(state.selected)} ｜ ${state.cycle} vs ${state.compare}</div>${riderExtraLine(cur)}<div style="margin-top:10px"><span class="pill ${item.level==='high'?'red':item.level==='mid'?'amber':'green'}">${riskText(item.level)} ${item.score}分</span><span class="pill blue">${esc(item.action)}</span>${item.issues.slice(0,4).map(i=>`<span class="pill ${i.tone}">${esc(i.label)}</span>`).join('')}</div><div class="profileHint">下方展示该骑手当前周期、对比周期、排名和每周变化；顶部切换“重点指标”可改变趋势图。</div>`;byId('profileMetrics').innerHTML=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].map(m=>{const rCur=rankFor(state.cycle,m.key,state.selected),rPre=rankFor(state.compare,m.key,state.selected);const rankDelta=(rCur&&rPre)?rPre-rCur:null;return `<div class="kpi"><div class="label">${m.label}</div><div class="value">${fmt(val(cur,m.key),m.key)}</div><div class="mini">排名 ${rCur?('#'+rCur):'-'}${rankDelta!==null?`｜较对比 ${rankDelta>0?'+':''}${rankDelta}`:''}</div></div>`}).join('');byId('profileCompareGrid').innerHTML=metrics.map(m=>`<div class="compareCard"><b>${m.label}</b><div class="v">${fmt(val(cur,m.key),m.key)}</div><div class="mini">对比：${fmt(val(pre,m.key),m.key)}</div>${deltaHTML(val(cur,m.key),val(pre,m.key),m.key)}</div>`).join('');let html='<thead><tr><th>周期</th><th>接单率</th><th>骑手责尾单率</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;html+=`<tr><td><b>${esc(c)}</b></td><td>${esc(fmtField(r,'acceptanceRate'))}</td><td>${esc(fmtField(r,'tailRate'))}</td><td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`});byId('profileTable').innerHTML=html+'</tbody>';byId('profileChartTitle').textContent=`${(rider?.name||'').split('-').pop()} · ${mMap[state.metric].label}趋势`;drawProfile()}
 
 function renderCompare(){const sel=byId('compareRiderSel'),metricSel=byId('compareMetricSel'),bar=byId('compareSelectedBar'),grid=byId('compareCandidateGrid'),summary=byId('multiSummaryGrid'),insight=byId('multiInsight'),table=byId('multiTable');if(metricSel)metricSel.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===state.metric?'selected':''}>${m.label}</option>`).join('');if(!sel||!bar||!grid||!summary||!insight||!table)return;if(!rows.length){sel.innerHTML='<option>暂无数据</option>';bar.innerHTML='<span class="mini">请先检查 Supabase 云表是否有数据</span>';grid.innerHTML='';summary.innerHTML='';insight.textContent='请先导入模版数据。';table.innerHTML='<tr><td class="empty">暂无数据</td></tr>';byId('multiLegend').innerHTML='';drawMulti();return}ensureCompareRiders();const candidates=compareCandidates();const visibleCandidates=candidates.slice(0,60);sel.innerHTML=candidates.length?candidates.map(r=>`<option value="${esc(r.id)}">${esc(r.name)} · ${esc(r.id)}</option>`).join(''):'<option value="">未找到骑手</option>';bar.innerHTML='';grid.innerHTML=(visibleCandidates.length?visibleCandidates:candidates).map(r=>{const cur=rec(state.cycle,r.id),pre=rec(state.compare,r.id),selected=state.compareRiders.includes(r.id);return `<button class="candidateBtn ${selected?'active':''}" data-toggle-compare="${esc(r.id)}" title="点击切换选中状态"><b>${esc(r.name)}</b><span>ID ${esc(r.id)} ｜ ${mMap[state.metric].short} ${fmt(val(cur,state.metric),state.metric)} ｜ ${deltaText(val(cur,state.metric),val(pre,state.metric),state.metric)}</span>${riderExtraLine(cur)}</button>`}).join('')+(candidates.length>visibleCandidates.length?`<div class="compareTip">已找到 ${candidates.length} 名骑手，快速选择下拉框已展示全部结果；下方候选卡片仅展示前 ${visibleCandidates.length} 名，可点击卡片加入/取消对比；请继续输入更精确的姓名或 ID。</div>`:'');grid.querySelectorAll('[data-toggle-compare]').forEach(b=>b.onclick=()=>toggleCompareRider(b.dataset.toggleCompare));const selected=state.compareRiders.map(id=>{const rider=riderMap.get(id),cur=rec(state.cycle,id),pre=rec(state.compare,id),ana=analyze().items.find(x=>x.id===id)||{score:0,level:'low',issues:[],action:'持续观察'};return{id,name:rider?.name||id,cur,pre,ana}});if(!selected.length){summary.innerHTML='';insight.textContent='请选择骑手后查看对比结论。';table.innerHTML='<tr><td class="empty">请添加骑手进行对比</td></tr>';drawMulti();return}const best=[...selected].sort((a,b)=>val(b.cur,state.metric)-val(a.cur,state.metric))[0];const worstDrop=[...selected].sort((a,b)=>(val(a.cur,state.metric)-val(a.pre,state.metric))-(val(b.cur,state.metric)-val(b.pre,state.metric)))[0];const high=selected.filter(x=>x.ana.level==='high').length;const avgCur=selected.reduce((s,x)=>s+val(x.cur,state.metric),0)/selected.length;const avgPre=selected.reduce((s,x)=>s+val(x.pre,state.metric),0)/selected.length;summary.innerHTML=`<div class="compareHeroMetric"><b>已选骑手</b><div class="num">${selected.length}</div></div><div class="compareHeroMetric"><b>平均${mMap[state.metric].short}</b><div class="num">${fmt(avgCur,state.metric)}</div>${deltaHTML(avgCur,avgPre,state.metric)}</div><div class="compareHeroMetric"><b>当前领先</b><div class="num">${esc(best.name)}</div><div class="mini">${fmt(val(best.cur,state.metric),state.metric)}</div></div><div class="compareHeroMetric"><b>高风险人数</b><div class="num">${high}</div><div class="mini">风险分 ≥${nRule('highRiskScore')}</div></div>`;const dropValue=val(worstDrop.cur,state.metric)-val(worstDrop.pre,state.metric);insight.innerHTML=`${state.cycle} 对比 ${state.compare}：当前 <b>${esc(best.name)}</b> 的${mMap[state.metric].label}最高（${fmt(val(best.cur,state.metric),state.metric)}）。${dropValue<0?`下滑最明显的是 <b>${esc(worstDrop.name)}</b>（${deltaText(val(worstDrop.cur,state.metric),val(worstDrop.pre,state.metric),state.metric)}），建议优先复盘。`:'所选骑手在该指标上整体没有明显下滑。'} 当前高风险 <b>${high}</b> 人。`;let html='<thead><tr><th>骑手</th><th>风险</th><th>当前重点指标</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>建议动作</th></tr></thead><tbody>';selected.sort((a,b)=>val(b.cur,state.metric)-val(a.cur,state.metric)).forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="riskDot ${x.ana.level==='high'?'riskHigh':x.ana.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.ana.level)} · ${x.ana.score}</td><td><b>${fmt(val(x.cur,state.metric),state.metric)}</b><br>${deltaHTML(val(x.cur,state.metric),val(x.pre,state.metric),state.metric)}</td>${riderExtraCells(x.cur)}<td>${fmt(val(x.cur,'orders'),'orders')}<br>${deltaHTML(val(x.cur,'orders'),val(x.pre,'orders'),'orders')}</td><td>${fmt(val(x.cur,'income'),'income')}<br>${deltaHTML(val(x.cur,'income'),val(x.pre,'income'),'income')}</td><td>${fmt(val(x.cur,'hourly'),'hourly')}<br>${deltaHTML(val(x.cur,'hourly'),val(x.pre,'hourly'),'hourly')}</td><td>${fmt(val(x.cur,'duration'),'duration')}<br>${deltaHTML(val(x.cur,'duration'),val(x.pre,'duration'),'duration')}</td><td>${fmt(val(x.cur,'periodAvg'),'periodAvg')}<br>${deltaHTML(val(x.cur,'periodAvg'),val(x.pre,'periodAvg'),'periodAvg')}</td><td><b>${esc(x.ana.action)}</b><div class="mini">${x.ana.issues.slice(0,2).map(i=>i.label).join('、')||'持续观察'}</div></td></tr>`});table.innerHTML=html+'</tbody>';table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));drawMulti()}
 
@@ -2215,6 +2220,165 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   setTimeout(()=>{
     ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手中心已刷新')}});
     const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItems();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
+  },0);
+})();
+
+
+
+/* === 尾单骑手中心 v2：指定车型定义 + 本周尾单单量TOP10 + 连续裂化名单 === */
+(function(){
+  const DEFAULT_MOTOR_STD=6, DEFAULT_BIKE_STD=1, DEFAULT_WALK_STD=1;
+  const vehicleGroups=[
+    {key:'motor',label:'机动车',std:DEFAULT_MOTOR_STD},
+    {key:'bike',label:'自行车',std:DEFAULT_BIKE_STD},
+    {key:'walk',label:'步行',std:DEFAULT_WALK_STD}
+  ];
+  function normVehicle(v){return String(v||'').trim()||'空白'}
+  function groupOfVehicle(v){
+    const s=normVehicle(v).toLowerCase();
+    if(s==='步行'||s==='walk'||s==='walking')return vehicleGroups[2];
+    if(s==='自行车'||s==='单车'||s==='bike'||s==='bicycle')return vehicleGroups[1];
+    if(s==='电动自行车'||s==='电动车'||s==='e-bike'||s==='ebike'||s==='摩托车'||s==='摩托'||s==='motorcycle'||s==='motorbike'||s==='scooter'||s==='汽车'||s==='car'||s==='auto')return vehicleGroups[0];
+    if(/步行|walk|walking/i.test(s))return vehicleGroups[2];
+    if(/电动自行车|电动车|e-?bike|ebike|摩托车|摩托|motorcycle|motorbike|scooter|汽车|car|auto/i.test(s))return vehicleGroups[0];
+    if(/自行车|单车|bike|bicycle/i.test(s))return vehicleGroups[1];
+    return vehicleGroups[0];
+  }
+  function personalTailPct(r){const x=ratePercent(r&&r.tailRate);return Number.isFinite(x)?x:null}
+  function rowOrders(r){const n=val(r,'orders');return Number.isFinite(n)?n:0}
+  function tailOrderCount(r){const t=personalTailPct(r);if(t==null)return null;return rowOrders(r)*t/100}
+  function periodRows(c){return riderIds().map(id=>rec(c,id)).filter(r=>r&&active(r))}
+  function periodTotalOrders(c){return periodRows(c).reduce((s,r)=>s+rowOrders(r),0)}
+  function fmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
+  function fmtCount(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
+  function fmtSignedPct(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(2)}%</span>`}
+  function fmtSignedCount(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(1)}</span>`}
+  function activeCurrentRows(){return periodRows(state.cycle)}
+  function groupRateFromSum(sum,total){return total?sum/total*100:null}
+  function tailVehicleStats(){
+    const map=new Map();
+    vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0}));
+    function add(c,isCur){
+      riderIds().forEach(id=>{
+        const r=rec(c,id);if(!r||!active(r))return;
+        const g=groupOfVehicle(r.vehicle), o=map.get(g.key), cnt=tailOrderCount(r);
+        if(isCur){o.curOrders+=rowOrders(r);o.curN++;if(cnt!=null)o.curTailCnt+=cnt}
+        else{o.preOrders+=rowOrders(r);o.preN++;if(cnt!=null)o.preTailCnt+=cnt}
+      });
+    }
+    add(state.compare,false);add(state.cycle,true);
+    const curTotal=periodTotalOrders(state.cycle), preTotal=periodTotalOrders(state.compare);
+    return [...map.values()].map(o=>{
+      const curRate=groupRateFromSum(o.curTailCnt,curTotal), preRate=groupRateFromSum(o.preTailCnt,preTotal);
+      return {...o,curRate,preRate,deltaRate:(curRate!=null&&preRate!=null)?curRate-preRate:null,deltaTailCnt:o.curTailCnt-o.preTailCnt};
+    });
+  }
+  function overallWeeklyTailPct(c){
+    const total=periodTotalOrders(c);if(!total)return null;
+    const sum=periodRows(c).reduce((s,r)=>s+(tailOrderCount(r)||0),0);
+    return sum/total*100;
+  }
+  function tailTopByCurrentCount(){
+    return riderIds().map(id=>{
+      const cur=rec(state.cycle,id),pre=rec(state.compare,id);
+      if(!cur)return null;
+      const curPersonal=personalTailPct(cur),prePersonal=personalTailPct(pre);
+      const curCnt=tailOrderCount(cur),preCnt=pre?tailOrderCount(pre):null;
+      if(curCnt==null||curCnt<=0)return null;
+      const delta=(curPersonal!=null&&prePersonal!=null)?curPersonal-prePersonal:null;
+      return {id,name:riderMap.get(id)?.name||cur.name||id,cur,pre,curPersonal,prePersonal,curTailCnt:curCnt,preTailCnt:preCnt,delta,vehicle:normVehicle(cur.vehicle||(pre&&pre.vehicle))};
+    }).filter(Boolean).sort((a,b)=>b.curTailCnt-a.curTailCnt).slice(0,10)
+  }
+  function tailContinuousItems(){
+    const n=Number(byId('tailContinuousWindowSel')?.value)||2;
+    const idx=cycles.indexOf(state.cycle);
+    if(idx<0)return [];
+    const win=cycles.slice(Math.max(0,idx-n+1),idx+1);
+    if(win.length<n)return [];
+    return riderIds().map(id=>{
+      const vals=win.map(c=>personalTailPct(rec(c,id)));
+      if(vals.some(v=>v==null))return null;
+      const ok=vals.every((v,i)=>i===0||v>vals[i-1]);
+      if(!ok)return null;
+      const cur=rec(state.cycle,id)||{};
+      const delta=vals[vals.length-1]-vals[0];
+      return {id,name:riderMap.get(id)?.name||cur.name||id,vehicle:normVehicle(cur.vehicle),window:win,values:vals,delta,cur};
+    }).filter(Boolean).sort((a,b)=>b.delta-a.delta);
+  }
+  function tailImpactItemsV2(){
+    const motor=Number(byId('tailMotorTargetInp')?.value)||DEFAULT_MOTOR_STD,
+          bike=Number(byId('tailBikeTargetInp')?.value)||DEFAULT_BIKE_STD,
+          walk=Number(byId('tailWalkTargetInp')?.value)||DEFAULT_WALK_STD,
+          min=Number(byId('tailImpactMinInp')?.value)||0;
+    const total=periodTotalOrders(state.cycle)||1;
+    return activeCurrentRows().map(r=>{
+      const personal=personalTailPct(r);if(personal==null)return null;
+      const g=groupOfVehicle(r.vehicle);
+      const target=g.key==='walk'?walk:(g.key==='bike'?bike:motor);
+      const orders=rowOrders(r), curCnt=tailOrderCount(r);
+      const over=Math.max(0,personal-target);
+      const impact=orders*over/100/total*100;
+      const tip=impact>=min?`预计将该骑手从 ${fmtPct(personal)} 降至 ${target}%，可拉低整体约 ${impact.toFixed(2)}%`:`影响低于阈值 ${min}%`;
+      return {id:r.id,name:r.name,vehicle:normVehicle(r.vehicle),group:g.label,cur:r,curPersonal:personal,curTailCnt:curCnt,target,impact,tip,tag:impact>=min};
+    }).filter(x=>x&&x.impact>0&&x.impact>=min).sort((a,b)=>b.impact-a.impact).slice(0,50)
+  }
+  function renderTailSummaryV2(){
+    const el=byId('tailSummaryGrid');if(!el)return;
+    const curRows=activeCurrentRows(), top=tailTopByCurrentCount(), impacts=tailImpactItemsV2(), overall=overallWeeklyTailPct(state.cycle), cont=tailContinuousItems();
+    el.innerHTML=[
+      ['当前活跃骑手',curRows.length,'当前周期有跑单/收入/时长记录的骑手','blue'],
+      ['当周骑手责尾单率',overall==null?'空白':overall.toFixed(2)+'%','按骑手责尾单单量 / 当周总单量计算','amber'],
+      ['尾单单量 TOP10',top.length,'按本周骑手责尾单单量排序','red'],
+      ['持续裂化骑手',cont.length,'按所选连续周维度判断','red'],
+      ['高影响骑手',impacts.length,'预计能明显拉低整体当周责尾单率','green']
+    ].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('')
+  }
+  function renderTailOrderCenterV2(){
+    const vt=byId('tailVehicleTable'), wt=byId('tailWorseTopTable'), it=byId('tailImpactTable'), ct=byId('tailContinuousTable');
+    if(!vt&&!wt&&!it&&!ct)return;
+    const curHint=byId('tailCurrentHint'), cmpHint=byId('tailCompareHint');if(curHint)curHint.textContent=state.cycle||'-';if(cmpHint)cmpHint.textContent=state.compare||'-';
+    if(!rows.length){[vt,wt,it,ct].forEach(t=>{if(t)t.innerHTML='<tr><td class="empty">暂无数据</td></tr>'});const s=byId('tailSummaryGrid');if(s)s.innerHTML='';return}
+    renderTailSummaryV2();
+    const stats=tailVehicleStats();
+    if(vt){
+      let html='<thead><tr><th>车型区分</th><th>本周订单量</th><th>本周骑手数</th><th>本周骑手责尾单单量</th><th>本周骑手责尾单率</th><th>对比周订单量</th><th>对比周骑手数</th><th>对比周骑手责尾单单量</th><th>对比周骑手责尾单率</th><th>差值尾单率</th><th>差值骑手责尾单量</th></tr></thead><tbody>';
+      stats.forEach(x=>{
+        const bad=x.curRate!=null&&x.curRate>x.std;
+        html+=`<tr><td><span class="tailVehicleBadge">${esc(x.label)}</span></td><td>${fmtCount(x.curOrders)}</td><td>${x.curN}</td><td>${fmtCount(x.curTailCnt)}</td><td><b class="${bad?'tailStdBad':'tailStdOk'}">${fmtPct(x.curRate)}</b></td><td>${fmtCount(x.preOrders)}</td><td>${x.preN}</td><td>${fmtCount(x.preTailCnt)}</td><td>${fmtPct(x.preRate)}</td><td>${fmtSignedPct(x.deltaRate)}</td><td>${fmtSignedCount(x.deltaTailCnt)}</td></tr>`;
+      });
+      vt.innerHTML=stats.length?html+'</tbody>':'<tr><td class="empty">暂无车型责尾单率数据</td></tr>'
+    }
+    const top=tailTopByCurrentCount();
+    if(wt){
+      let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>对比周骑手责尾单率</th><th>本周尾单单量</th><th>对比周尾单单量</th><th>裂化值尾单率</th><th>操作</th></tr></thead><tbody>';
+      top.forEach((x,i)=>{html+=`<tr><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmtPct(x.curPersonal)}</td><td>${fmtPct(x.prePersonal)}</td><td>${fmtCount(x.curTailCnt)}</td><td>${fmtCount(x.preTailCnt)}</td><td>${x.delta==null?'<span class="mini">空白</span>':`<b class="${x.delta>0?'dangerText':'tailStdOk'}">${x.delta>=0?'+':''}${x.delta.toFixed(2)}%</b>`}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      wt.innerHTML=top.length?html+'</tbody>':'<tr><td class="empty">暂无本周尾单单量骑手</td></tr>';wt.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
+    }
+    const cont=tailContinuousItems();
+    if(ct){
+      let html='<thead><tr><th>骑手</th><th>交通工具</th><th>连续周期</th><th>起始责尾单率</th><th>当前责尾单率</th><th>累计裂化值</th><th>每周走势</th><th>操作</th></tr></thead><tbody>';
+      cont.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${esc(x.window.join(' → '))}</td><td>${fmtPct(x.values[0])}</td><td>${fmtPct(x.values[x.values.length-1])}</td><td><b class="dangerText">+${x.delta.toFixed(2)}%</b></td><td><span class="mini">${x.values.map(v=>fmtPct(v)).join(' → ')}</span></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      ct.innerHTML=cont.length?html+'</tbody>':'<tr><td class="empty">暂无连续裂化骑手</td></tr>';ct.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
+    }
+    const impacts=tailImpactItemsV2();
+    const list=byId('tailImpactInsightList');
+    if(list){
+      const byGroup={};impacts.forEach(x=>{(byGroup[x.group]||(byGroup[x.group]=[])).push(x)});
+      const blocks=Object.entries(byGroup).map(([g,arr])=>{const topTxt=arr.slice(0,5).map(x=>`${x.name}（${x.vehicle}，预计影响整体下降 ${x.impact.toFixed(2)}%）`).join('；');return `<div class="priorityItem"><div class="rank">${arr.length}</div><div><div class="name">${esc(g)}</div><div class="reason">${esc(topTxt||'暂无')}</div></div><div class="right"><span class="tailImpactTag">需重点处理</span></div></div>`});
+      list.innerHTML=blocks.length?blocks.join(''):'<div class="noDataBox"><b>暂无高影响骑手</b><span>当前所有骑手责尾单率均未明显高于目标上限，或影响阈值设置过高。</span></div>'
+    }
+    if(it){
+      let html='<thead><tr><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>本周跑单量</th><th>本周尾单单量</th><th>预计影响整体下降</th><th>提示</th><th>操作</th></tr></thead><tbody>';
+      impacts.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td><b class="dangerText">${fmtPct(x.curPersonal)}</b></td><td>${fmt(val(x.cur,'orders'),'orders')}</td><td>${fmtCount(x.curTailCnt)}</td><td><span class="tailImpactTag">-${x.impact.toFixed(2)}%</span></td><td>${esc(x.tip)}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
+      it.innerHTML=impacts.length?html+'</tbody>':'<tr><td class="empty">暂无符合影响阈值的骑手</td></tr>';it.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
+    }
+  }
+  window.renderTailOrderCenter=renderTailOrderCenterV2;
+  const prevRenderAll=renderAll;
+  renderAll=function(){prevRenderAll();renderTailOrderCenterV2();};
+  setTimeout(()=>{
+    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp','tailContinuousWindowSel'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenterV2;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenterV2();toast('尾单骑手中心已刷新')}});
+    const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItemsV2();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
   },0);
 })();
 
