@@ -2051,6 +2051,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     const p=byId('problemVehicleFilter');if(p){p.innerHTML=vehicleOptions(state.problemVehicle||'all');p.value=state.problemVehicle||'all'}
     const f=byId('followVehicleFilter');if(f){f.innerHTML=vehicleOptions(state.followVehicle||'all');f.value=state.followVehicle||'all'}
   }
+  window.ensureVehicleFilterControls = ensureVehicleFilterControls;
 
   const __deltaHTML = deltaHTML;
   const __deltaText = deltaText;
@@ -2933,7 +2934,7 @@ ${qualityReturnText}
   drawDiagnosis=function(){ensureDiagMetric();oldDrawDiagnosisFinal()};
 
   renderProblems=function(){
-    ensureVehicleFilterControls&&ensureVehicleFilterControls();
+    window.ensureVehicleFilterControls&&window.ensureVehicleFilterControls();
     const chips=byId('issueChips');if(chips){chips.innerHTML=issueDefs.map(([k,l])=>`<button class="chip ${state.issue===k?'active':''}" data-issue="${k}">${l}</button>`).join('');chips.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{state.issue=b.dataset.issue;renderProblems()})}
     const items=filteredProblems();const sub=byId('problemSub');if(sub)sub.textContent=rows.length?`${state.cycle} vs ${state.compare} · 当前显示 ${items.length} 名问题骑手`:'读取 Supabase 云数据后自动识别问题骑手';const fs=byId('filterSummary');if(fs)fs.textContent=`${items.length}人 · ${state.action==='all'?'全部动作':state.action}`;
     const table=byId('problemTable');if(!table)return;if(!rows.length){table.innerHTML='<tr><td class="empty">暂无云数据，请先检查 Supabase 表</td></tr>';return}if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无问题骑手</td></tr>';return}
