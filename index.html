@@ -219,6 +219,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 /* Rider equipment center */
 .equipmentStatusTag{display:inline-flex;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:950;white-space:nowrap}
 .equipmentStatusTag.ok{background:var(--green2);color:var(--green)}
+.equipmentStatusTag.warn{background:var(--amber2);color:var(--amber)}
 .equipmentStatusTag.bad{background:var(--red2);color:var(--red)}
 .equipmentLowStock{background:var(--red2)!important;border-color:#fecaca!important}
 .equipmentQtyInput{width:92px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink)}
@@ -538,7 +539,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 
   <div class="panel">
     <div class="panelHead">
-      <div><h2>骑手装备明细</h2><div class="sub">每项装备改为规格下拉选择，默认“无”；选择具体规格后按规格精准扣减库存。任意装备为“无”显示“未完成”，全部齐全显示“合规”。</div></div>
+      <div><h2>骑手装备明细</h2><div class="sub">每项装备改为规格下拉选择，默认“无”；马甲为“无”判定不合规；马甲已配备但其他装备未配备显示橙色合规；马甲已配备且雨衣、配送箱、配送包任意一项已配备显示绿色装备齐全。</div></div>
     </div>
     <div class="compareControlGrid">
       <label class="field"><span>车型筛选</span><select id="equipmentVehicleFilterSel"><option value="all">全部车型</option><option value="机动车">机动车</option><option value="自行车">自行车</option><option value="步行">步行</option><option value="其他">其他/空白</option></select></label>
@@ -2621,6 +2622,14 @@ ${qualityReturnText}
   function assignmentSpec(a,k){const raw=a?.[k.spec];if(raw&&raw!==true&&raw!==false)return String(raw);return a?.[k.key]?'标准':NO_EQUIP}
   function getEquipAssign(id){const raw={...defaultAssignment(id),...(riderEquipmentAssignments[String(id)]||{})};EQUIP_KEYS.forEach(k=>{raw[k.spec]=assignmentSpec(raw,k);raw[k.key]=raw[k.spec]!==NO_EQUIP});return raw}
   function equipAllComplete(a){return EQUIP_KEYS.every(k=>assignmentSpec(a,k)!==NO_EQUIP)}
+  function equipmentStatusInfo(a){
+    const vest=assignmentSpec(a,EQUIP_KEYS.find(k=>k.key==='vest'));
+    const hasVest=vest!==NO_EQUIP;
+    if(!hasVest)return {cls:'bad',label:'不合规'};
+    const hasAnyOther=EQUIP_KEYS.filter(k=>k.key!=='vest').some(k=>assignmentSpec(a,k)!==NO_EQUIP);
+    if(hasAnyOther)return {cls:'ok',label:'装备齐全'};
+    return {cls:'warn',label:'合规'};
+  }
   function inventoryKey(x){return `${String(x.equipment_name||'').trim()}__${String(x.size||'标准').trim()}`}
   function normalizeSize(size){const s=String(size||'标准').trim()||'标准';return EQUIP_SIZES.includes(s)?s:'标准'}
   function normalizeInventoryList(list){
@@ -2748,7 +2757,7 @@ ${qualityReturnText}
     const table=byId('riderEquipmentTable');if(!table)return;const list=equipmentRiderList();const hint=byId('equipmentTotalRidersHint');if(hint)hint.textContent=`${riders.length} 人`;
     if(!list.length){table.innerHTML='<tr><td class="empty">暂无符合筛选条件的骑手</td></tr>';return}
     let html='<thead><tr><th>骑手</th><th>交通工具</th><th>马甲规格</th><th>雨衣规格</th><th>配送箱规格</th><th>配送包规格</th><th>状态标签</th><th>更新时间</th></tr></thead><tbody>';
-    list.forEach(r=>{const a=getEquipAssign(r.id),ok=equipAllComplete(a);const vehicle=equipRiderVehicle(r.id)||'空白';html+=`<tr><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>{const sp=assignmentSpec(a,k);return `<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}">${riderSizeOptions(sp)}</select></td>`}).join('')}<td><span class="equipmentStatusTag ${ok?'ok':'bad'}">${ok?'合规':'未完成'}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
+    list.forEach(r=>{const a=getEquipAssign(r.id),status=equipmentStatusInfo(a);const vehicle=equipRiderVehicle(r.id)||'空白';html+=`<tr><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>{const sp=assignmentSpec(a,k);return `<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}">${riderSizeOptions(sp)}</select></td>`}).join('')}<td><span class="equipmentStatusTag ${status.cls}">${status.label}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
     table.innerHTML=html+'</tbody>';
     table.querySelectorAll('[data-rider-equip]').forEach(el=>el.onchange=e=>updateRiderEquipSpec(e.target.dataset.riderEquip,e.target.dataset.equipKey,e.target.value));
     table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
