@@ -514,7 +514,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
   <div class="grid2">
     <div class="panel">
       <div class="panelHead">
-        <div><h2>骑手物料库存情况</h2><div class="sub">同一装备名称下不同规格不再拆成多行，可直接切换规格并修改对应规格库存。支持删除无用装备。</div></div>
+        <div><h2>骑手物料库存情况</h2><div class="sub">同一装备名称下不同规格不再拆成多行，可直接切换规格并修改对应规格库存。删除仅移除当前选中规格，不会强制保留标准规格。</div></div>
       </div>
       <div class="equipmentManageGrid">
         <label class="field"><span>装备名称</span><input id="equipmentNameInp" placeholder="例如：马甲" /></label>
@@ -2625,7 +2625,7 @@ ${qualityReturnText}
   function normalizeSize(size){const s=String(size||'标准').trim()||'标准';return EQUIP_SIZES.includes(s)?s:'标准'}
   function normalizeInventoryList(list){
     const map=new Map();
-    [...DEFAULT_EQUIPMENT_INVENTORY,...(Array.isArray(list)?list:[])].forEach(x=>{
+    (Array.isArray(list)?list:[]).forEach(x=>{
       const name=String(x.equipment_name||x.name||'').trim();
       const size=normalizeSize(x.size);
       if(!name)return;
@@ -2671,9 +2671,24 @@ ${qualityReturnText}
   async function updateInventoryQty(name,size,qty){
     const data=await saveInventoryItem({equipment_name:name,size,quantity:qty});if(data){equipmentSelectedSizes[name]=size;safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);renderRiderEquipmentCenter();equipToast('库存数量已更新')}
   }
-  async function deleteInventoryName(name){
-    if(!name)return;if(!confirm(`确认删除装备「${name}」及其全部规格库存？已配备记录不会被删除。`))return;
-    try{const {error}=await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).delete().eq('equipment_name',name);if(error)throw error;equipmentInventory=equipmentInventory.filter(x=>String(x.equipment_name)!==String(name));delete equipmentSelectedSizes[name];safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);safeSet('rider_equipment_inventory_local',equipmentInventory);renderRiderEquipmentCenter();equipToast('已删除该装备库存')}catch(e){equipToast('删除库存失败：'+(e.message||e))}
+  async function deleteInventorySpec(name,size){
+    name=String(name||'').trim();size=normalizeSize(size);
+    if(!name)return;
+    const current=getInventoryItem(name,size);
+    if(!current){equipToast(`当前没有「${name} · ${size}」库存记录可删除`);return}
+    if(!confirm(`确认删除「${name} · ${size}」这一规格库存？已配备记录不会被删除。`))return;
+    try{
+      const {error}=await getCloudClient().from(EQUIPMENT_INVENTORY_TABLE).delete().eq('equipment_name',name).eq('size',size);
+      if(error)throw error;
+      equipmentInventory=equipmentInventory.filter(x=>!(String(x.equipment_name)===name&&String(x.size)===size));
+      const remain=inventoryByName(name).filter(x=>String(x.size)!==size);
+      if(remain.length)equipmentSelectedSizes[name]=remain[0].size;
+      else delete equipmentSelectedSizes[name];
+      safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);
+      safeSet('rider_equipment_inventory_local',equipmentInventory);
+      renderRiderEquipmentCenter();
+      equipToast(`已删除库存规格：${name} · ${size}`);
+    }catch(e){equipToast('删除库存规格失败：'+(e.message||e))}
   }
   async function decrementInventoryForEquip(equipName,size){
     const item=getInventoryItem(equipName,size);
@@ -2709,11 +2724,11 @@ ${qualityReturnText}
     equipmentInventory=normalizeInventoryList(equipmentInventory);
     const names=inventoryNames();
     let html='<thead><tr><th>装备名称</th><th>规格库存</th><th>切换规格并修改库存</th><th>库存状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';
-    names.forEach(name=>{const items=inventoryByName(name);const selected=normalizeSize(equipmentSelectedSizes[name]||items[0]?.size||'标准');const item=getInventoryItem(name,selected)||{equipment_name:name,size:selected,quantity:0,updated_at:''};const qty=equipNum(item.quantity);const summary=EQUIP_SIZES.map(sz=>{const it=getInventoryItem(name,sz);if(!it)return '';const q=equipNum(it.quantity);return `<span class="equipmentStockPill ${q<=equipmentLowThreshold?'low':''}">${esc(sz)}：${q}</span>`}).filter(Boolean).join('')||'<span class="mini">暂无规格库存</span>';html+=`<tr class="${qty<=equipmentLowThreshold?'equipmentLowStock':''}"><td><b>${esc(name)}</b></td><td><div class="equipmentStockSummary">${summary}</div></td><td><div class="equipmentInlineControls"><select class="equipmentSelect" data-equipment-size-switch="${esc(name)}">${sizeOptions(selected)}</select><input class="equipmentQtyInput" type="number" min="0" step="1" value="${qty}" data-equipment-qty-name="${esc(name)}"><button class="btn small" data-equipment-update-name="${esc(name)}">保存</button></div></td><td>${qty<=equipmentLowThreshold?`<span class="pill red">≤ 预警阈值 ${equipmentLowThreshold}</span>`:'<span class="pill green">库存正常</span>'}</td><td><span class="mini">${formatDateTimeLocal(item.updated_at)}</span></td><td><button class="btn small danger" data-equipment-delete-name="${esc(name)}">删除</button></td></tr>`});
+    names.forEach(name=>{const items=inventoryByName(name);const selected=normalizeSize(equipmentSelectedSizes[name]||items[0]?.size||'标准');const item=getInventoryItem(name,selected)||{equipment_name:name,size:selected,quantity:0,updated_at:''};const qty=equipNum(item.quantity);const summary=EQUIP_SIZES.map(sz=>{const it=getInventoryItem(name,sz);if(!it)return '';const q=equipNum(it.quantity);return `<span class="equipmentStockPill ${q<=equipmentLowThreshold?'low':''}">${esc(sz)}：${q}</span>`}).filter(Boolean).join('')||'<span class="mini">暂无规格库存</span>';html+=`<tr class="${qty<=equipmentLowThreshold?'equipmentLowStock':''}"><td><b>${esc(name)}</b></td><td><div class="equipmentStockSummary">${summary}</div></td><td><div class="equipmentInlineControls"><select class="equipmentSelect" data-equipment-size-switch="${esc(name)}">${sizeOptions(selected)}</select><input class="equipmentQtyInput" type="number" min="0" step="1" value="${qty}" data-equipment-qty-name="${esc(name)}"><button class="btn small" data-equipment-update-name="${esc(name)}">保存</button></div></td><td>${qty<=equipmentLowThreshold?`<span class="pill red">≤ 预警阈值 ${equipmentLowThreshold}</span>`:'<span class="pill green">库存正常</span>'}</td><td><span class="mini">${formatDateTimeLocal(item.updated_at)}</span></td><td><button class="btn small danger" data-equipment-delete-name="${esc(name)}" data-equipment-delete-size="${esc(selected)}">删除当前规格</button></td></tr>`});
     table.innerHTML=html+'</tbody>';
     table.querySelectorAll('[data-equipment-size-switch]').forEach(sel=>sel.onchange=e=>{const name=e.target.dataset.equipmentSizeSwitch;equipmentSelectedSizes[name]=e.target.value;safeSet('rider_equipment_selected_sizes',equipmentSelectedSizes);renderInventory();renderInventoryAlerts()});
     table.querySelectorAll('[data-equipment-update-name]').forEach(btn=>btn.onclick=()=>{const name=btn.dataset.equipmentUpdateName;const size=table.querySelector(`[data-equipment-size-switch="${CSS.escape(name)}"]`)?.value||'标准';const qty=table.querySelector(`[data-equipment-qty-name="${CSS.escape(name)}"]`)?.value||0;updateInventoryQty(name,size,qty)});
-    table.querySelectorAll('[data-equipment-delete-name]').forEach(btn=>btn.onclick=()=>deleteInventoryName(btn.dataset.equipmentDeleteName));
+    table.querySelectorAll('[data-equipment-delete-name]').forEach(btn=>btn.onclick=()=>deleteInventorySpec(btn.dataset.equipmentDeleteName,btn.dataset.equipmentDeleteSize));
   }
   function renderInventoryAlerts(){
     const el=byId('equipmentInventoryAlerts');if(!el)return;
