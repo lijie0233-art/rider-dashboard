@@ -680,7 +680,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 <section id="weeklyReport" class="tab">
   <div class="panel">
     <div class="panelHead">
-      <div><h2>站长周报</h2><div class="sub">固定模板自动生成高风险骑手、疑似流失明细和本周重点关注骑手；可立即发送到钉钉群，也可保存配置后按时间自动发布。</div></div>
+      <div><h2>站长周报</h2><div class="sub">固定模板自动生成人员变化、车型运力缺口、责尾单率裂化、重点尾单骑手、回归与潜力回归骑手；可立即发送到钉钉群，也可保存配置后按时间自动发布。</div></div>
       <button class="btn small" id="refreshWeeklyReportBtn">刷新预览</button>
     </div>
     <div class="weeklyConfigGrid">
@@ -2390,6 +2390,71 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp','tailContinuousWindowSel','tailTopVehicleFilterSel'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenterV2;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenterV2();toast('尾单骑手中心已刷新')}});
     const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItemsV2();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手中心_高影响骑手.csv')};
   },0);
+})();
+
+/* === 站长周报 v3：运力/车型/尾单/回归模板 === */
+(function(){
+  function srNum(v){return Number.isFinite(+v)?+v:0}
+  function srRate(v){const x=ratePercent(v);return Number.isFinite(x)?x:null}
+  function srFmtCount(v){return Number.isFinite(+v)?(+v).toLocaleString('en-US',{maximumFractionDigits:0}):'0'}
+  function srFmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
+  function srSigned(n,unit=''){const v=Number(n)||0;return `${v>=0?'+':''}${v.toLocaleString('en-US',{maximumFractionDigits:0})}${unit}`}
+  function srSignedPct(v){return v==null||!Number.isFinite(+v)?'空白':`${v>=0?'+':''}${(+v).toFixed(2)}%`}
+  function srNormVehicle(v){return String(v||'').trim()||'空白'}
+  function srVehicleGroup(v){
+    const s=srNormVehicle(v).toLowerCase();
+    if(s==='步行'||s==='walk'||s==='walking'||/步行|walk|walking/i.test(s))return {key:'walk',label:'步行',std:1};
+    if(s==='自行车'||s==='单车'||s==='bike'||s==='bicycle'||/自行车|单车|bike|bicycle/i.test(s))return {key:'bike',label:'自行车',std:1};
+    if(s==='电动自行车'||s==='电动车'||s==='e-bike'||s==='ebike'||s==='摩托车'||s==='摩托'||s==='motorcycle'||s==='motorbike'||s==='scooter'||s==='汽车'||s==='car'||s==='auto'||/电动自行车|电动车|e-?bike|ebike|摩托车|摩托|motorcycle|motorbike|scooter|汽车|car|auto/i.test(s))return {key:'motor',label:'机动车',std:6};
+    return {key:'unknown',label:'其他/空白',std:6};
+  }
+  function srAllIds(){return riders.map(r=>r.id)}
+  function srPeriodRows(c){return srAllIds().map(id=>rec(c,id)).filter(r=>r&&active(r))}
+  function srRowOrders(r){return srNum(val(r,'orders'))}
+  function srTailCnt(r){const t=srRate(r&&r.tailRate);return t==null?0:srRowOrders(r)*t/100}
+  function srTotalOrders(c){return srPeriodRows(c).reduce((s,r)=>s+srRowOrders(r),0)}
+  function srVehicleStatsFor(c){
+    const totalOrders=srTotalOrders(c)||0;
+    const groups={motor:{key:'motor',label:'机动车',std:6,n:0,orders:0,tailCnt:0},bike:{key:'bike',label:'自行车',std:1,n:0,orders:0,tailCnt:0},walk:{key:'walk',label:'步行',std:1,n:0,orders:0,tailCnt:0},unknown:{key:'unknown',label:'其他/空白',std:6,n:0,orders:0,tailCnt:0}};
+    srPeriodRows(c).forEach(r=>{const g=srVehicleGroup(r.vehicle);const o=groups[g.key]||groups.unknown;o.n++;o.orders+=srRowOrders(r);o.tailCnt+=srTailCnt(r)});
+    return Object.values(groups).map(g=>({...g,totalOrders,rate:totalOrders?g.tailCnt/totalOrders*100:null,groupRate:g.orders?g.tailCnt/g.orders*100:null})).filter(g=>g.n||g.orders||g.tailCnt);
+  }
+  function srVehicleCompare(cur,comp){
+    const curMap=Object.fromEntries(srVehicleStatsFor(cur).map(x=>[x.key,x]));
+    const preMap=Object.fromEntries(srVehicleStatsFor(comp).map(x=>[x.key,x]));
+    const keys=['motor','bike','walk','unknown'];
+    return keys.map(k=>{const c=curMap[k]||{key:k,label:k==='motor'?'机动车':k==='bike'?'自行车':k==='walk'?'步行':'其他/空白',std:k==='bike'||k==='walk'?1:6,n:0,orders:0,tailCnt:0,rate:null,groupRate:null};const p=preMap[k]||{key:k,label:c.label,std:c.std,n:0,orders:0,tailCnt:0,rate:null,groupRate:null};const baseOPR=p.n&&p.orders?p.orders/p.n:(c.n&&c.orders?c.orders/c.n:0);const orderGap=baseOPR?Math.max(0,Math.ceil(c.orders/baseOPR-c.n)):0;const rateDelta=(c.rate!=null&&p.rate!=null)?c.rate-p.rate:null;const overStd=c.rate!=null?Math.max(0,c.rate-c.std):0;const worsen=rateDelta!=null?Math.max(0,rateDelta):0;const tailGap=Math.max(0,Math.ceil((c.n||0)*Math.max(overStd,worsen)/Math.max(c.std,1)*0.35));const gap=Math.max(orderGap,tailGap);return{...c,pre:p,deltaN:c.n-p.n,deltaOrders:c.orders-p.orders,deltaTailCnt:c.tailCnt-p.tailCnt,deltaRate:rateDelta,capacityGap:gap,baseOPR}}).filter(x=>x.n||x.pre.n||x.orders||x.pre.orders);
+  }
+  function srPeopleTrendLine(stats,type){
+    const arr=stats.filter(x=>type==='up'?x.deltaN>0:x.deltaN<0).sort((a,b)=>type==='up'?b.deltaN-a.deltaN:a.deltaN-b.deltaN);
+    if(!arr.length)return type==='up'?'暂无人数上涨明显车型。':'暂无流失明显车型。';
+    return arr.map(x=>`${x.label} ${srSigned(x.deltaN,'人')}（${x.pre.n} → ${x.n}人）`).join('；');
+  }
+  function srVehicleTailLine(stats){return stats.length?stats.map(x=>`${x.label}：${srFmtPct(x.pre.rate)} → ${srFmtPct(x.rate)}，变化 ${srSignedPct(x.deltaRate)}`).join('\n'):'暂无车型责尾单率数据。'}
+  function srCapacityLine(stats){return stats.length?stats.map(x=>`${x.label}：本周订单量 ${srFmtCount(x.orders)}，骑手 ${x.n}人；责尾单率 ${srFmtPct(x.rate)}（较对比 ${srSignedPct(x.deltaRate)}）；预估需补齐 ${x.capacityGap} 人。`).join('\n'):'暂无运力缺口数据。'}
+  function srTailTop(cur,comp,n=5){return srAllIds().map(id=>{const r=rec(cur,id),p=rec(comp,id);if(!r||!active(r))return null;const cnt=srTailCnt(r);if(cnt<=0)return null;const t=srRate(r.tailRate),pt=srRate(p&&p.tailRate);return{id,name:riderMap.get(id)?.name||r.name||id,vehicle:srNormVehicle(r.vehicle||(p&&p.vehicle)),cnt,tail:t,preTail:pt,delta:(t!=null&&pt!=null)?t-pt:null}}).filter(Boolean).sort((a,b)=>b.cnt-a.cnt).slice(0,n)}
+  function srReturnTop(cur,n=5){
+    let arr=[];
+    try{arr=returnPoolItems()}catch(e){arr=[]}
+    if(!arr.length){const idx=cycles.indexOf(cur),pre=idx>0?cycles[idx-1]:'';arr=srAllIds().map(id=>{const r=rec(cur,id),p=rec(pre,id);if(r&&srRowOrders(r)>0&&(!p||srRowOrders(p)<=0))return{id,name:riderMap.get(id)?.name||r.name||id,cur:r,curOrders:srRowOrders(r)};return null}).filter(Boolean)}
+    return arr.sort((a,b)=>(b.curOrders||b.current||0)-(a.curOrders||a.current||0)).slice(0,n)
+  }
+  function srQualityReturnTop(cur,n=5){
+    const arr=srReturnTop(cur,50).map(x=>{const r=x.cur||rec(cur,x.id)||{};const g=srVehicleGroup(r.vehicle);const tail=srRate(r.tailRate);const acc=srRate(r.acceptanceRate);const score=(srRowOrders(r)||x.curOrders||0)*1.2+(acc==null?0:acc*0.25)-((tail==null?0:Math.max(0,tail-g.std))*12);return{...x,cur:r,tail,acc,score,group:g.label}}).sort((a,b)=>b.score-a.score);
+    return arr.slice(0,n)
+  }
+  function srPriorityNameLine(arr,empty){return arr.length?arr.map((x,i)=>`${i+1}. ${x.name||x.rider_name||x.id}（ID ${x.id}）`).join('\n'):empty}
+  function srReportPack(){const cfg=normalizeStationReportConfig(stationReportConfig),cur=state.cycle||cycles[cycles.length-1]||'',comp=state.compare||cycles[cycles.length-2]||'',topN=+cfg.topN||10;const stats=srVehicleCompare(cur,comp);return{cfg,cur,comp,topN,stats,curRows:srPeriodRows(cur),preRows:srPeriodRows(comp),tailTop:srTailTop(cur,comp,5),returns:srReturnTop(cur,5),qualityReturns:srQualityReturnTop(cur,5)}}
+  window.generateStationReportText=function(){
+    const p=srReportPack(),now=new Date().toLocaleString();
+    const totalCur=p.curRows.length,totalPre=p.preRows.length,totalDelta=totalCur-totalPre;
+    const vehicleSummary=p.stats.map(x=>`${x.label}：${x.pre.n} → ${x.n}人（${srSigned(x.deltaN,'人')}）`).join('\n')||'暂无车型人员数据。';
+    const tailTopText=srPriorityNameLine(p.tailTop,'暂无本周尾单率重点关注骑手。');
+    const returnText=srPriorityNameLine(p.returns,'暂无本周回归骑手。');
+    const qualityReturnText=srPriorityNameLine(p.qualityReturns,'暂无优质潜力回归骑手。');
+    return `# 站长周报｜${p.cur} 对比 ${p.comp}\n\n> 生成时间：${now}\n> 模板说明：本周报聚焦人员变化、车型运力缺口、骑手责尾单率裂化、尾单重点骑手，以及回归/潜力回归骑手优先级。\n\n## 一、整体骑手人数变化\n- 本周整体骑手人数：${totalCur} 人\n- 对比周整体骑手人数：${totalPre} 人\n- 环比变化：${srSigned(totalDelta,'人')}\n\n## 二、各车型人员变化\n${vehicleSummary}\n\n- 人数上涨明显车型：${srPeopleTrendLine(p.stats,'up')}\n- 流失明显车型：${srPeopleTrendLine(p.stats,'down')}\n\n## 三、各车型运力缺口研判\n${srCapacityLine(p.stats)}\n\n## 四、各交通工具骑手责尾单率上涨情况\n${srVehicleTailLine(p.stats)}\n\n## 五、本周需特别关注尾单率骑手 Top5\n${tailTopText}\n\n## 六、本周回归骑手 Top5\n${returnText}\n\n## 七、优质潜力回归骑手 Top5\n${qualityReturnText}\n\n## 八、本周站长动作建议\n1. 优先处理尾单单量 Top5 骑手，先按优先级核查配送链路、交通工具、商圈和异常订单。\n2. 对人数下降明显车型做补员计划，结合本周订单量和责尾单率裂化情况优先补齐缺口车型。\n3. 回归骑手和优质潜力回归骑手建议当周主动关怀，安排稳定排班，避免再次流失。`;
+  };
+  window.renderStationWeeklyReport=function(){if(!byId('stationReportPreview'))return;applyStationReportForm();const text=generateStationReportText();stationReportLastContent=text;byId('stationReportPreview').value=text;const p=srReportPack();const meta=byId('stationReportMetaGrid');if(meta){const gapSum=p.stats.reduce((s,x)=>s+(+x.capacityGap||0),0);meta.innerHTML=[['发送计划',`${stationReportWeekdayText(p.cfg.weekday)} ${p.cfg.sendTime}`,p.cfg.autoSend?'已开启自动发布':'未开启自动发布'],['骑手人数',`${p.curRows.length} 人`,`较对比 ${srSigned(p.curRows.length-p.preRows.length,'人')}`],['预估运力缺口',`${gapSum} 人`,'按对比周人效与尾单裂化粗估'],['尾单关注',`${p.tailTop.length} 人`,`回归 ${p.returns.length} 人 / 潜力 ${p.qualityReturns.length} 人`]].map(x=>`<div class="reportMetaCard"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="reportSmall">${x[2]}</div></div>`).join('')}renderStationReportHistory()};
 })();
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
