@@ -235,6 +235,14 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 @media(max-width:980px){.equipmentManageGrid{grid-template-columns:1fr 1fr}.equipmentInlineControls{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}.equipmentInlineControls .equipmentQtyInput,.equipmentInlineControls .equipmentSelect{width:100%}}
 @media(max-width:640px){.equipmentManageGrid{grid-template-columns:1fr}.equipmentInlineControls{grid-template-columns:1fr}}
 
+.equipmentPager{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px}
+.equipmentPager .mini{margin-right:auto}
+.equipmentPageSelect{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);min-width:82px}
+.equipmentBulkSpecGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px;margin:10px 0 12px}
+.equipmentBulkSpecGroup label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:850;color:#475467}
+.equipmentRowCheck{width:16px;height:16px;accent-color:#101828}
+@media(max-width:640px){.equipmentPager{justify-content:stretch}.equipmentPager .mini{width:100%}.equipmentPager .btn,.equipmentPager select{flex:1}.equipmentBulkSpecGroup{display:grid;grid-template-columns:1fr}.equipmentBulkSpecGroup label{width:100%}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -547,7 +555,15 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <div class="field"><span>骑手总人数</span><b id="equipmentTotalRidersHint">-</b></div>
       <div class="field"><span>说明</span><b>默认“无”不扣库存，选择规格才扣减</b></div>
     </div>
+    <div class="equipmentBulkSpecGroup" id="equipmentBulkSpecBar">
+      <label><input id="equipmentSelectAll" class="equipmentRowCheck" type="checkbox" /> 全选当前筛选</label>
+      <select class="equipmentSelect" id="equipmentBulkKeySel"><option value="vest">批量配置：马甲</option><option value="raincoat">批量配置：雨衣</option><option value="delivery_box">批量配置：配送箱</option><option value="delivery_bag">批量配置：配送包</option></select>
+      <select class="equipmentSelect" id="equipmentBulkSpecSel"><option value="无">无</option><option value="标准">标准</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="2XL">2XL</option><option value="3XL">3XL</option></select>
+      <button class="btn primary small" id="equipmentBulkApplyBtn" type="button">应用到已选骑手</button>
+      <span class="mini" id="equipmentSelectedHint">已选 0 人</span>
+    </div>
     <div class="tableWrap"><table id="riderEquipmentTable"></table></div>
+    <div class="equipmentPager" id="equipmentPager"></div>
   </div>
 </section>
 <section id="followup" class="tab">
@@ -2600,6 +2616,9 @@ ${qualityReturnText}
   ];
   const EQUIP_SIZES=['标准','S','M','L','XL','2XL','3XL'];
   const NO_EQUIP='无';
+  let equipmentDetailPage=1;
+  let equipmentDetailPageSize=Number(safeGet('rider_equipment_detail_page_size',50))||50;
+  let equipmentSelectedRiderIds=new Set();
   const DEFAULT_EQUIPMENT_INVENTORY=EQUIP_KEYS.map(x=>({equipment_name:x.name,size:'标准',quantity:0}));
   let equipmentSelectedSizes=safeGet('rider_equipment_selected_sizes',{});
   let equipmentLowThreshold=equipNum(safeGet('rider_equipment_low_threshold',0));
@@ -2705,6 +2724,12 @@ ${qualityReturnText}
     await saveInventoryItem({...item,quantity:equipNum(item.quantity)-1});
     return true;
   }
+  async function incrementInventoryForEquip(equipName,size){
+    if(!equipName||!size||size===NO_EQUIP)return false;
+    const item=getInventoryItem(equipName,size)||{equipment_name:equipName,size,quantity:0};
+    await saveInventoryItem({...item,quantity:equipNum(item.quantity)+1});
+    return true;
+  }
   async function saveRiderEquipment(id,patch){
     const before=getEquipAssign(id);
     const after={...before,...patch,rider_id:String(id),updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()};
@@ -2715,7 +2740,11 @@ ${qualityReturnText}
     const k=EQUIP_KEYS.find(x=>x.key===key);if(!k)return;
     newSpec=String(newSpec||NO_EQUIP);
     const before=getEquipAssign(id);const oldSpec=assignmentSpec(before,k);
-    if(newSpec!==NO_EQUIP&&newSpec!==oldSpec){
+    if(newSpec===oldSpec)return;
+    if(oldSpec!==NO_EQUIP){
+      await incrementInventoryForEquip(k.name,oldSpec);
+    }
+    if(newSpec!==NO_EQUIP){
       const deducted=await decrementInventoryForEquip(k.name,newSpec);
       if(!deducted)equipToast(`${k.name} · ${newSpec} 库存为 0，已记录配备规格但未扣减库存`);
     }
@@ -2753,16 +2782,54 @@ ${qualityReturnText}
       return okV&&okQ;
     });
   }
+  function syncEquipmentSelectedHint(){
+    const hint=byId('equipmentSelectedHint');if(hint)hint.textContent=`已选 ${equipmentSelectedRiderIds.size} 人`;
+    const selectAll=byId('equipmentSelectAll');
+    if(selectAll){const list=equipmentRiderList();selectAll.checked=!!list.length&&list.every(r=>equipmentSelectedRiderIds.has(String(r.id)));selectAll.indeterminate=!!list.length&&!selectAll.checked&&list.some(r=>equipmentSelectedRiderIds.has(String(r.id)));}
+  }
+  function renderEquipmentPager(total,pageCount){
+    const pager=byId('equipmentPager');if(!pager)return;
+    if(!total){pager.innerHTML='';return;}
+    const pageOptions=Array.from({length:pageCount},(_,i)=>`<option value="${i+1}" ${i+1===equipmentDetailPage?'selected':''}>第 ${i+1} 页</option>`).join('');
+    pager.innerHTML=`<span class="mini">共 ${total} 名骑手 · 第 ${equipmentDetailPage}/${pageCount} 页</span><select class="equipmentPageSelect" id="equipmentPageSizeSel"><option value="50" ${equipmentDetailPageSize===50?'selected':''}>50 条/页</option><option value="100" ${equipmentDetailPageSize===100?'selected':''}>100 条/页</option></select><button class="btn small" id="equipmentPrevPageBtn" ${equipmentDetailPage<=1?'disabled':''}>上一页</button><select class="equipmentPageSelect" id="equipmentPageSel">${pageOptions}</select><button class="btn small" id="equipmentNextPageBtn" ${equipmentDetailPage>=pageCount?'disabled':''}>下一页</button>`;
+    const sizeSel=byId('equipmentPageSizeSel');if(sizeSel)sizeSel.onchange=e=>{equipmentDetailPageSize=Number(e.target.value)||50;safeSet('rider_equipment_detail_page_size',equipmentDetailPageSize);equipmentDetailPage=1;renderEquipmentDetails();};
+    const pageSel=byId('equipmentPageSel');if(pageSel)pageSel.onchange=e=>{equipmentDetailPage=Number(e.target.value)||1;renderEquipmentDetails();};
+    const prev=byId('equipmentPrevPageBtn');if(prev)prev.onclick=()=>{equipmentDetailPage=Math.max(1,equipmentDetailPage-1);renderEquipmentDetails();};
+    const next=byId('equipmentNextPageBtn');if(next)next.onclick=()=>{equipmentDetailPage=Math.min(pageCount,equipmentDetailPage+1);renderEquipmentDetails();};
+  }
+  async function applyBulkEquipmentSpec(){
+    const ids=[...equipmentSelectedRiderIds];
+    if(!ids.length){equipToast('请先勾选需要批量配置的骑手');return;}
+    const key=byId('equipmentBulkKeySel')?.value||'vest';
+    const spec=byId('equipmentBulkSpecSel')?.value||NO_EQUIP;
+    const k=EQUIP_KEYS.find(x=>x.key===key);
+    if(!k)return;
+    if(!confirm(`确认将 ${ids.length} 名骑手的「${k.name}」批量设置为「${spec}」？`))return;
+    for(const id of ids){await updateRiderEquipSpec(id,key,spec);}
+    equipToast(`已批量配置 ${ids.length} 名骑手`);
+  }
   function renderEquipmentDetails(){
-    const table=byId('riderEquipmentTable');if(!table)return;const list=equipmentRiderList();const hint=byId('equipmentTotalRidersHint');if(hint)hint.textContent=`${riders.length} 人`;
-    if(!list.length){table.innerHTML='<tr><td class="empty">暂无符合筛选条件的骑手</td></tr>';return}
-    let html='<thead><tr><th>骑手</th><th>交通工具</th><th>马甲规格</th><th>雨衣规格</th><th>配送箱规格</th><th>配送包规格</th><th>状态标签</th><th>更新时间</th></tr></thead><tbody>';
-    list.forEach(r=>{const a=getEquipAssign(r.id),status=equipmentStatusInfo(a);const vehicle=equipRiderVehicle(r.id)||'空白';html+=`<tr><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>{const sp=assignmentSpec(a,k);return `<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}">${riderSizeOptions(sp)}</select></td>`}).join('')}<td><span class="equipmentStatusTag ${status.cls}">${status.label}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
+    const table=byId('riderEquipmentTable');if(!table)return;const fullList=equipmentRiderList();const hint=byId('equipmentTotalRidersHint');if(hint)hint.textContent=`${riders.length} 人`;
+    const fullIdSet=new Set(fullList.map(r=>String(r.id)));equipmentSelectedRiderIds.forEach(id=>{if(!fullIdSet.has(String(id)))equipmentSelectedRiderIds.delete(id)});
+    const pageCount=Math.max(1,Math.ceil(fullList.length/equipmentDetailPageSize));
+    if(equipmentDetailPage>pageCount)equipmentDetailPage=pageCount;
+    if(equipmentDetailPage<1)equipmentDetailPage=1;
+    const start=(equipmentDetailPage-1)*equipmentDetailPageSize;
+    const list=fullList.slice(start,start+equipmentDetailPageSize);
+    renderEquipmentPager(fullList.length,pageCount);
+    if(!fullList.length){table.innerHTML='<tr><td class="empty">暂无符合筛选条件的骑手</td></tr>';syncEquipmentSelectedHint();return}
+    let html='<thead><tr><th><input id="equipmentPageSelectAll" class="equipmentRowCheck" type="checkbox" title="全选当前页" /></th><th>骑手</th><th>交通工具</th><th>马甲规格</th><th>雨衣规格</th><th>配送箱规格</th><th>配送包规格</th><th>状态标签</th><th>更新时间</th></tr></thead><tbody>';
+    list.forEach(r=>{const a=getEquipAssign(r.id),status=equipmentStatusInfo(a);const vehicle=equipRiderVehicle(r.id)||'空白';const checked=equipmentSelectedRiderIds.has(String(r.id))?'checked':'';html+=`<tr><td><input class="equipmentRowCheck" data-equipment-select-rider="${esc(r.id)}" type="checkbox" ${checked} /></td><td><button class="nameBtn" data-track="${esc(r.id)}"><div class="riderName">${esc(r.name)}</div><div class="mini">ID ${esc(r.id)}</div></button></td><td>${esc(vehicle)}</td>${EQUIP_KEYS.map(k=>{const sp=assignmentSpec(a,k);return `<td><select class="equipmentSelect" data-rider-equip="${esc(r.id)}" data-equip-key="${esc(k.key)}">${riderSizeOptions(sp)}</select></td>`}).join('')}<td><span class="equipmentStatusTag ${status.cls}">${status.label}</span></td><td><span class="mini">${formatDateTimeLocal(a.updated_at)}</span></td></tr>`});
     table.innerHTML=html+'</tbody>';
     table.querySelectorAll('[data-rider-equip]').forEach(el=>el.onchange=e=>updateRiderEquipSpec(e.target.dataset.riderEquip,e.target.dataset.equipKey,e.target.value));
     table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+    table.querySelectorAll('[data-equipment-select-rider]').forEach(cb=>cb.onchange=e=>{const id=String(e.target.dataset.equipmentSelectRider);if(e.target.checked)equipmentSelectedRiderIds.add(id);else equipmentSelectedRiderIds.delete(id);syncEquipmentSelectedHint();});
+    const pageAll=byId('equipmentPageSelectAll');if(pageAll){const pageIds=list.map(r=>String(r.id));pageAll.checked=!!pageIds.length&&pageIds.every(id=>equipmentSelectedRiderIds.has(id));pageAll.indeterminate=!!pageIds.length&&!pageAll.checked&&pageIds.some(id=>equipmentSelectedRiderIds.has(id));pageAll.onchange=e=>{pageIds.forEach(id=>e.target.checked?equipmentSelectedRiderIds.add(id):equipmentSelectedRiderIds.delete(id));renderEquipmentDetails();};}
+    const selectAll=byId('equipmentSelectAll');if(selectAll){selectAll.onchange=e=>{fullList.forEach(r=>e.target.checked?equipmentSelectedRiderIds.add(String(r.id)):equipmentSelectedRiderIds.delete(String(r.id)));renderEquipmentDetails();};}
+    const bulkBtn=byId('equipmentBulkApplyBtn');if(bulkBtn)bulkBtn.onclick=applyBulkEquipmentSpec;
+    syncEquipmentSelectedHint();
   }
-  window.renderRiderEquipmentCenter=function(){
+    window.renderRiderEquipmentCenter=function(){
     if(!byId('riderEquipmentTable'))return;
     if(!equipmentLoaded){loadRiderEquipmentData().then(renderRiderEquipmentCenter).catch(e=>console.warn(e));}
     const th=byId('equipmentLowThresholdInp');if(th)th.value=equipmentLowThreshold;
@@ -2772,7 +2839,7 @@ ${qualityReturnText}
     const save=byId('saveEquipmentInventoryBtn');if(save)save.onclick=saveEquipmentInventoryFromForm;
     const refresh=byId('refreshEquipmentBtn');if(refresh)refresh.onclick=async()=>{equipmentLoaded=false;await loadRiderEquipmentData();renderRiderEquipmentCenter();equipToast('装备数据已刷新')};
     const saveThreshold=byId('saveEquipmentLowThresholdBtn');if(saveThreshold)saveThreshold.onclick=()=>{equipmentLowThreshold=equipNum(byId('equipmentLowThresholdInp')?.value||0);safeSet('rider_equipment_low_threshold',equipmentLowThreshold);renderRiderEquipmentCenter();equipToast('库存预警阈值已保存')};
-    ['equipmentVehicleFilterSel','equipmentSearchInp'].forEach(id=>{const el=byId(id);if(el){el.oninput=renderRiderEquipmentCenter;el.onchange=renderRiderEquipmentCenter}});
+    ['equipmentVehicleFilterSel','equipmentSearchInp'].forEach(id=>{const el=byId(id);if(el){el.oninput=()=>{equipmentDetailPage=1;renderRiderEquipmentCenter()};el.onchange=()=>{equipmentDetailPage=1;renderRiderEquipmentCenter()}}});
   }
   const oldRenderAll=renderAll;renderAll=function(){oldRenderAll();renderRiderEquipmentCenter();};
   setTimeout(bindEquipmentControls,0);
