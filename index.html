@@ -3144,6 +3144,62 @@ ${qualityReturnText}
   };
 })();
 
+
+
+/* === Order appeals table final override: hide remark, update time, detail-only review === */
+(function(){
+  function appealTotalCountSafe(phone){
+    const p=normalizeAppealPhone(phone);
+    if(!p)return 0;
+    return (orderAppeals||[]).filter(x=>normalizeAppealPhone(x.phone)===p).length;
+  }
+  window.appealTotalCount=appealTotalCountSafe;
+
+  renderOrderAppeals=function(){
+    updateOrderAppealMenuBadge();
+    const urlText=byId('appealFormUrlText');
+    if(urlText)urlText.textContent=location.origin+'/appeal.html';
+    const table=byId('appealTable');
+    if(!table)return;
+    renderAppealSummary();
+    const allItems=filteredOrderAppeals();
+    const total=allItems.length;
+    if(!total){
+      table.innerHTML='<tr><td class="empty">暂无申诉订单记录。请确认已执行 SQL，或让骑手通过 appeal.html 提交。</td></tr>';
+      renderAppealPagination(0);
+      return;
+    }
+    const totalPages=Math.max(1,Math.ceil(total/appealPageSize));
+    if(appealPage>totalPages)appealPage=totalPages;
+    if(appealPage<1)appealPage=1;
+    const start=(appealPage-1)*appealPageSize;
+    const items=allItems.slice(start,start+appealPageSize);
+
+    table.innerHTML='<thead><tr>'+
+      '<th>提交时间</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>审核结果</th><th>更新时间</th><th>操作</th>'+
+      '</tr></thead><tbody>'+items.map(x=>{
+        const monthCount=appealMonthlyCount(x.phone);
+        const totalCount=appealTotalCountSafe(x.phone);
+        const updatedTime=x.updated_at||x.reviewed_at||x.created_at;
+        return `<tr>
+          <td>${appealDate(x.created_at)}</td>
+          <td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td>
+          <td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td>
+          <td><b>${esc(x.order_no||'-')}</b></td>
+          <td><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></td>
+          <td>${esc((x.detail||'').slice(0,90))}${(x.detail||'').length>90?'…':''}</td>
+          <td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td>
+          <td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td>
+          <td>${appealDate(updatedTime)}</td>
+          <td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td>
+        </tr>`
+      }).join('')+'</tbody>';
+    renderAppealPagination(total);
+    table.querySelectorAll('[data-appeal-detail]').forEach(b=>b.onclick=()=>openAppealDetail(b.dataset.appealDetail));
+    table.querySelectorAll('[data-appeal-delete]').forEach(b=>b.onclick=()=>deleteOrderAppeal(b.dataset.appealDelete));
+  };
+})();
+
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
