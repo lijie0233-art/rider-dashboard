@@ -11,9 +11,6 @@
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#fff7cc 0,#fff 32%,#f6f7fb 100%);color:var(--ink)}.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(820px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:24px}.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.logo{width:68px;height:68px;border-radius:16px;background:var(--yellow);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(17,24,39,.12);overflow:hidden;flex:0 0 auto}.logo img{width:100%;height:100%;object-fit:cover;display:block}h1{font-size:24px;margin:0;letter-spacing:-.03em}.sub{font-size:13px;color:var(--muted);line-height:1.6;margin:5px 0 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}.field.full{grid-column:1/-1}.field span{font-size:13px;font-weight:900;color:#344054}.en{font-weight:800;color:#667085}.field input,.field select,.field textarea{font:inherit;border:1px solid var(--line);border-radius:14px;padding:12px 13px;background:#fff;color:var(--ink);outline:none}.field textarea{min-height:140px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#111827;box-shadow:0 0 0 4px rgba(17,24,39,.08)}.hint{font-size:12px;color:var(--muted);line-height:1.65;white-space:pre-line}.photoBox{background:#f9fafb;border:1px dashed #cbd5e1;border-radius:16px;padding:12px}.actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:11px 16px;font-weight:900;cursor:pointer}.btn.primary{background:#111827;color:#ffd400;border-color:#111827}.msg{min-height:22px;font-size:13px;font-weight:850;margin-top:10px}.ok{color:var(--green)}.err{color:var(--red)}.successBox{display:none;background:#ecfdf3;border:1px solid #bbf7d0;color:#065f46;border-radius:18px;padding:16px;margin-top:14px;line-height:1.7}.successBox.show{display:block}@media(max-width:680px){.card{padding:18px;border-radius:22px}.grid{grid-template-columns:1fr}.actions{display:grid}.btn{width:100%}}
 
 
-/* Salesmartly 在线聊天入口：固定在表单右侧，移动端改为右下角 */
-.appealChatDock{position:fixed;right:max(18px,calc((100vw - 820px)/2 - 78px));top:50%;transform:translateY(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}.appealChatBtn{pointer-events:auto;width:58px;height:58px;border:0;border-radius:999px;background:#111827;color:var(--yellow);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 18px 42px rgba(17,24,39,.24);transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}.appealChatBtn:hover{transform:translateY(-2px);box-shadow:0 22px 50px rgba(17,24,39,.3);filter:brightness(1.04)}.appealChatBtn:active{transform:translateY(0) scale(.98)}.appealChatBtn svg{width:28px;height:28px;display:block}.appealChatText{pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;color:#344054;box-shadow:0 10px 24px rgba(16,24,40,.12);white-space:nowrap}.appealChatHint{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}@media(max-width:1040px){.appealChatDock{right:18px;top:auto;bottom:88px;transform:none}}@media(max-width:680px){.appealChatDock{right:16px;bottom:88px}.appealChatBtn{width:52px;height:52px}.appealChatBtn svg{width:25px;height:25px}.appealChatText{display:none}}
-
 </style>
 </head>
 <body>
@@ -43,13 +40,6 @@ Upload Supporting Materials (e.g. screenshots, photos, chat records, etc.)</div>
   </form>
 </div>
 
-<div class="appealChatDock" aria-label="在线客服入口">
-  <button class="appealChatBtn" id="appealChatBtn" type="button" aria-label="打开在线聊天" title="在线客服 / Live chat">
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.75 5.75C4.75 4.645 5.645 3.75 6.75 3.75h10.5c1.105 0 2 .895 2 2v7.5c0 1.105-.895 2-2 2H11.4l-4.25 4.02a.75.75 0 0 1-1.265-.544V15.25H6.75a2 2 0 0 1-2-2v-7.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.2 8.8h7.6M8.2 12h4.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    <span class="appealChatHint">打开在线聊天</span>
-  </button>
-  <div class="appealChatText">在线客服</div>
-</div>
 <script>
 const CLOUD_CONFIG={url:'https://pxgfvdcajbkviijayemo.supabase.co',anonKey:'sb_publishable_iDwyhhC-3R2gjXaVveAwtg_1Yb16RAy',table:'order_appeals',bucket:'order-appeals'};
 const client=window.supabase.createClient(CLOUD_CONFIG.url,CLOUD_CONFIG.anonKey);
@@ -62,44 +52,49 @@ byId('appealForm').addEventListener('submit',async e=>{e.preventDefault();const 
 <script src="https://assets.salesmartly.com/js/project_81586_85199_1719208198.js"></script>
 <script>
 (function(){
-  const btn=document.getElementById('appealChatBtn');
-  if(!btn)return;
-  const selectors=[
-    '[class*="salesmartly" i] button','[id*="salesmartly" i] button','[class*="salesmartly" i][role="button"]','[id*="salesmartly" i][role="button"]',
-    '[class*="ssm" i] button','[id*="ssm" i] button','[class*="livechat" i] button','[class*="chat" i][role="button"]',
-    'button[aria-label*="chat" i]','button[title*="chat" i]','button[aria-label*="客服" i]','button[title*="客服" i]'
-  ];
-  function callApi(){
-    const roots=[window.Salesmartly,window.salesmartly,window.SSALESMARTLY,window.SMARTLY,window.$salesmartly].filter(Boolean);
-    for(const api of roots){
-      for(const name of ['open','show','openChat','showChat','openWidget','showWidget']){
-        if(typeof api[name]==='function'){
-          try{api[name]();return true}catch(_){ }
-        }
-      }
+  // 将 Salesmartly 插件自带的聊天入口固定到页面右侧；不再额外生成自定义聊天图标。
+  const CHAT_MATCH=/salesmartly|smartly|ssm|livechat|chat|客服|在线/i;
+  const RIGHT_GAP='20px';
+  const BOTTOM_GAP='88px';
+
+  function looksLikeChat(el){
+    if(!el || el === document.body || el === document.documentElement) return false;
+    const txt=[el.id, el.className, el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('src')].join(' ');
+    return CHAT_MATCH.test(txt);
+  }
+
+  function moveToRight(el){
+    if(!el || el.dataset.appealChatRight === '1') return;
+    const cs=getComputedStyle(el);
+    const rect=el.getBoundingClientRect();
+    const isFloating=(cs.position==='fixed' || cs.position==='absolute') && rect.width>20 && rect.height>20;
+    const nearLeft=rect.left < Math.min(220, window.innerWidth * 0.35);
+    if(!isFloating || !nearLeft) return;
+
+    el.style.left='auto';
+    el.style.right=RIGHT_GAP;
+    if(cs.position==='absolute') el.style.position='fixed';
+    if(rect.top < window.innerHeight * 0.25 || rect.top > window.innerHeight - 160){
+      el.style.top='auto';
+      el.style.bottom=el.style.bottom || BOTTOM_GAP;
     }
-    return false;
+    el.dataset.appealChatRight='1';
   }
-  function clickWidget(){
-    for(const selector of selectors){
-      const el=document.querySelector(selector);
-      if(el&&el!==btn&&el.offsetParent!==null){
-        try{el.click();return true}catch(_){ }
-      }
-    }
-    return false;
+
+  function scan(){
+    document.querySelectorAll('iframe,div,button,a').forEach(el=>{
+      if(looksLikeChat(el)) moveToRight(el);
+    });
   }
-  function openChat(){
-    if(callApi()||clickWidget())return;
-    let count=0;
-    const timer=setInterval(()=>{
-      count+=1;
-      if(callApi()||clickWidget()||count>=10)clearInterval(timer);
-    },300);
-  }
-  btn.addEventListener('click',openChat);
+
+  window.addEventListener('load',scan);
+  setTimeout(scan,500);
+  setTimeout(scan,1500);
+  setTimeout(scan,3000);
+  new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','id','src','title','aria-label']});
 })();
 </script>
+
 
 </body>
 </html>
