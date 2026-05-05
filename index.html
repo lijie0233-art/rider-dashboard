@@ -312,6 +312,18 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 @media(max-width:980px){.newRiderQueueFilterGrid{grid-template-columns:1fr 1fr}.newRiderQueueListHead{display:block}.newRiderQueueListHead .btn{margin-top:10px}}
 @media(max-width:640px){.newRiderQueueStatsGrid,.newRiderQueueFilterGrid,.newRiderQueueFormGrid{grid-template-columns:1fr}.newRiderQueuePanel .panelHead{display:block}.newRiderQueueTopActions{margin-top:10px}.newRiderQueueListHead .btn,.newRiderQueueFilterActions .btn{width:100%}.newRiderQueueModal{padding:10px}.newRiderQueueModalHead,.newRiderQueueModalFoot{position:static}.newRiderQueueModalFoot{display:grid}.newRiderQueueModalFoot .btn{width:100%}}
 
+
+/* Super admin account visibility settings */
+.accountVisibilityBox{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:12px}
+.accountVisibilityToolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:10px 0 12px}
+.accountVisibilityToolbar .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none;min-width:240px}.accountVisibilityToolbar .field span{color:var(--muted)}
+.accountVisibilityToolbar input,.accountVisibilityToolbar select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;color:var(--ink);min-width:220px}
+.accountVisibilityGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.accountVisibilityCard{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:13px}
+.accountVisibilityCard b{display:block;font-size:14px}.accountVisibilityCard span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.accountVisibilityHint{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px}
+@media(max-width:640px){.accountVisibilityToolbar{display:grid;grid-template-columns:1fr}.accountVisibilityToolbar input,.accountVisibilityToolbar select{width:100%;min-width:0}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -1067,6 +1079,24 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     </div>
     <div class="systemNote">系统默认所有板块均为“无等级限制”。设置后，成员需要达到对应成长等级才可进入该板块；数据不会被删除，管理员与系统权限管理板块不受限制。</div>
     <div class="modulePermissionGrid" id="modulePermissionGrid"></div>
+
+    <div class="panelHead" style="margin-top:18px">
+      <div><h2>平台账号可视板块配置</h2><div class="sub">超级管理员可为不同登录账号单独配置左侧菜单可查看的功能板块。</div></div>
+      <div class="inlineActions"><button class="btn primary small" id="saveAccountVisibilityBtn">保存账号可视配置</button><button class="btn small" id="resetAccountVisibilityBtn">清空全部账号配置</button></div>
+    </div>
+    <div class="systemNote">未单独配置的账号默认可见全部已开启菜单；配置某个账号后，可在下方勾选该账号允许查看的板块。运营数据总览固定可见，系统权限管理仅超级管理员 tangjiejack@qq.com 可见。</div>
+    <div class="accountVisibilityBox">
+      <div class="accountVisibilityToolbar">
+        <label class="field"><span>新增 / 搜索账号邮箱</span><input id="accountVisibilityEmailInp" placeholder="例如：member@example.com" /></label>
+        <button class="btn small" id="addAccountVisibilityBtn" type="button">新增账号配置</button>
+        <label class="field"><span>当前配置账号</span><select id="accountVisibilityAccountSelect"></select></label>
+        <button class="btn small" id="selectAllAccountVisibilityBtn" type="button">全选板块</button>
+        <button class="btn small" id="clearAccountVisibilityBtn" type="button">全不选</button>
+        <button class="btn small danger" id="deleteAccountVisibilityBtn" type="button">删除该账号配置</button>
+      </div>
+      <div class="accountVisibilityGrid" id="accountVisibilityGrid"></div>
+      <div class="accountVisibilityHint" id="accountVisibilityHint"></div>
+    </div>
   </div>
 </section>
 
@@ -1207,6 +1237,9 @@ const CLOUD_CONFIG={
   profileTable:'user_profiles'
 };
 let cloudClient=null,cloudUser=null,cloudProfile=null,cloudAuthRole='member';
+const SUPER_ADMIN_EMAIL='tangjiejack@qq.com';
+function normalizeLoginEmail(v){return String(v||'').trim().toLowerCase()}
+function isSuperAdminEmail(v){return normalizeLoginEmail(v)===SUPER_ADMIN_EMAIL}
 function cloudConfigured(){
   return /^https:\/\/.+\.supabase\.co\/?$/.test(String(CLOUD_CONFIG.url||'').trim())
     && String(CLOUD_CONFIG.anonKey||'').trim()
@@ -1335,6 +1368,7 @@ function initNewRiderQueueFeature(){bindNewRiderQueueControls();refreshNewRiderQ
 async function loadCloudProfile(){
   cloudProfile=null;cloudAuthRole='member';
   if(!cloudUser)return;
+  if(isSuperAdminEmail(cloudUser.email)){cloudAuthRole='admin';cloudProfile={role:'super_admin',email:cloudUser.email};return}
   try{
     const client=getCloudClient();
     const {data,error}=await client.from(CLOUD_CONFIG.profileTable).select('role,email').eq('id',cloudUser.id).maybeSingle();
@@ -1342,12 +1376,16 @@ async function loadCloudProfile(){
   }catch(e){
     cloudAuthRole='member';
   }
+  if(isSuperAdminEmail(cloudUser.email)){cloudAuthRole='admin';cloudProfile={...(cloudProfile||{}),role:'super_admin',email:cloudUser.email}}
 }
+function currentAuthEmail(){return normalizeLoginEmail(cloudUser?.email||cloudProfile?.email||'')}
+function isSuperAdminAccount(){return isSuperAdminEmail(currentAuthEmail())}
 function currentAuthAccount(){
   if(!cloudUser)return null;
-  return {username:cloudUser.email||cloudUser.id,role:cloudAuthRole,email:cloudUser.email||''};
+  return {username:cloudUser.email||cloudUser.id,role:cloudAuthRole,email:cloudUser.email||'',superAdmin:isSuperAdminAccount()};
 }
-function authIsAdmin(){return cloudAuthRole==='admin'}
+function authIsAdmin(){return cloudAuthRole==='admin'||isSuperAdminAccount()}
+function authIsSuperAdmin(){return isSuperAdminAccount()}
 function setDisplay(el,value){if(!el)return;el.style.setProperty('display',value,value==='none'?'':'important')}
 function updateAuthHeader(){
   const acc=currentAuthAccount(),badge=byId('currentUserBadge'),adminBtn=byId('accountAdminBtn'),navBtn=byId('accountNavBtn'),floatBtn=byId('accountFloatBtn'),logoutBtn=byId('logoutBtn');
@@ -1363,10 +1401,10 @@ function updateAuthHeader(){
     memberGrowth={xp:0,contacted_count:0,improved_count:0,view_minutes:0};renderMemberGrowth();
     return;
   }
-  const roleText=acc.role==='admin'?'\u7BA1\u7406\u5458':'\u4F1A\u5458';
+  const roleText=acc.superAdmin?'超级管理员':(acc.role==='admin'?'\u7BA1\u7406\u5458':'\u4F1A\u5458');
   const email=acc.email||acc.username||'\u5DF2\u767B\u5F55\u7528\u6237';
   badge.textContent=roleText+'\uFF1A'+email;
-  if(sideAvatar)sideAvatar.textContent=roleText==='\u7BA1\u7406\u5458'?'\u7BA1':'\u4F1A';
+  if(sideAvatar)sideAvatar.textContent=acc.superAdmin?'超':(roleText==='\u7BA1\u7406\u5458'?'\u7BA1':'\u4F1A');
   if(sideEmail){sideEmail.textContent=email;sideEmail.title=email;}
   if(sideRole)sideRole.textContent=roleText;
   setDisplay(badge,'inline-flex');
@@ -1376,6 +1414,7 @@ function updateAuthHeader(){
   setDisplay(floatBtn,showAdmin);
   setDisplay(logoutBtn,'inline-flex');
   renderMemberGrowth();
+  try{applyModuleSwitches()}catch(e){}
 }
 
 function showLogin(msg=''){
@@ -1395,6 +1434,7 @@ async function showApp(){
   await safe(loadModuleSwitchConfig,'菜单配置读取');
   await safe(loadModuleOrderConfig,'菜单排序读取');
   await safe(loadModulePermissionConfig,'板块权限读取');
+  await safe(loadAccountVisibilityConfig,'账号可视配置读取');
   await safe(loadMemberGrowth,'成长数据读取');
   try{applyModulePermissions()}catch(e){}
   try{startMemberGrowthTimer()}catch(e){}
@@ -1482,6 +1522,8 @@ const MODULE_PERMISSION_KEY='menu_module_level_access';
 const MODULE_PERMISSION_LOCAL_KEY='rider_menu_module_level_access_v1';
 const MODULE_ORDER_KEY='menu_module_order';
 const MODULE_ORDER_LOCAL_KEY='rider_menu_module_order_v1';
+const ACCOUNT_VISIBILITY_KEY='menu_account_visibility';
+const ACCOUNT_VISIBILITY_LOCAL_KEY='rider_menu_account_visibility_v1';
 const MODULE_META=[
   {tab:'orderAppeals',label:'订单申诉管理',desc:'站外订单申诉审核'},
   {tab:'newRiderProcess',label:'新骑手流程表',desc:'新骑手信息录入、培训与跟进状态'},
@@ -1504,9 +1546,18 @@ let moduleSwitchConfig=normalizeModuleSwitchConfig(safeGet(MODULE_SWITCH_LOCAL_K
 let modulePermissionConfig=normalizeModulePermissionConfig(safeGet(MODULE_PERMISSION_LOCAL_KEY,{}));
 const DEFAULT_MENU_ORDER=['overview','orderAppeals','newRiderProcess','newRiderQueue','todoList','problems','returnPotential','tailOrderCenter','riderEquipment','followup','ownerFollowup','diagnosis','compare','profile','communicationManual','riderContacts','weeklyReport','systemManagement','growthCenter'];
 let moduleOrderConfig=normalizeModuleOrderConfig(safeGet(MODULE_ORDER_LOCAL_KEY,DEFAULT_MENU_ORDER));
+let accountVisibilityConfig=normalizeAccountVisibilityConfig(safeGet(ACCOUNT_VISIBILITY_LOCAL_KEY,{}));
+let accountVisibilitySelectedEmail='';
 function normalizeModuleSwitchConfig(c={}){const out={};MODULE_META.forEach(m=>out[m.tab]=c[m.tab]!==false);return out}
 function normalizeModulePermissionConfig(c={}){const out={};MODULE_META.forEach(m=>{let v=Number(c[m.tab]??0);if(!Number.isFinite(v))v=0;out[m.tab]=Math.max(0,Math.min(10,Math.floor(v)))});return out}
 function normalizeModuleOrderConfig(c){const src=Array.isArray(c)?c:DEFAULT_MENU_ORDER;const known=new Set(DEFAULT_MENU_ORDER);const out=[];src.forEach(tab=>{if(known.has(tab)&&!out.includes(tab))out.push(tab)});DEFAULT_MENU_ORDER.forEach(tab=>{if(!out.includes(tab)){if(tab==='newRiderProcess'&&out.includes('orderAppeals'))out.splice(out.indexOf('orderAppeals')+1,0,tab);else if(tab==='newRiderQueue'&&out.includes('newRiderProcess'))out.splice(out.indexOf('newRiderProcess')+1,0,tab);else out.push(tab)}});return out}
+function accountVisibilityTabs(){return DEFAULT_MENU_ORDER.filter(tab=>tab!=='systemManagement'&&tab!=='overview')}
+function normalizeAccountVisibilityConfig(c={}){const src=c?.accounts||c||{};const out={accounts:{}};const valid=new Set(accountVisibilityTabs());Object.entries(src).forEach(([email,rule])=>{const key=normalizeLoginEmail(email);if(!key)return;const tabs={};const raw=Array.isArray(rule)?Object.fromEntries(rule.map(t=>[t,true])):(rule?.tabs||rule||{});valid.forEach(tab=>{if(raw[tab]!==undefined)tabs[tab]=!!raw[tab];else tabs[tab]=true});out.accounts[key]={tabs,updated_at:rule?.updated_at||'',updated_by:rule?.updated_by||''}});return out}
+function accountVisibilityRuleFor(email){const key=normalizeLoginEmail(email);return accountVisibilityConfig?.accounts?.[key]||null}
+function canAccountSeeModule(tab,email=currentAuthEmail()){if(!tab||tab==='overview')return true;if(tab==='systemManagement')return isSuperAdminEmail(email);const rule=accountVisibilityRuleFor(email);if(!rule)return true;if(!accountVisibilityTabs().includes(tab))return true;return rule.tabs?.[tab]!==false}
+function accountVisibilityDeniedText(tab){return `当前账号未开通“${menuMetaByTab(tab).label}”板块查看权限，请联系超级管理员配置。`}
+async function loadAccountVisibilityConfig(){try{const client=getCloudClient();const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',ACCOUNT_VISIBILITY_KEY).maybeSingle();if(!error&&data?.config){accountVisibilityConfig=normalizeAccountVisibilityConfig(data.config);safeSet(ACCOUNT_VISIBILITY_LOCAL_KEY,accountVisibilityConfig)}}catch(e){accountVisibilityConfig=normalizeAccountVisibilityConfig(safeGet(ACCOUNT_VISIBILITY_LOCAL_KEY,{}))}applyModuleSwitches()}
+async function saveAccountVisibilityConfig(){if(!authIsSuperAdmin()){toast('仅超级管理员可保存账号可视配置');return}accountVisibilityConfig=normalizeAccountVisibilityConfig(accountVisibilityConfig);safeSet(ACCOUNT_VISIBILITY_LOCAL_KEY,accountVisibilityConfig);try{const client=getCloudClient();await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:ACCOUNT_VISIBILITY_KEY,config:accountVisibilityConfig,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'})}catch(e){console.warn('账号可视配置云端保存失败，已保存到本机：',e?.message||e)}applyModuleSwitches();renderAccountVisibilityPanel();toast('账号可视配置已保存')}
 function menuMetaByTab(tab){if(tab==='overview')return {tab,label:'运营数据总览',desc:'核心经营指标和数据概览'};if(tab==='systemManagement')return {tab,label:'系统权限管理',desc:'菜单开关、排序和权限限制'};const m=MODULE_META.find(x=>x.tab===tab);if(m)return m;const btn=document.querySelector(`.sideNav button[data-tab="${tab}"]`);return {tab,label:btn?.querySelector('.menuLabel')?.textContent||tab,desc:''}}
 function applyModuleOrder(){moduleOrderConfig=normalizeModuleOrderConfig(moduleOrderConfig);const nav=document.querySelector('.sideNav');if(!nav)return;moduleOrderConfig.forEach(tab=>{const btn=nav.querySelector(`button[data-tab="${tab}"]`);if(btn)nav.appendChild(btn)})}
 async function loadModuleOrderConfig(){try{const client=getCloudClient();const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',MODULE_ORDER_KEY).maybeSingle();if(!error&&data?.config){moduleOrderConfig=normalizeModuleOrderConfig(data.config.order||data.config);safeSet(MODULE_ORDER_LOCAL_KEY,moduleOrderConfig)}}catch(e){moduleOrderConfig=normalizeModuleOrderConfig(safeGet(MODULE_ORDER_LOCAL_KEY,DEFAULT_MENU_ORDER))}applyModuleOrder()}
@@ -1515,17 +1566,21 @@ function moveModuleOrder(tab,dir){moduleOrderConfig=normalizeModuleOrderConfig(m
 function renderMenuOrderGrid(){const grid=byId('moduleOrderGrid');if(!grid)return;moduleOrderConfig=normalizeModuleOrderConfig(moduleOrderConfig);grid.innerHTML=moduleOrderConfig.map((tab,idx)=>{const m=menuMetaByTab(tab);return `<div class="menuOrderCard"><div class="menuOrderInfo"><span class="orderNo">${idx+1}</span><div class="menuOrderText"><b>${esc(m.label)}</b><span>${esc(m.desc||'可调整该模块在左侧菜单栏的位置')}</span></div></div><div class="menuOrderActions"><button class="btn small" type="button" data-order-up="${esc(tab)}" ${idx===0?'disabled':''}>上移</button><button class="btn small" type="button" data-order-down="${esc(tab)}" ${idx===moduleOrderConfig.length-1?'disabled':''}>下移</button></div></div>`}).join('');grid.querySelectorAll('[data-order-up]').forEach(btn=>btn.onclick=()=>moveModuleOrder(btn.dataset.orderUp,-1));grid.querySelectorAll('[data-order-down]').forEach(btn=>btn.onclick=()=>moveModuleOrder(btn.dataset.orderDown,1))}
 function currentGrowthLevelNumber(){try{const lvl=memberLevel(memberGrowth?.xp||0);const m=String(lvl?.level||'L1').match(/\d+/);return m?Number(m[0]):1}catch(e){return 1}}
 function moduleLevelLabel(n){n=Number(n)||0;if(!n)return '无等级限制';const lvl=MEMBER_LEVELS.find(x=>String(x.level)==='L'+n);return lvl?`${lvl.level} ${lvl.title}`:`L${n}`}
-function canAccessModule(tab){if(!tab||tab==='overview'||tab==='systemManagement')return true;const need=Number(modulePermissionConfig?.[tab]||0);return !need||currentGrowthLevelNumber()>=need}
-function moduleAccessDeniedText(tab){const meta=MODULE_META.find(m=>m.tab===tab);const need=Number(modulePermissionConfig?.[tab]||0);return `${meta?.label||'该模块'} 需要达到 ${moduleLevelLabel(need)} 才可进入，当前等级为 ${moduleLevelLabel(currentGrowthLevelNumber())}`}
+function canAccessModule(tab){if(!tab||tab==='overview')return true;if(tab==='systemManagement')return authIsSuperAdmin();if(!canAccountSeeModule(tab))return false;const need=Number(modulePermissionConfig?.[tab]||0);return !need||currentGrowthLevelNumber()>=need}
+function moduleAccessDeniedText(tab){if(tab==='systemManagement')return '系统权限管理仅超级管理员 tangjiejack@qq.com 可查看';if(!canAccountSeeModule(tab))return accountVisibilityDeniedText(tab);const meta=MODULE_META.find(m=>m.tab===tab);const need=Number(modulePermissionConfig?.[tab]||0);return `${meta?.label||'该模块'} 需要达到 ${moduleLevelLabel(need)} 才可进入，当前等级为 ${moduleLevelLabel(currentGrowthLevelNumber())}`}
 function applyModulePermissions(){modulePermissionConfig=normalizeModulePermissionConfig(modulePermissionConfig);MODULE_META.forEach(m=>{const need=Number(modulePermissionConfig[m.tab]||0);const locked=need>0&&!canAccessModule(m.tab);document.querySelectorAll(`.sideNav button[data-tab="${m.tab}"]`).forEach(btn=>{btn.classList.toggle('module-access-locked',locked);btn.title=need?`${m.label} · 进入要求：${moduleLevelLabel(need)}${locked?' · 当前未解锁':''}`:'';let tag=btn.querySelector('.menuLockTag');if(need>0){if(!tag){tag=document.createElement('span');tag.className='menuLockTag';btn.appendChild(tag)}tag.textContent=locked?'未解锁':`L${need}+`}else if(tag){tag.remove()}})});const cur=state.tab;if(cur&&!canAccessModule(cur))selectTab('overview')}
-function applyModuleSwitches(){applyModuleOrder();moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);MODULE_META.forEach(m=>{document.querySelectorAll(`.sideNav button[data-tab="${m.tab}"]`).forEach(btn=>btn.classList.toggle('menu-module-hidden',moduleSwitchConfig[m.tab]===false))});const cur=state.tab;if(cur&&moduleSwitchConfig[cur]===false){selectTab('overview')}applyModulePermissions()}
+function applyModuleSwitches(){applyModuleOrder();moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);MODULE_META.forEach(m=>{document.querySelectorAll(`.sideNav button[data-tab="${m.tab}"]`).forEach(btn=>{const hiddenBySwitch=moduleSwitchConfig[m.tab]===false;const hiddenByAccount=!canAccountSeeModule(m.tab);btn.classList.toggle('menu-module-hidden',hiddenBySwitch||hiddenByAccount)})});document.querySelectorAll('.sideNav button[data-tab="systemManagement"]').forEach(btn=>btn.classList.toggle('menu-module-hidden',!authIsSuperAdmin()));const cur=state.tab;if(cur&&((moduleSwitchConfig[cur]===false&&cur!=='systemManagement')||!canAccountSeeModule(cur)||!canAccessModule(cur))){selectTab('overview')}applyModulePermissions()}
 async function loadModuleSwitchConfig(){try{const client=getCloudClient();const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',MODULE_SWITCH_KEY).maybeSingle();if(!error&&data?.config){moduleSwitchConfig=normalizeModuleSwitchConfig(data.config);safeSet(MODULE_SWITCH_LOCAL_KEY,moduleSwitchConfig)}}catch(e){moduleSwitchConfig=normalizeModuleSwitchConfig(safeGet(MODULE_SWITCH_LOCAL_KEY,{}))}applyModuleSwitches()}
 async function saveModuleSwitchConfig(){moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);safeSet(MODULE_SWITCH_LOCAL_KEY,moduleSwitchConfig);try{const client=getCloudClient();await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:MODULE_SWITCH_KEY,config:moduleSwitchConfig,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'})}catch(e){console.warn('菜单模块开关云端保存失败，已保存到本机：',e?.message||e)}applyModuleSwitches();renderSystemManagement();toast('菜单模块开关已保存')}
 async function loadModulePermissionConfig(){try{const client=getCloudClient();const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',MODULE_PERMISSION_KEY).maybeSingle();if(!error&&data?.config){modulePermissionConfig=normalizeModulePermissionConfig(data.config);safeSet(MODULE_PERMISSION_LOCAL_KEY,modulePermissionConfig)}}catch(e){modulePermissionConfig=normalizeModulePermissionConfig(safeGet(MODULE_PERMISSION_LOCAL_KEY,{}))}applyModulePermissions()}
 async function saveModulePermissionConfig(){modulePermissionConfig=normalizeModulePermissionConfig(modulePermissionConfig);safeSet(MODULE_PERMISSION_LOCAL_KEY,modulePermissionConfig);try{const client=getCloudClient();await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:MODULE_PERMISSION_KEY,config:modulePermissionConfig,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'})}catch(e){console.warn('板块权限限制云端保存失败，已保存到本机：',e?.message||e)}applyModulePermissions();renderSystemManagement();toast('板块权限限制已保存')}
 function renderModulePermissionGrid(){const grid=byId('modulePermissionGrid');if(!grid)return;modulePermissionConfig=normalizeModulePermissionConfig(modulePermissionConfig);const options=(m)=>[0,1,2,3,4,5,6,7,8,9,10].map(v=>`<option value="${v}" ${Number(modulePermissionConfig[m.tab]||0)===v?'selected':''}>${esc(moduleLevelLabel(v))}</option>`).join('');grid.innerHTML=MODULE_META.map(m=>`<label class="modulePermissionCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><select class="modulePermissionSelect" data-module-permission="${esc(m.tab)}">${options(m)}</select></label>`).join('');grid.querySelectorAll('[data-module-permission]').forEach(el=>el.onchange=()=>{modulePermissionConfig[el.dataset.modulePermission]=Number(el.value)||0;applyModulePermissions()})}
-function renderSystemManagement(){const grid=byId('moduleSwitchGrid');if(!grid)return;moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);grid.innerHTML=MODULE_META.map(m=>`<label class="systemSwitchCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><input class="switchInput" type="checkbox" data-module-switch="${esc(m.tab)}" ${moduleSwitchConfig[m.tab]!==false?'checked':''}></label>`).join('');grid.querySelectorAll('[data-module-switch]').forEach(el=>el.onchange=()=>{moduleSwitchConfig[el.dataset.moduleSwitch]=el.checked});renderMenuOrderGrid();renderModulePermissionGrid();renderMemberGrowthStats()}
-function bindSystemManagementControls(){const save=byId('saveModuleSwitchBtn');if(save)save.onclick=saveModuleSwitchConfig;const reset=byId('resetModuleSwitchBtn');if(reset)reset.onclick=()=>{moduleSwitchConfig=normalizeModuleSwitchConfig({});saveModuleSwitchConfig()};const saveOrder=byId('saveModuleOrderBtn');if(saveOrder)saveOrder.onclick=saveModuleOrderConfig;const resetOrder=byId('resetModuleOrderBtn');if(resetOrder)resetOrder.onclick=()=>{moduleOrderConfig=normalizeModuleOrderConfig(DEFAULT_MENU_ORDER);saveModuleOrderConfig()};const savePerm=byId('saveModulePermissionBtn');if(savePerm)savePerm.onclick=saveModulePermissionConfig;const resetPerm=byId('resetModulePermissionBtn');if(resetPerm)resetPerm.onclick=()=>{modulePermissionConfig=normalizeModulePermissionConfig({});saveModulePermissionConfig()}}
+function renderAccountVisibilityPanel(){const select=byId('accountVisibilityAccountSelect'),grid=byId('accountVisibilityGrid'),hint=byId('accountVisibilityHint');if(!select||!grid)return;accountVisibilityConfig=normalizeAccountVisibilityConfig(accountVisibilityConfig);const emails=Object.keys(accountVisibilityConfig.accounts).sort();if(accountVisibilitySelectedEmail&&!emails.includes(accountVisibilitySelectedEmail))accountVisibilitySelectedEmail='';if(!accountVisibilitySelectedEmail&&emails.length)accountVisibilitySelectedEmail=emails[0];select.innerHTML=emails.length?emails.map(e=>`<option value="${esc(e)}" ${e===accountVisibilitySelectedEmail?'selected':''}>${esc(e)}</option>`).join(''):'<option value="">暂无单独配置账号</option>';select.onchange=()=>{accountVisibilitySelectedEmail=normalizeLoginEmail(select.value);renderAccountVisibilityPanel()};if(!accountVisibilitySelectedEmail){grid.innerHTML='<div class="empty">暂无账号可视配置。输入账号邮箱后点击“新增账号配置”。</div>';if(hint)hint.textContent='未配置的账号默认可见全部已开启菜单；系统权限管理仍只对超级管理员开放。';return}const rule=accountVisibilityConfig.accounts[accountVisibilitySelectedEmail]||{tabs:{}};const modules=accountVisibilityTabs();grid.innerHTML=modules.map(tab=>{const m=menuMetaByTab(tab),checked=rule.tabs?.[tab]!==false;return `<label class="accountVisibilityCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc||'可配置该账号是否可见此菜单')}</span></div><input class="switchInput" type="checkbox" data-account-visible-tab="${esc(tab)}" ${checked?'checked':''}></label>`}).join('');grid.querySelectorAll('[data-account-visible-tab]').forEach(el=>el.onchange=()=>{const email=accountVisibilitySelectedEmail;if(!email)return;accountVisibilityConfig.accounts[email]=accountVisibilityConfig.accounts[email]||{tabs:{}};accountVisibilityConfig.accounts[email].tabs[el.dataset.accountVisibleTab]=el.checked;accountVisibilityConfig.accounts[email].updated_at=new Date().toISOString();accountVisibilityConfig.accounts[email].updated_by=cloudUser?.email||''});if(hint)hint.textContent=`当前正在配置：${accountVisibilitySelectedEmail}。勾选表示该账号登录后左侧菜单可见该板块；取消勾选后该账号无法进入该板块。`}
+function addAccountVisibilityConfig(){if(!authIsSuperAdmin()){toast('仅超级管理员可新增账号配置');return}const inp=byId('accountVisibilityEmailInp'),email=normalizeLoginEmail(inp?.value||'');if(!email||!email.includes('@')){toast('请填写正确的账号邮箱');inp?.focus();return}accountVisibilityConfig=normalizeAccountVisibilityConfig(accountVisibilityConfig);const tabs={};accountVisibilityTabs().forEach(tab=>tabs[tab]=true);accountVisibilityConfig.accounts[email]=accountVisibilityConfig.accounts[email]||{tabs};accountVisibilitySelectedEmail=email;if(inp)inp.value='';renderAccountVisibilityPanel();toast('已新增账号配置，请勾选板块后保存')}
+function setAccountVisibilityAll(checked){const email=accountVisibilitySelectedEmail;if(!email){toast('请先选择账号');return}accountVisibilityConfig.accounts[email]=accountVisibilityConfig.accounts[email]||{tabs:{}};accountVisibilityTabs().forEach(tab=>accountVisibilityConfig.accounts[email].tabs[tab]=!!checked);accountVisibilityConfig.accounts[email].updated_at=new Date().toISOString();accountVisibilityConfig.accounts[email].updated_by=cloudUser?.email||'';renderAccountVisibilityPanel()}
+function deleteAccountVisibilityConfig(){const email=accountVisibilitySelectedEmail;if(!email){toast('请先选择账号');return}if(!confirm(`确认删除 ${email} 的单独可视配置？删除后该账号恢复默认可见全部已开启菜单。`))return;delete accountVisibilityConfig.accounts[email];accountVisibilitySelectedEmail='';saveAccountVisibilityConfig()}
+function renderSystemManagement(){if(!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');selectTab('overview');return}const grid=byId('moduleSwitchGrid');if(!grid)return;moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);grid.innerHTML=MODULE_META.map(m=>`<label class="systemSwitchCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><input class="switchInput" type="checkbox" data-module-switch="${esc(m.tab)}" ${moduleSwitchConfig[m.tab]!==false?'checked':''}></label>`).join('');grid.querySelectorAll('[data-module-switch]').forEach(el=>el.onchange=()=>{moduleSwitchConfig[el.dataset.moduleSwitch]=el.checked});renderMenuOrderGrid();renderModulePermissionGrid();renderAccountVisibilityPanel();renderMemberGrowthStats()}
+function bindSystemManagementControls(){const save=byId('saveModuleSwitchBtn');if(save)save.onclick=saveModuleSwitchConfig;const reset=byId('resetModuleSwitchBtn');if(reset)reset.onclick=()=>{moduleSwitchConfig=normalizeModuleSwitchConfig({});saveModuleSwitchConfig()};const saveOrder=byId('saveModuleOrderBtn');if(saveOrder)saveOrder.onclick=saveModuleOrderConfig;const resetOrder=byId('resetModuleOrderBtn');if(resetOrder)resetOrder.onclick=()=>{moduleOrderConfig=normalizeModuleOrderConfig(DEFAULT_MENU_ORDER);saveModuleOrderConfig()};const savePerm=byId('saveModulePermissionBtn');if(savePerm)savePerm.onclick=saveModulePermissionConfig;const resetPerm=byId('resetModulePermissionBtn');if(resetPerm)resetPerm.onclick=()=>{modulePermissionConfig=normalizeModulePermissionConfig({});saveModulePermissionConfig()};const addAcc=byId('addAccountVisibilityBtn');if(addAcc)addAcc.onclick=addAccountVisibilityConfig;const saveAcc=byId('saveAccountVisibilityBtn');if(saveAcc)saveAcc.onclick=saveAccountVisibilityConfig;const resetAcc=byId('resetAccountVisibilityBtn');if(resetAcc)resetAcc.onclick=()=>{if(!confirm('确认清空所有账号单独可视配置？'))return;accountVisibilityConfig=normalizeAccountVisibilityConfig({});accountVisibilitySelectedEmail='';saveAccountVisibilityConfig()};const allAcc=byId('selectAllAccountVisibilityBtn');if(allAcc)allAcc.onclick=()=>setAccountVisibilityAll(true);const clearAcc=byId('clearAccountVisibilityBtn');if(clearAcc)clearAcc.onclick=()=>setAccountVisibilityAll(false);const delAcc=byId('deleteAccountVisibilityBtn');if(delAcc)delAcc.onclick=deleteAccountVisibilityConfig;const emailInp=byId('accountVisibilityEmailInp');if(emailInp)emailInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addAccountVisibilityConfig()}})}
 
 const MEMBER_GROWTH_TABLE='account_member_growth';
 const MEMBER_GROWTH_LOCAL_KEY='rider_member_growth_v1';
@@ -2214,7 +2269,7 @@ function initOrderAppealFeature(){bindOrderAppealControls()}
 
 function profileBackName(tab){return {followup:'问题跟进闭环',ownerFollowup:'重点专人跟进',problems:'问题骑手管理',returnPotential:'潜力骑手运营',compare:'骑手多人对比',diagnosis:'数据趋势诊断',overview:'运营数据总览',todoList:'待办事项管理',communicationManual:'沟通手册',riderContacts:'骑手通讯录',weeklyReport:'站长周报',orderAppeals:'订单申诉管理',newRiderProcess:'新骑手流程表',newRiderQueue:'新骑手排队表',systemManagement:'系统权限管理',growthCenter:'成长中心'}[tab]||'上一页'}
 function updateProfileBackButton(){const btn=byId('profileBackBtn');if(!btn)return;const back=state.profileBackTab;if(back&&back!=='profile'){btn.style.display='inline-flex';btn.textContent='返回'+profileBackName(back);btn.onclick=()=>{const target=state.profileBackTab||'followup';state.profileBackTab='';selectTab(target);if(target==='followup')renderFollowup();if(target==='ownerFollowup')renderFollowOwnerBoard();};}else{btn.style.display='none';btn.onclick=null}}
-function selectTab(tab){if(moduleSwitchConfig[tab]===false&&tab!=='overview'&&tab!=='systemManagement')tab='overview';if(!canAccessModule(tab)){toast(moduleAccessDeniedText(tab));tab='overview'}document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;applyModuleSwitches();if(tab==='todoList')renderTodoList();if(tab==='returnPotential')renderReturnPotentialPool();if(tab==='ownerFollowup')renderFollowOwnerBoard();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='orderAppeals')loadOrderAppeals().then(renderOrderAppeals);if(tab==='newRiderProcess')loadNewRiderRecords().then(renderNewRiderProcess);if(tab==='newRiderQueue')refreshNewRiderQueue({silent:true});if(tab==='communicationManual')renderCommunicationManual();if(tab==='systemManagement')renderSystemManagement();if(tab==='growthCenter')renderMemberGrowth();if(tab==='profile')updateProfileBackButton();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){if(state.tab&&state.tab!=='profile')state.profileBackTab=state.tab;state.selected=id;selectTab('profile');refreshControls();renderProfile();updateProfileBackButton();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
+function selectTab(tab){if(tab==='systemManagement'&&!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');tab='overview'}if(moduleSwitchConfig[tab]===false&&tab!=='overview'&&tab!=='systemManagement')tab='overview';if(!canAccessModule(tab)){toast(moduleAccessDeniedText(tab));tab='overview'}document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;applyModuleSwitches();if(tab==='todoList')renderTodoList();if(tab==='returnPotential')renderReturnPotentialPool();if(tab==='ownerFollowup')renderFollowOwnerBoard();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='orderAppeals')loadOrderAppeals().then(renderOrderAppeals);if(tab==='newRiderProcess')loadNewRiderRecords().then(renderNewRiderProcess);if(tab==='newRiderQueue')refreshNewRiderQueue({silent:true});if(tab==='communicationManual')renderCommunicationManual();if(tab==='systemManagement')renderSystemManagement();if(tab==='growthCenter')renderMemberGrowth();if(tab==='profile')updateProfileBackButton();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){if(state.tab&&state.tab!=='profile')state.profileBackTab=state.tab;state.selected=id;selectTab('profile');refreshControls();renderProfile();updateProfileBackButton();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
 function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
 function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function downloadBlob(text,filename,type='text/csv;charset=utf-8'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
 function downloadTemplate(){const sample=['100001','示例骑手 Zhang San','120','980.5','32.7','30.0','4.0','电动车','95%','2.5%','W70'];if(window.XLSX){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([columns,sample]);XLSX.utils.book_append_sheet(wb,ws,'Sheet1');XLSX.writeFile(wb,'骑手数据导入模版.xlsx');toast('已下载 XLSX 模版');return}const csv='\ufeff'+[columns,sample].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,'骑手数据导入模版.csv');toast('已下载 CSV 模版')}
