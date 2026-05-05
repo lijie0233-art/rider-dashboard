@@ -3067,7 +3067,7 @@ ${qualityReturnText}
     table.innerHTML=table.innerHTML.replace(/本月提交次数/g,'提交次数').replace(/本月 (\d+) 次/g,(m,n)=>n).replace(/按手机号统计/g,'本月/累计');
     // Re-render with accurate combined counts when rows are available.
     const allItems=filteredOrderAppeals();if(!allItems.length)return;const total=allItems.length;const totalPages=Math.max(1,Math.ceil(total/appealPageSize));if(appealPage>totalPages)appealPage=totalPages;if(appealPage<1)appealPage=1;const start=(appealPage-1)*appealPageSize;const items=allItems.slice(start,start+appealPageSize);
-    table.innerHTML='<thead><tr><th>提交时间</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>备注</th><th>审核结果</th><th>操作</th></tr></thead><tbody>'+items.map(x=>{const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);return `<tr><td>${appealDate(x.created_at)}</td><td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td><td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td><td><b>${esc(x.order_no||'-')}</b></td><td><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></td><td>${esc((x.detail||'').slice(0,80))}${(x.detail||'').length>80?'…':''}</td><td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td><td>${esc(x.remark||'-')}</td><td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td><td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-result="通过" data-appeal-id="${esc(x.id)}">通过</button><button class="btn small danger" data-appeal-result="拒绝" data-appeal-id="${esc(x.id)}">拒绝</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td></tr>`}).join('')+'</tbody>';renderAppealPagination(total);table.querySelectorAll('[data-appeal-detail]').forEach(b=>b.onclick=()=>openAppealDetail(b.dataset.appealDetail));table.querySelectorAll('[data-appeal-result]').forEach(b=>b.onclick=()=>saveAppealReview(b.dataset.appealId,b.dataset.appealResult));table.querySelectorAll('[data-appeal-delete]').forEach(b=>b.onclick=()=>deleteOrderAppeal(b.dataset.appealDelete));
+    table.innerHTML='<thead><tr><th>提交时间</th><th>区域</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>备注</th><th>审核结果</th><th>操作</th></tr></thead><tbody>'+items.map(x=>{const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);return `<tr><td>${appealDate(x.created_at)}</td><td>${x.appeal_area?`<span class="pill blue">${esc(x.appeal_area)}</span>`:'<span class="mini">-</span>'}</td><td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td><td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td><td><b>${esc(x.order_no||'-')}</b></td><td><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></td><td>${esc((x.detail||'').slice(0,80))}${(x.detail||'').length>80?'…':''}</td><td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td><td>${esc(x.remark||'-')}</td><td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td><td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-result="通过" data-appeal-id="${esc(x.id)}">通过</button><button class="btn small danger" data-appeal-result="拒绝" data-appeal-id="${esc(x.id)}">拒绝</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td></tr>`}).join('')+'</tbody>';renderAppealPagination(total);table.querySelectorAll('[data-appeal-detail]').forEach(b=>b.onclick=()=>openAppealDetail(b.dataset.appealDetail));table.querySelectorAll('[data-appeal-result]').forEach(b=>b.onclick=()=>saveAppealReview(b.dataset.appealId,b.dataset.appealResult));table.querySelectorAll('[data-appeal-delete]').forEach(b=>b.onclick=()=>deleteOrderAppeal(b.dataset.appealDelete));
   };
   const oldOpenAppealDetailFinal=openAppealDetail;
   openAppealDetail=function(id){oldOpenAppealDetailFinal(id);const x=orderAppeals.find(a=>a.id===id);const grid=byId('appealDetailGrid');if(grid&&x){const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);grid.innerHTML=grid.innerHTML.replace(/<b>本月提交次数<\/b><span>[\s\S]*?<\/span>/,`<b>提交次数</b><span><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span> <span class="mini">本月/累计</span></span>`);}}
@@ -3108,6 +3108,7 @@ ${qualityReturnText}
           <h3>申请人信息</h3>
           <div class="appealKv">
             ${field('申请提交时间',appealDate(x.created_at))}
+            ${field('区域',x.appeal_area?`<span class="pill blue">${esc(x.appeal_area)}</span>`:'-')}
             ${field('姓名',esc(x.applicant_name||'-'))}
             ${field('手机号',esc(x.phone||'-'))}
             ${field('提交次数',`<span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span> <span class="mini">本月/累计</span>`)}
@@ -3148,7 +3149,7 @@ ${qualityReturnText}
 
 
 
-/* === Order appeals table final override: hide remark, update time, detail-only review === */
+/* === Order appeals table final override: hide remark, update time, detail-only review, show appeal area === */
 (function(){
   function appealTotalCountSafe(phone){
     const p=normalizeAppealPhone(phone);
@@ -3178,13 +3179,14 @@ ${qualityReturnText}
     const items=allItems.slice(start,start+appealPageSize);
 
     table.innerHTML='<thead><tr>'+
-      '<th>提交时间</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>审核结果</th><th>更新时间</th><th>操作</th>'+
+      '<th>提交时间</th><th>区域</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>审核结果</th><th>更新时间</th><th>操作</th>'+
       '</tr></thead><tbody>'+items.map(x=>{
         const monthCount=appealMonthlyCount(x.phone);
         const totalCount=appealTotalCountSafe(x.phone);
         const updatedTime=x.updated_at||x.reviewed_at||x.created_at;
         return `<tr>
           <td>${appealDate(x.created_at)}</td>
+          <td>${x.appeal_area?`<span class="pill blue">${esc(x.appeal_area)}</span>`:'<span class="mini">-</span>'}</td>
           <td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td>
           <td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td>
           <td><b>${esc(x.order_no||'-')}</b></td>
