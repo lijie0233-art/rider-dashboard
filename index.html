@@ -1274,6 +1274,14 @@ async function loadCloudData(){
     raw=[];
     meta={rowCount:0,riderCount:0,cycles:[],sourceFile:'Supabase读取失败',imported:false};
     
+
+try{rebuildData(false);refreshControls();renderAll()}catch(e){}
+    if(status)status.textContent='Supabase 云数据读取失败';
+    alert('云数据读取失败：'+(err.message||err));
+  }
+}
+
+
 /* === New rider queue table === */
 const NEW_RIDER_QUEUE_TABLE='new_rider_queue';
 const NEW_RIDER_QUEUE_LOCAL_KEY='new_rider_queue_records_v1';
@@ -1303,11 +1311,6 @@ function exportNewRiderQueueRecords(){const items=filteredNewRiderQueueRecords()
 function bindNewRiderQueueControls(){fillNewRiderQueueRegionOptions();const save=byId('saveNewRiderQueueBtn');if(save)save.onclick=saveNewRiderQueueRecord;const clear=byId('clearNewRiderQueueFormBtn');if(clear)clear.onclick=resetNewRiderQueueForm;['openNewRiderQueueModalBtn','openNewRiderQueueModalBtn2'].forEach(id=>{const el=byId(id);if(el)el.onclick=openNewRiderQueueModal});const close=byId('closeNewRiderQueueModalBtn');if(close)close.onclick=closeNewRiderQueueModal;const modal=byId('newRiderQueueModal');if(modal)modal.addEventListener('click',e=>{if(e.target===modal)closeNewRiderQueueModal()});const refresh=byId('refreshNewRiderQueueBtn');if(refresh)refresh.onclick=async()=>{await loadNewRiderQueueRecords();renderNewRiderQueue();toast('新骑手排队表已刷新')};const exp=byId('exportNewRiderQueueBtn');if(exp)exp.onclick=exportNewRiderQueueRecords;['newRiderQueueOpenedFilter','newRiderQueueRegionFilter','newRiderQueueDesiredFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderNewRiderQueue});const search=byId('newRiderQueueSearchInp');if(search)search.oninput=renderNewRiderQueue;const reset=byId('resetNewRiderQueueFilterBtn');if(reset)reset.onclick=()=>{const opened=byId('newRiderQueueOpenedFilter');if(opened)opened.value='all';const home=byId('newRiderQueueRegionFilter');if(home)home.value='all';const desired=byId('newRiderQueueDesiredFilter');if(desired)desired.value='all';const si=byId('newRiderQueueSearchInp');if(si)si.value='';renderNewRiderQueue()};resetNewRiderQueueForm()}
 function initNewRiderQueueFeature(){bindNewRiderQueueControls();loadNewRiderQueueRecords().then(renderNewRiderQueue)}
 
-try{rebuildData(false);refreshControls();renderAll()}catch(e){}
-    if(status)status.textContent='Supabase 云数据读取失败';
-    alert('云数据读取失败：'+(err.message||err));
-  }
-}
 async function loadCloudProfile(){
   cloudProfile=null;cloudAuthRole='member';
   if(!cloudUser)return;
