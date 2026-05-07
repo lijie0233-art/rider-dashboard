@@ -196,6 +196,10 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 .sydneyClock{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 8px 20px rgba(16,24,40,.04);white-space:nowrap;line-height:1}.sydneyClock b{font-size:13px;color:#172033;line-height:1;font-weight:950;white-space:nowrap}.sydneyClock span{font-size:13px;color:#172033;line-height:1;font-weight:850;white-space:nowrap}.topbarActions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.topbarActions .topbarHint{margin-left:0}@media(max-width:980px){.sydneyClock{padding:7px 9px}.topbarActions{margin-left:auto}.topbarHint{display:none!important}}@media(max-width:640px){.sydneyClock{padding:6px 8px;gap:4px}.sydneyClock b,.sydneyClock span{font-size:12px}.donateTopBtn{padding:8px 10px!important}}
 
 
+/* Site announcement center */
+.noticeTopBtn{position:relative;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 8px 20px rgba(16,24,40,.04);transition:.16s}.noticeTopBtn:hover{transform:translateY(-1px);background:#f8fafc;box-shadow:0 10px 22px rgba(17,24,39,.1)}.noticeTopDot{display:none;position:absolute;right:4px;top:3px;width:8px;height:8px;border-radius:99px;background:#f04438;box-shadow:0 0 0 2px #fff}.noticeTopBtn.hasUnread .noticeTopDot{display:block}.noticeLayer{display:none;position:fixed;inset:0;z-index:1320;background:rgba(15,23,42,.46);padding:18px;align-items:flex-start;justify-content:flex-end}.noticeLayer.show{display:flex}.noticePanel{width:min(760px,100%);max-height:92vh;overflow:auto;margin-top:54px;background:rgba(255,255,255,.99);border:1px solid rgba(226,232,240,.95);border-radius:24px;box-shadow:0 28px 90px rgba(15,23,42,.24);padding:18px;color:#111827}.noticeHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.noticeHead h2{margin:0;font-size:19px;letter-spacing:-.03em}.noticeHead .sub{line-height:1.55}.noticeClose{border:0;background:#f2f4f7;color:#475467;border-radius:999px;width:32px;height:32px;cursor:pointer;font-weight:950;flex:0 0 auto}.noticeAutoBanner{display:none;background:#fffaeb;border:1px solid #fedf89;color:#92400e;border-radius:16px;padding:10px 12px;margin:0 0 12px;font-size:13px;font-weight:850;line-height:1.55}.noticeLayer.autoMode .noticeAutoBanner{display:block}.noticeAdminBox{display:none;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:12px}.noticeLayer.superAdmin .noticeAdminBox{display:block}.noticeAdminGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.noticeAdminGrid .field,.noticeAdminBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.noticeAdminGrid .field span,.noticeAdminBox .field span{color:var(--muted)}.noticeAdminBox input,.noticeAdminBox textarea{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 11px;color:var(--ink);width:100%}.noticeAdminBox textarea{min-height:120px;resize:vertical}.noticeAdminActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.noticeEditHint{font-size:12px;color:var(--muted);font-weight:850}.noticeList{display:grid;gap:10px}.noticeCard{border:1px solid var(--line);background:#fff;border-radius:18px;padding:13px;box-shadow:var(--shadow2)}.noticeCard.unseen{border-color:#fbbf24;background:linear-gradient(135deg,#fff7ed,#fff)}.noticeCardHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:7px}.noticeCard h3{margin:0;font-size:16px;letter-spacing:-.02em}.noticeMeta{font-size:12px;color:var(--muted);font-weight:850;white-space:nowrap}.noticeContent{white-space:pre-wrap;line-height:1.7;color:#344054;font-size:13px}.noticeAdminInline{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.noticeEmpty{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:18px;padding:22px;text-align:center;color:#667085;font-weight:850}@media(max-width:760px){.noticeTopBtn{padding:8px 10px;font-size:12px}.noticeLayer{justify-content:center;padding:12px}.noticePanel{margin-top:56px;border-radius:22px}.noticeAdminGrid{grid-template-columns:1fr}.noticeCardHead{display:block}.noticeMeta{display:block;margin-top:4px}}
+
+
 /* Order appeal processing center */
 .appealGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.appealCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px;box-shadow:var(--shadow2)}.appealCard b{display:block;font-size:12px;color:#475467}.appealCard .num{font-size:24px;font-weight:950;margin-top:6px;color:#111827}.appealFilterGrid{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-bottom:12px}.appealFilterGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealFilterGrid .field span{color:var(--muted)}.appealReasonTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#fff7ed;color:#c2410c}.appealStatusTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.appealStatusTag.ok{background:var(--green2);color:var(--green)}.appealStatusTag.no{background:var(--red2);color:var(--red)}.appealPhotoLink{display:inline-flex;margin:2px 6px 2px 0;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850;color:#2563eb;text-decoration:none}.appealDetailModal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.52);align-items:center;justify-content:center;padding:18px}.appealDetailModal.show{display:flex}.appealDetailPanel{width:min(920px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 26px 86px rgba(16,24,40,.25);padding:18px;border:1px solid var(--line)}.appealDetailHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.appealDetailHead h2{margin:0;font-size:18px}.appealDetailGrid{display:grid;grid-template-columns:140px 1fr;gap:8px 12px;border:1px solid var(--line);border-radius:18px;padding:14px;background:#f8fafc}.appealDetailGrid b{font-size:13px;color:#475467}.appealDetailGrid span{font-size:13px;color:#111827;line-height:1.55}.appealImageGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}.appealImageGrid a{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.appealImageGrid img{width:100%;height:110px;object-fit:cover;display:block}.appealReviewBox{margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end}.appealReviewBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealReviewBox .field span{color:var(--muted)}.appealPublicLink{font-size:12px;color:#475467;line-height:1.6;background:#fffaeb;border:1px solid #fedf89;border-radius:14px;padding:10px;margin-bottom:12px}.appealPublicLink code{background:#fff;border:1px solid #fde68a;border-radius:8px;padding:2px 6px;color:#92400e}.appealPagination{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px 12px}.appealPagination .left,.appealPagination .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.appealPagination select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850}.appealPageBtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font-weight:900;cursor:pointer}.appealPageBtn.active{background:#111827;color:#fff;border-color:#111827}.appealPageBtn:disabled{opacity:.45;cursor:not-allowed}.appealPageInfo{font-size:12px;color:var(--muted);font-weight:850}@media(max-width:980px){.appealGrid{grid-template-columns:repeat(2,1fr)}.appealFilterGrid,.appealReviewBox{grid-template-columns:1fr}.appealDetailGrid{grid-template-columns:1fr}}@media(max-width:640px){.appealGrid{grid-template-columns:1fr}.appealDetailPanel{padding:14px;border-radius:20px}.appealImageGrid{grid-template-columns:repeat(2,1fr)}}
 .newRiderPagination{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px 12px}.newRiderPagination .left,.newRiderPagination .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.newRiderPagination select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850}.newRiderPagination label{display:inline-flex;align-items:center;gap:6px}.newRiderPagination .pageJumpLabel{color:var(--muted);font-size:12px;font-weight:850}
@@ -412,6 +416,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="topbarActions">
       <div class="topbarHint">云数据实时同步</div>
       <div class="sydneyClock" id="sydneyClock" aria-label="当地日期时间"><span id="sydneyClockDate">----/--/--</span><b id="sydneyClockTime">--:--:--</b></div>
+      <button class="noticeTopBtn" id="noticeTopBtn" type="button" title="查看站内公告" aria-label="查看站内公告">🪧公告<span class="noticeTopDot" id="noticeTopDot"></span></button>
       <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" role="button" tabindex="0" aria-label="查看打赏明细">截止今日已打赏 ¥0</span>
     </div>
   </div>
@@ -1218,6 +1223,29 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <small>此弹窗会在 3 秒后自动关闭，也可手动关闭。</small>
   </div>
 </div>
+<div class="noticeLayer" id="noticeLayer" aria-modal="true" role="dialog" aria-labelledby="noticeLayerTitle">
+  <div class="noticePanel">
+    <div class="noticeHead">
+      <div><h2 id="noticeLayerTitle">🪧 站内公告</h2><div class="sub" id="noticeLayerSub">查看系统发布的重要通知。</div></div>
+      <button class="noticeClose" id="closeNoticeBtn" type="button" aria-label="关闭公告">×</button>
+    </div>
+    <div class="noticeAutoBanner" id="noticeAutoBanner">有新的站内公告，请查看。每条公告仅首次登录自动提醒一次，之后可通过右上角“🪧公告”再次查看。</div>
+    <div class="noticeAdminBox" id="noticeAdminBox">
+      <div class="noticeAdminGrid">
+        <label class="field"><span>公告标题</span><input id="noticeTitleInp" placeholder="例如：本周重点运营提醒" maxlength="80" /></label>
+        <label class="field"><span>编辑状态</span><input id="noticeEditStatusInp" value="新建公告" readonly /></label>
+      </div>
+      <label class="field" style="margin-top:10px"><span>公告内容</span><textarea id="noticeContentInp" placeholder="请输入需要全员知晓的重要通知内容"></textarea></label>
+      <div class="noticeAdminActions">
+        <button class="btn primary small" id="publishNoticeBtn" type="button">发布新公告</button>
+        <button class="btn small" id="saveNoticeEditBtn" type="button">保存编辑</button>
+        <button class="btn small" id="resetNoticeEditorBtn" type="button">清空新建</button>
+        <span class="noticeEditHint">仅超级管理员 tangjiejack@qq.com 可发布或编辑。</span>
+      </div>
+    </div>
+    <div class="noticeList" id="noticeList"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 const metrics=[{key:'orders',label:'跑单量',short:'跑单',unit:'单',drop:.2,min:10},{key:'income',label:'总收入',short:'收入',unit:'$',drop:.2,min:50},{key:'hourly',label:'时薪',short:'时薪',unit:'$/h',drop:.15,min:2},{key:'duration',label:'背单时长',short:'背单',unit:'h',drop:.2,min:3},{key:'acceptanceRate',label:'接单率',short:'接单率',unit:'%',drop:.1,min:.03},{key:'tailRate',label:'骑手责尾单率',short:'责尾单率',unit:'%',drop:.1,min:.03}];
@@ -1447,6 +1475,7 @@ function updateAuthHeader(){
   setDisplay(logoutBtn,'inline-flex');
   renderMemberGrowth();
   try{applyModuleSwitches()}catch(e){}
+  try{updateNoticeBadge()}catch(e){}
 }
 
 function showLogin(msg=''){
@@ -1467,6 +1496,8 @@ async function showApp(){
   await safe(loadModuleOrderConfig,'菜单排序读取');
   await safe(loadModulePermissionConfig,'板块权限读取');
   await safe(loadAccountVisibilityConfig,'账号可视配置读取');
+  await safe(loadSiteAnnouncements,'公告读取');
+  try{showLoginNoticeIfNeeded()}catch(e){console.warn('公告弹窗检查失败：',e?.message||e)}
   await safe(loadMemberGrowth,'成长数据读取');
   try{applyModulePermissions()}catch(e){}
   try{startMemberGrowthTimer()}catch(e){}
@@ -1533,6 +1564,7 @@ async function initAuth(){
   ['accountAdminBtn','accountNavBtn'].forEach(id=>byId(id)?.addEventListener('click',openAccountModal));
   byId('closeAccountModalBtn')?.addEventListener('click',closeAccountModal);
   byId('accountModal')?.addEventListener('click',e=>{if(e.target?.id==='accountModal')closeAccountModal()});
+  bindNoticeControls();
   byId('createAccountBtn')?.addEventListener('click',createMemberAccount);
   try{
     const client=getCloudClient();
@@ -1556,6 +1588,12 @@ const MODULE_ORDER_KEY='menu_module_order';
 const MODULE_ORDER_LOCAL_KEY='rider_menu_module_order_v1';
 const ACCOUNT_VISIBILITY_KEY='menu_account_visibility';
 const ACCOUNT_VISIBILITY_LOCAL_KEY='rider_menu_account_visibility_v1';
+const SITE_ANNOUNCEMENTS_KEY='site_announcements_v1';
+const SITE_ANNOUNCEMENTS_LOCAL_KEY='rider_site_announcements_v1';
+const SITE_ANNOUNCEMENTS_SEEN_PREFIX='rider_site_announcements_seen_v1_';
+let siteAnnouncements=normalizeSiteAnnouncements(safeGet(SITE_ANNOUNCEMENTS_LOCAL_KEY,{items:[]}));
+let editingNoticeId='';
+let noticeAutoIds=[];
 const MODULE_META=[
   {tab:'overview',label:'运营数据总览',desc:'核心经营指标和数据概览'},
   {tab:'orderAppeals',label:'订单申诉管理',desc:'站外订单申诉审核'},
@@ -1617,6 +1655,93 @@ function renderAccountVisibilityPanel(){const select=byId('accountVisibilityAcco
 function addAccountVisibilityConfig(){if(!authIsSuperAdmin()){toast('仅超级管理员可新增账号配置');return}const inp=byId('accountVisibilityEmailInp'),email=normalizeLoginEmail(inp?.value||'');if(!email||!email.includes('@')){toast('请填写正确的账号邮箱');inp?.focus();return}accountVisibilityConfig=normalizeAccountVisibilityConfig(accountVisibilityConfig);const tabs={};accountVisibilityTabs().forEach(tab=>tabs[tab]=true);accountVisibilityConfig.accounts[email]=accountVisibilityConfig.accounts[email]||{tabs};accountVisibilitySelectedEmail=email;if(inp)inp.value='';renderAccountVisibilityPanel();toast('已新增账号配置，请勾选板块后保存')}
 function setAccountVisibilityAll(checked){const email=accountVisibilitySelectedEmail;if(!email){toast('请先选择账号');return}accountVisibilityConfig.accounts[email]=accountVisibilityConfig.accounts[email]||{tabs:{}};accountVisibilityTabs().forEach(tab=>accountVisibilityConfig.accounts[email].tabs[tab]=!!checked);accountVisibilityConfig.accounts[email].updated_at=new Date().toISOString();accountVisibilityConfig.accounts[email].updated_by=cloudUser?.email||'';renderAccountVisibilityPanel()}
 function deleteAccountVisibilityConfig(){const email=accountVisibilitySelectedEmail;if(!email){toast('请先选择账号');return}if(!confirm(`确认删除 ${email} 的单独可视配置？删除后该账号恢复默认可见全部已开启菜单。`))return;delete accountVisibilityConfig.accounts[email];accountVisibilitySelectedEmail='';saveAccountVisibilityConfig()}
+
+function normalizeSiteAnnouncements(c={}){
+  const raw=Array.isArray(c)?c:(Array.isArray(c?.items)?c.items:[]);
+  const items=raw.map(x=>({
+    id:String(x?.id||('notice_'+Date.now()+'_'+Math.random().toString(16).slice(2))),
+    title:String(x?.title||'重要通知').trim()||'重要通知',
+    content:String(x?.content||'').trim(),
+    created_at:String(x?.created_at||new Date().toISOString()),
+    updated_at:String(x?.updated_at||x?.created_at||new Date().toISOString()),
+    published_by:String(x?.published_by||''),
+    status:String(x?.status||'published')
+  })).filter(x=>x.content||x.title);
+  const dedup=[];const seen=new Set();
+  items.forEach(x=>{if(!seen.has(x.id)){seen.add(x.id);dedup.push(x)}});
+  dedup.sort((a,b)=>String(b.created_at||b.updated_at||'').localeCompare(String(a.created_at||a.updated_at||'')));
+  return {items:dedup};
+}
+function noticeSeenKey(){return SITE_ANNOUNCEMENTS_SEEN_PREFIX+(currentAuthEmail()||'anonymous')}
+function getSeenNoticeIds(){try{const v=JSON.parse(localStorage.getItem(noticeSeenKey())||'[]');return Array.isArray(v)?v.map(String):[]}catch(e){return []}}
+function setSeenNoticeIds(ids){try{localStorage.setItem(noticeSeenKey(),JSON.stringify([...new Set((ids||[]).map(String))]))}catch(e){}}
+function publishedAnnouncements(){siteAnnouncements=normalizeSiteAnnouncements(siteAnnouncements);return siteAnnouncements.items.filter(x=>x.status==='published')}
+function unreadAnnouncementIds(){const seen=new Set(getSeenNoticeIds());return publishedAnnouncements().filter(x=>!seen.has(x.id)).map(x=>x.id)}
+function markNoticeIdsSeen(ids){const merged=[...getSeenNoticeIds(),...(ids||[])];setSeenNoticeIds(merged);updateNoticeBadge()}
+function updateNoticeBadge(){const btn=byId('noticeTopBtn');if(!btn)return;const ids=authIsSuperAdmin()?[]:unreadAnnouncementIds();btn.classList.toggle('hasUnread',ids.length>0)}
+async function loadSiteAnnouncements(){
+  try{
+    const client=getCloudClient();
+    const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',SITE_ANNOUNCEMENTS_KEY).maybeSingle();
+    if(!error&&data?.config){siteAnnouncements=normalizeSiteAnnouncements(data.config);safeSet(SITE_ANNOUNCEMENTS_LOCAL_KEY,siteAnnouncements)}
+  }catch(e){siteAnnouncements=normalizeSiteAnnouncements(safeGet(SITE_ANNOUNCEMENTS_LOCAL_KEY,{items:[]}))}
+  renderNoticeCenter();updateNoticeBadge();
+}
+async function saveSiteAnnouncements(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可发布或编辑公告');return false}
+  siteAnnouncements=normalizeSiteAnnouncements(siteAnnouncements);
+  safeSet(SITE_ANNOUNCEMENTS_LOCAL_KEY,siteAnnouncements);
+  try{
+    const client=getCloudClient();
+    await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:SITE_ANNOUNCEMENTS_KEY,config:siteAnnouncements,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'});
+  }catch(e){console.warn('公告云端保存失败，已保存到本机：',e?.message||e);toast('公告云端保存失败，已先保存到本机')}
+  renderNoticeCenter();updateNoticeBadge();return true;
+}
+function openNoticeCenter(auto=false,ids=[]){noticeAutoIds=Array.isArray(ids)?ids:[];const layer=byId('noticeLayer');if(!layer)return;layer.classList.toggle('superAdmin',authIsSuperAdmin());layer.classList.toggle('autoMode',!!auto);renderNoticeCenter();layer.classList.add('show');if(auto&&noticeAutoIds.length)markNoticeIdsSeen(noticeAutoIds)}
+function closeNoticeCenter(){byId('noticeLayer')?.classList.remove('show');byId('noticeLayer')?.classList.remove('autoMode');noticeAutoIds=[];updateNoticeBadge()}
+function resetNoticeEditor(){editingNoticeId='';const title=byId('noticeTitleInp'),content=byId('noticeContentInp'),status=byId('noticeEditStatusInp');if(title)title.value='';if(content)content.value='';if(status)status.value='新建公告'}
+function noticeDateText(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(e){return String(v).slice(0,16)}}
+function renderNoticeCenter(){
+  const layer=byId('noticeLayer'),list=byId('noticeList'),sub=byId('noticeLayerSub');if(!list)return;
+  if(layer)layer.classList.toggle('superAdmin',authIsSuperAdmin());
+  const items=publishedAnnouncements();
+  const unseen=new Set(noticeAutoIds.length?noticeAutoIds:unreadAnnouncementIds());
+  if(sub)sub.textContent=items.length?`共 ${items.length} 条公告，可随时查看历史通知。`:'暂无公告。';
+  if(!items.length){list.innerHTML='<div class="noticeEmpty">暂无公告。超级管理员可在上方发布第一条站内通知。</div>';return}
+  list.innerHTML=items.map(x=>`<article class="noticeCard ${unseen.has(x.id)?'unseen':''}"><div class="noticeCardHead"><div><h3>${esc(x.title||'重要通知')}</h3><div class="noticeMeta">发布：${esc(noticeDateText(x.created_at))}${x.updated_at&&x.updated_at!==x.created_at?' · 更新：'+esc(noticeDateText(x.updated_at)):''}</div></div><span class="pill ${unseen.has(x.id)?'amber':'blue'}">${unseen.has(x.id)?'新公告':'已发布'}</span></div><div class="noticeContent">${esc(x.content||'')}</div>${authIsSuperAdmin()?`<div class="noticeAdminInline"><button class="btn small" type="button" data-notice-edit="${esc(x.id)}">编辑</button><button class="btn small danger" type="button" data-notice-delete="${esc(x.id)}">删除</button></div>`:''}</article>`).join('');
+  list.querySelectorAll('[data-notice-edit]').forEach(btn=>btn.onclick=()=>editNotice(btn.dataset.noticeEdit));
+  list.querySelectorAll('[data-notice-delete]').forEach(btn=>btn.onclick=()=>deleteNotice(btn.dataset.noticeDelete));
+}
+function readNoticeEditor(){return {title:(byId('noticeTitleInp')?.value||'').trim(),content:(byId('noticeContentInp')?.value||'').trim()}}
+async function publishNotice(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可发布公告');return}
+  const v=readNoticeEditor();if(!v.title){toast('请填写公告标题');byId('noticeTitleInp')?.focus();return}if(!v.content){toast('请填写公告内容');byId('noticeContentInp')?.focus();return}
+  const now=new Date().toISOString();
+  const item={id:'notice_'+Date.now()+'_'+Math.random().toString(16).slice(2),title:v.title,content:v.content,created_at:now,updated_at:now,published_by:currentAuthEmail(),status:'published'};
+  siteAnnouncements=normalizeSiteAnnouncements({items:[item,...publishedAnnouncements()]});
+  const ok=await saveSiteAnnouncements();if(ok){resetNoticeEditor();toast('公告已发布')}
+}
+function editNotice(id){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可编辑公告');return}
+  const item=publishedAnnouncements().find(x=>x.id===id);if(!item){toast('未找到公告');return}
+  editingNoticeId=id;const title=byId('noticeTitleInp'),content=byId('noticeContentInp'),status=byId('noticeEditStatusInp');if(title)title.value=item.title||'';if(content)content.value=item.content||'';if(status)status.value='正在编辑：'+(item.title||'重要通知');byId('noticeTitleInp')?.focus();
+}
+async function saveNoticeEdit(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可编辑公告');return}
+  if(!editingNoticeId){toast('请先在历史公告中点击“编辑”');return}
+  const v=readNoticeEditor();if(!v.title){toast('请填写公告标题');return}if(!v.content){toast('请填写公告内容');return}
+  const items=publishedAnnouncements();const idx=items.findIndex(x=>x.id===editingNoticeId);if(idx<0){toast('未找到正在编辑的公告');return}
+  items[idx]={...items[idx],title:v.title,content:v.content,updated_at:new Date().toISOString(),published_by:items[idx].published_by||currentAuthEmail()};
+  siteAnnouncements=normalizeSiteAnnouncements({items});const ok=await saveSiteAnnouncements();if(ok){resetNoticeEditor();toast('公告编辑已保存')}
+}
+async function deleteNotice(id){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可删除公告');return}
+  const item=publishedAnnouncements().find(x=>x.id===id);if(!item)return;if(!confirm(`确认删除公告「${item.title||'重要通知'}」？`))return;
+  siteAnnouncements=normalizeSiteAnnouncements({items:publishedAnnouncements().filter(x=>x.id!==id)});const ok=await saveSiteAnnouncements();if(ok){if(editingNoticeId===id)resetNoticeEditor();toast('公告已删除')}
+}
+function showLoginNoticeIfNeeded(){if(authIsSuperAdmin())return;const ids=unreadAnnouncementIds();if(ids.length)openNoticeCenter(true,ids)}
+function bindNoticeControls(){byId('noticeTopBtn')?.addEventListener('click',()=>openNoticeCenter(false));byId('closeNoticeBtn')?.addEventListener('click',closeNoticeCenter);byId('noticeLayer')?.addEventListener('click',e=>{if(e.target?.id==='noticeLayer')closeNoticeCenter()});byId('publishNoticeBtn')?.addEventListener('click',publishNotice);byId('saveNoticeEditBtn')?.addEventListener('click',saveNoticeEdit);byId('resetNoticeEditorBtn')?.addEventListener('click',resetNoticeEditor)}
+
 function renderSystemManagement(){if(!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');selectTab('overview');return}const grid=byId('moduleSwitchGrid');if(!grid)return;moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);grid.innerHTML=MODULE_META.map(m=>`<label class="systemSwitchCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><input class="switchInput" type="checkbox" data-module-switch="${esc(m.tab)}" ${moduleSwitchConfig[m.tab]!==false?'checked':''}></label>`).join('');grid.querySelectorAll('[data-module-switch]').forEach(el=>el.onchange=()=>{moduleSwitchConfig[el.dataset.moduleSwitch]=el.checked});renderMenuOrderGrid();renderModulePermissionGrid();renderAccountVisibilityPanel();renderMemberGrowthStats()}
 function bindSystemManagementControls(){const save=byId('saveModuleSwitchBtn');if(save)save.onclick=saveModuleSwitchConfig;const reset=byId('resetModuleSwitchBtn');if(reset)reset.onclick=()=>{moduleSwitchConfig=normalizeModuleSwitchConfig({});saveModuleSwitchConfig()};const saveOrder=byId('saveModuleOrderBtn');if(saveOrder)saveOrder.onclick=saveModuleOrderConfig;const resetOrder=byId('resetModuleOrderBtn');if(resetOrder)resetOrder.onclick=()=>{moduleOrderConfig=normalizeModuleOrderConfig(DEFAULT_MENU_ORDER);saveModuleOrderConfig()};const savePerm=byId('saveModulePermissionBtn');if(savePerm)savePerm.onclick=saveModulePermissionConfig;const resetPerm=byId('resetModulePermissionBtn');if(resetPerm)resetPerm.onclick=()=>{modulePermissionConfig=normalizeModulePermissionConfig({});saveModulePermissionConfig()};const addAcc=byId('addAccountVisibilityBtn');if(addAcc)addAcc.onclick=addAccountVisibilityConfig;const saveAcc=byId('saveAccountVisibilityBtn');if(saveAcc)saveAcc.onclick=saveAccountVisibilityConfig;const resetAcc=byId('resetAccountVisibilityBtn');if(resetAcc)resetAcc.onclick=()=>{if(!confirm('确认清空所有账号单独可视配置？'))return;accountVisibilityConfig=normalizeAccountVisibilityConfig({});accountVisibilitySelectedEmail='';saveAccountVisibilityConfig()};const allAcc=byId('selectAllAccountVisibilityBtn');if(allAcc)allAcc.onclick=()=>setAccountVisibilityAll(true);const clearAcc=byId('clearAccountVisibilityBtn');if(clearAcc)clearAcc.onclick=()=>setAccountVisibilityAll(false);const delAcc=byId('deleteAccountVisibilityBtn');if(delAcc)delAcc.onclick=deleteAccountVisibilityConfig;const emailInp=byId('accountVisibilityEmailInp');if(emailInp)emailInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addAccountVisibilityConfig()}})}
 
