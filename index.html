@@ -205,6 +205,38 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 .newRiderPagination{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px 12px}.newRiderPagination .left,.newRiderPagination .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.newRiderPagination select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850}.newRiderPagination label{display:inline-flex;align-items:center;gap:6px}.newRiderPagination .pageJumpLabel{color:var(--muted);font-size:12px;font-weight:850}
 
 
+/* False account record table */
+.falseAccountStatsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 14px}
+.falseAccountStatCard{background:linear-gradient(135deg,#fff,#f8fbff);border:1px solid var(--line);border-radius:18px;padding:13px;box-shadow:var(--shadow2)}
+.falseAccountStatCard b{font-size:12px;color:#475467}
+.falseAccountStatCard .n{font-size:24px;font-weight:950;margin-top:6px;letter-spacing:-.03em}
+.falseAccountListCard{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:var(--shadow2)}
+.falseAccountListHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.falseAccountFilterGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:10px}
+.falseAccountFilterGrid .field,.falseAccountFormGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none;margin:0}
+.falseAccountFilterGrid .field span,.falseAccountFormGrid .field span{color:var(--muted)}
+.falseAccountFilterGrid input,.falseAccountFilterGrid select,.falseAccountFormGrid input,.falseAccountFormGrid select,.falseAccountFormGrid textarea{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 11px;color:var(--ink)}
+.falseAccountFormGrid textarea{min-height:88px;resize:vertical}
+.falseAccountTable table{min-width:1180px}
+.falseAccountImageLinks{display:flex;gap:6px;flex-wrap:wrap}
+.falseAccountImageLinks a{display:inline-flex;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:850;color:#2563eb;text-decoration:none}
+.falseAccountImagePreview{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.falseAccountImagePreview a{display:block;border:1px solid var(--line);border-radius:12px;overflow:hidden;width:76px;height:76px;background:#f8fafc}
+.falseAccountImagePreview img{width:100%;height:100%;object-fit:cover;display:block}
+.falseAccountModal{display:none;position:fixed;inset:0;z-index:1120;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}
+.falseAccountModal.show{display:flex}
+.falseAccountModalPanel{width:min(920px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}
+.falseAccountModalHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.falseAccountModalHead h2{margin:0;font-size:19px;letter-spacing:-.02em}
+.falseAccountModalBody{padding:16px 18px}
+.falseAccountFormGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.falseAccountFormHint{font-size:12px;color:#475467;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:12px;line-height:1.55}
+.falseAccountModalFoot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);border-radius:0 0 24px 24px;padding:14px 18px;display:flex;justify-content:flex-end;gap:10px}
+.falseAccountModalFoot .btn{min-width:110px}
+@media(max-width:980px){.falseAccountListHead{display:block}.falseAccountListHead .btn{margin-top:10px}}
+@media(max-width:640px){.falseAccountStatsGrid,.falseAccountFilterGrid,.falseAccountFormGrid{grid-template-columns:1fr}.falseAccountModal{padding:10px}.falseAccountModalHead,.falseAccountModalFoot{position:static}.falseAccountModalFoot{display:grid}.falseAccountModalFoot .btn{width:100%}}
+
+
 /* Donation message and history detail */
 .donateTotalChip{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04);cursor:pointer;transition:.16s}
 .donateTotalChip:hover{transform:translateY(-1px);background:#fff8cc;border-color:#f4d03f;box-shadow:0 10px 22px rgba(17,24,39,.1)}
@@ -388,6 +420,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <button data-tab="orderAppeals"><span class="menuIcon">🧾</span><span class="menuLabel">订单申诉管理</span><span class="todoMenuBadge appealMenuBadge" id="orderAppealMenuBadge" aria-label="待审核申诉数量"></span></button>
       <button data-tab="newRiderProcess"><span class="menuIcon">🆕</span><span class="menuLabel">新骑手流程表</span><span class="menuTestTag">新上线</span></button>
       <button data-tab="newRiderQueue"><span class="menuIcon">🧭</span><span class="menuLabel">新骑手排队表</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="falseAccounts"><span class="menuIcon">🚫</span><span class="menuLabel">虚假账户记录表</span></button>
       <button data-tab="todoList"><span class="menuIcon">📝</span><span class="menuLabel">待办事项管理</span><span class="todoMenuBadge" id="todoMenuBadge" aria-label="未完成待办数量"></span></button>
       <button data-tab="problems"><span class="menuIcon">⚠️</span><span class="menuLabel">问题骑手管理</span></button>
       <button data-tab="returnPotential"><span class="menuIcon">🔁</span><span class="menuLabel">潜力骑手运营</span><span class="menuHotTag">必看！</span></button>
@@ -1063,6 +1096,71 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
   </div>
 </div>
 
+<section id="falseAccounts" class="tab">
+  <div class="panel falseAccountPanel">
+    <div class="panelHead">
+      <div>
+        <h2>虚假账户记录表</h2>
+        <div class="sub">手动记录疑似或确认虚假账户信息，支持图片凭证上传与后续处罚动作备注。</div>
+      </div>
+      <div class="inlineActions">
+        <button class="btn primary small" id="openFalseAccountModalBtn">新增记录</button>
+        <button class="btn small" id="refreshFalseAccountBtn">刷新列表</button>
+        <button class="btn small" id="exportFalseAccountBtn">导出记录表</button>
+      </div>
+    </div>
+    <div class="falseAccountStatsGrid" id="falseAccountStatsGrid"></div>
+    <div class="falseAccountListCard">
+      <div class="falseAccountListHead">
+        <div>
+          <h3>虚假账户记录</h3>
+          <div class="sub">记录时间、手机号、开户状态、人群、区域、处罚动作、备注及图片凭证。</div>
+        </div>
+      </div>
+      <div class="falseAccountFilterGrid">
+        <label class="field"><span>记录时间起</span><input id="falseAccountDateFromFilter" type="date" /></label>
+        <label class="field"><span>记录时间止</span><input id="falseAccountDateToFilter" type="date" /></label>
+        <label class="field"><span>是否已开户</span><select id="falseAccountOpenedFilter"><option value="all">全部</option><option value="是">是</option><option value="否">否</option></select></label>
+        <label class="field"><span>区域筛选</span><select id="falseAccountRegionFilter"><option value="all">全部区域</option></select></label>
+        <label class="field searchField"><span>搜索手机号 / 处罚动作 / 备注</span><input id="falseAccountSearchInp" placeholder="输入手机号、动作、备注关键词" /></label>
+        <div class="newRiderQueueFilterActions"><button class="btn" id="resetFalseAccountFilterBtn">重置筛选</button></div>
+      </div>
+      <div class="newRiderQueueHint">图片上传至 Supabase Storage：false-account-images。建议上传截图、聊天记录、订单凭证等必要材料。</div>
+      <div class="tableWrap falseAccountTable"><table id="falseAccountTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<div class="falseAccountModal" id="falseAccountModal">
+  <div class="falseAccountModalPanel">
+    <div class="falseAccountModalHead">
+      <div>
+        <h2 id="falseAccountModalTitle">新增虚假账户记录</h2>
+        <div class="sub" id="falseAccountModalSub">填写虚假账户相关信息并上传图片凭证。</div>
+      </div>
+      <button class="btn small" id="closeFalseAccountModalBtn">关闭</button>
+    </div>
+    <div class="falseAccountModalBody">
+      <div class="falseAccountFormGrid">
+        <label class="field"><span>记录时间</span><input id="falseAccountRecordTime" type="date" /></label>
+        <label class="field"><span>手机号</span><input id="falseAccountPhone" placeholder="请输入手机号" /></label>
+        <label class="field"><span>是否已开户</span><select id="falseAccountOpened"><option value="否">否</option><option value="是">是</option></select></label>
+        <label class="field"><span>人群</span><select id="falseAccountCrowd"><option value="华">华</option><option value="西">西</option></select></label>
+        <label class="field"><span>区域</span><select id="falseAccountRegion"></select></label>
+        <label class="field"><span>处罚动作</span><input id="falseAccountPenaltyAction" placeholder="例如：警告、限制接单、封禁、待核实" /></label>
+        <label class="field full"><span>备注</span><textarea id="falseAccountRemark" placeholder="填写虚假账户原因、核实过程、处理结论等"></textarea></label>
+        <label class="field full"><span>图片</span><input id="falseAccountImages" type="file" accept="image/*" multiple /><div class="hint">支持上传多张图片；编辑记录时，新上传图片会追加到原图片后。</div><div class="falseAccountImagePreview" id="falseAccountImagePreview"></div></label>
+      </div>
+      <div class="falseAccountFormHint">保存后记录会进入虚假账户记录表；图片需要云端 Storage 权限支持。</div>
+    </div>
+    <div class="falseAccountModalFoot">
+      <button class="btn primary" id="saveFalseAccountBtn">保存新增</button>
+      <button class="btn" id="clearFalseAccountFormBtn">重置填写</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="appealDetailModal" id="appealDetailModal">
   <div class="appealDetailPanel">
     <div class="appealDetailHead">
@@ -1426,6 +1524,42 @@ async function refreshNewRiderQueue(opts={}){
 }
 function initNewRiderQueueFeature(){bindNewRiderQueueControls();refreshNewRiderQueue({silent:true})}
 
+
+/* === False account record table === */
+const FALSE_ACCOUNT_TABLE='false_account_records';
+const FALSE_ACCOUNT_BUCKET='false-account-images';
+const FALSE_ACCOUNT_LOCAL_KEY='false_account_records_v1';
+const FALSE_ACCOUNT_REGIONS=['CBD','学生区','北区','Burwood','Hurstville'];
+let falseAccountRecords=[];
+let falseAccountEditingId='';
+let falseAccountExistingImages=[];
+let falseAccountLoading=false;
+function falseAccountLocalKey(){return `${FALSE_ACCOUNT_LOCAL_KEY}_${cloudUser?.id||cloudUser?.email||'guest'}`}
+function falseAccountToday(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function falseAccountId(){try{return crypto.randomUUID()}catch(e){return 'far_'+Date.now()+'_'+Math.random().toString(16).slice(2)}}
+function normalizeFalseAccountImages(v){if(Array.isArray(v))return v.map(String).filter(Boolean);if(typeof v==='string'){try{const parsed=JSON.parse(v);if(Array.isArray(parsed))return parsed.map(String).filter(Boolean)}catch(e){}return v?String(v).split(/[\n,]/).map(x=>x.trim()).filter(Boolean):[]}return []}
+function normalizeFalseAccountRecord(x={}){const opened=String(x.account_opened||x.opened||'否').trim()==='是'?'是':'否';const crowd=['华','西'].includes(String(x.crowd_type||x.crowd||'华'))?String(x.crowd_type||x.crowd||'华'):'华';const region=FALSE_ACCOUNT_REGIONS.includes(String(x.region||''))?String(x.region):'CBD';return {id:x.id||falseAccountId(),record_time:String(x.record_time||x.add_date||falseAccountToday()).slice(0,10),phone:String(x.phone||'').trim(),account_opened:opened,crowd_type:crowd,region,penalty_action:String(x.penalty_action||x.action||'').trim(),remark:String(x.remark||x.note||'').trim(),image_urls:normalizeFalseAccountImages(x.image_urls||x.images||x.image_url),created_by:x.created_by||null,created_at:x.created_at||new Date().toISOString(),updated_at:x.updated_at||new Date().toISOString()}}
+function fillFalseAccountRegionOptions(){const opts=FALSE_ACCOUNT_REGIONS.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');[['falseAccountRegion',opts],['falseAccountRegionFilter','<option value="all">全部区域</option>'+opts]].forEach(([id,html])=>{const el=byId(id);if(el&&!el.dataset.filled){el.innerHTML=html;el.dataset.filled='1'}})}
+function saveFalseAccountLocal(){safeSet(falseAccountLocalKey(),falseAccountRecords)}
+async function loadFalseAccountRecords(){let rows=(safeGet(falseAccountLocalKey(),[])||[]).map(normalizeFalseAccountRecord);try{if(cloudUser){const {data,error}=await getCloudClient().from(FALSE_ACCOUNT_TABLE).select('*').order('record_time',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;rows=(data||[]).map(normalizeFalseAccountRecord)}}catch(e){console.warn('虚假账户记录表云端读取失败，暂用本机记录：',e?.message||e)}falseAccountRecords=rows;saveFalseAccountLocal();return falseAccountRecords}
+function renderFalseAccountImagePreview(urls=falseAccountExistingImages){const box=byId('falseAccountImagePreview');if(!box)return;box.innerHTML=(urls||[]).length?(urls||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" title="查看图片 ${i+1}"><img src="${esc(u)}" alt="图片${i+1}" loading="lazy"></a>`).join(''):'<span class="mini">暂无已上传图片</span>'}
+function resetFalseAccountForm(){falseAccountEditingId='';falseAccountExistingImages=[];fillFalseAccountRegionOptions();const date=byId('falseAccountRecordTime');if(date)date.value=falseAccountToday();['falseAccountPhone','falseAccountPenaltyAction','falseAccountRemark'].forEach(id=>{const el=byId(id);if(el)el.value=''});const opened=byId('falseAccountOpened');if(opened)opened.value='否';const crowd=byId('falseAccountCrowd');if(crowd)crowd.value='华';const region=byId('falseAccountRegion');if(region)region.value='CBD';const images=byId('falseAccountImages');if(images)images.value='';renderFalseAccountImagePreview([]);const btn=byId('saveFalseAccountBtn');if(btn)btn.textContent='保存新增';const title=byId('falseAccountModalTitle');if(title)title.textContent='新增虚假账户记录';const sub=byId('falseAccountModalSub');if(sub)sub.textContent='填写虚假账户相关信息并上传图片凭证。'}
+function openFalseAccountModal(){resetFalseAccountForm();byId('falseAccountModal')?.classList.add('show');setTimeout(()=>byId('falseAccountPhone')?.focus(),80)}
+function closeFalseAccountModal(){byId('falseAccountModal')?.classList.remove('show');resetFalseAccountForm()}
+function readFalseAccountForm(){return normalizeFalseAccountRecord({id:falseAccountEditingId||undefined,record_time:byId('falseAccountRecordTime')?.value||falseAccountToday(),phone:byId('falseAccountPhone')?.value||'',account_opened:byId('falseAccountOpened')?.value||'否',crowd_type:byId('falseAccountCrowd')?.value||'华',region:byId('falseAccountRegion')?.value||'CBD',penalty_action:byId('falseAccountPenaltyAction')?.value||'',remark:byId('falseAccountRemark')?.value||'',image_urls:falseAccountExistingImages,created_by:cloudUser?.id||null})}
+async function uploadFalseAccountImages(recordId){const input=byId('falseAccountImages');const files=Array.from(input?.files||[]);if(!files.length)return [];if(!cloudUser)throw new Error('图片上传需要登录云端');const client=getCloudClient();const uploaded=[];for(const file of files){if(!/^image\//i.test(file.type||''))continue;const ext=(file.name.split('.').pop()||'jpg').replace(/[^a-z0-9]/ig,'').slice(0,8)||'jpg';const path=`${recordId}/${Date.now()}_${Math.random().toString(16).slice(2)}.${ext}`;const {error}=await client.storage.from(FALSE_ACCOUNT_BUCKET).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error;const {data}=client.storage.from(FALSE_ACCOUNT_BUCKET).getPublicUrl(path);if(data?.publicUrl)uploaded.push(data.publicUrl)}return uploaded}
+async function saveFalseAccountRecord(){const rec=readFalseAccountForm();if(!rec.phone){toast('请填写手机号');byId('falseAccountPhone')?.focus();return}rec.updated_at=new Date().toISOString();const wasEditing=!!falseAccountEditingId;try{const newImages=await uploadFalseAccountImages(rec.id);rec.image_urls=[...new Set([...(rec.image_urls||[]),...newImages])];}catch(e){console.warn('虚假账户图片上传失败：',e?.message||e);toast('图片上传失败：'+(e?.message||e));return}try{if(cloudUser){const payload={id:rec.id,record_time:rec.record_time,phone:rec.phone,account_opened:rec.account_opened,crowd_type:rec.crowd_type,region:rec.region,penalty_action:rec.penalty_action,remark:rec.remark,image_urls:rec.image_urls,created_by:rec.created_by||cloudUser.id,created_at:rec.created_at,updated_at:rec.updated_at};if(wasEditing){delete payload.id;delete payload.created_at;delete payload.created_by;const {data,error}=await getCloudClient().from(FALSE_ACCOUNT_TABLE).update(payload).eq('id',falseAccountEditingId).select('*').single();if(error)throw error;const idx=falseAccountRecords.findIndex(x=>x.id===falseAccountEditingId);if(idx>=0)falseAccountRecords[idx]=normalizeFalseAccountRecord(data||rec)}else{const {data,error}=await getCloudClient().from(FALSE_ACCOUNT_TABLE).insert(payload).select('*').single();if(error)throw error;falseAccountRecords=[normalizeFalseAccountRecord(data||payload),...falseAccountRecords]}}else throw new Error('未登录云端')}catch(e){console.warn('虚假账户记录云端保存失败，改为保存到本机：',e?.message||e);if(wasEditing){const idx=falseAccountRecords.findIndex(x=>x.id===falseAccountEditingId);if(idx>=0)falseAccountRecords[idx]=rec}else falseAccountRecords=[rec,...falseAccountRecords]}saveFalseAccountLocal();resetFalseAccountForm();byId('falseAccountModal')?.classList.remove('show');renderFalseAccounts();toast(wasEditing?'虚假账户记录已更新':'虚假账户记录已新增')}
+function filteredFalseAccountRecords(){const from=byId('falseAccountDateFromFilter')?.value||'',to=byId('falseAccountDateToFilter')?.value||'',opened=byId('falseAccountOpenedFilter')?.value||'all',region=byId('falseAccountRegionFilter')?.value||'all',q=(byId('falseAccountSearchInp')?.value||'').trim().toLowerCase();return (falseAccountRecords||[]).map(normalizeFalseAccountRecord).filter(x=>{if(!newRiderDateInRange(x.record_time,from,to))return false;if(opened!=='all'&&x.account_opened!==opened)return false;if(region!=='all'&&x.region!==region)return false;if(q){const hay=[x.phone,x.account_opened,x.crowd_type,x.region,x.penalty_action,x.remark].join(' ').toLowerCase();if(!hay.includes(q))return false}return true}).sort((a,b)=>String(b.record_time||'').localeCompare(String(a.record_time||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')))}
+function renderFalseAccountStats(items=filteredFalseAccountRecords()){const grid=byId('falseAccountStatsGrid');if(!grid)return;const total=falseAccountRecords.length,view=items.length,opened=items.filter(x=>x.account_opened==='是').length,notOpened=items.filter(x=>x.account_opened==='否').length,withImg=items.filter(x=>(x.image_urls||[]).length).length;grid.innerHTML=`<div class="falseAccountStatCard"><b>全部记录</b><div class="n">${total}</div></div><div class="falseAccountStatCard"><b>当前筛选</b><div class="n">${view}</div></div><div class="falseAccountStatCard"><b>已开户</b><div class="n">${opened}</div></div><div class="falseAccountStatCard"><b>未开户</b><div class="n">${notOpened}</div></div><div class="falseAccountStatCard"><b>有图片凭证</b><div class="n">${withImg}</div></div>`}
+function falseAccountImageLinks(urls=[]){urls=normalizeFalseAccountImages(urls);return urls.length?`<div class="falseAccountImageLinks">${urls.map((u,i)=>`<a href="${esc(u)}" target="_blank">图片${i+1}</a>`).join('')}</div>`:'<span class="mini">无</span>'}
+function renderFalseAccounts(){fillFalseAccountRegionOptions();const table=byId('falseAccountTable');if(!table)return;const items=filteredFalseAccountRecords();renderFalseAccountStats(items);if(!items.length){table.innerHTML='<tr><td class="empty">暂无虚假账户记录。请点击“新增记录”录入第一条信息。</td></tr>';return}table.innerHTML='<thead><tr><th>记录时间</th><th>手机号</th><th>是否已开户</th><th>人群</th><th>区域</th><th>处罚动作</th><th>备注</th><th>图片</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'+items.map(x=>`<tr><td>${esc(x.record_time||'-')}</td><td><b>${esc(x.phone||'-')}</b></td><td><span class="accountStatusPill ${x.account_opened==='是'?'opened':'notOpened'}">${esc(x.account_opened||'否')}</span></td><td><span class="pill blue">${esc(x.crowd_type||'-')}</span></td><td>${esc(x.region||'-')}</td><td>${esc(x.penalty_action||'-')}</td><td>${esc((x.remark||'').slice(0,80))}${(x.remark||'').length>80?'…':''}</td><td>${falseAccountImageLinks(x.image_urls)}</td><td>${esc((x.updated_at||x.created_at||'').slice(0,10))}</td><td><div class="inlineActions"><button class="btn small" data-false-account-edit="${esc(x.id)}">编辑</button><button class="btn small danger" data-false-account-delete="${esc(x.id)}">删除</button></div></td></tr>`).join('')+'</tbody>';table.querySelectorAll('[data-false-account-edit]').forEach(btn=>btn.onclick=()=>editFalseAccountRecord(btn.dataset.falseAccountEdit));table.querySelectorAll('[data-false-account-delete]').forEach(btn=>btn.onclick=()=>deleteFalseAccountRecord(btn.dataset.falseAccountDelete))}
+function editFalseAccountRecord(id){const x=falseAccountRecords.find(r=>r.id===id);if(!x){toast('未找到该记录');return}fillFalseAccountRegionOptions();falseAccountEditingId=id;falseAccountExistingImages=normalizeFalseAccountImages(x.image_urls);byId('falseAccountRecordTime').value=x.record_time||falseAccountToday();byId('falseAccountPhone').value=x.phone||'';byId('falseAccountOpened').value=x.account_opened||'否';byId('falseAccountCrowd').value=x.crowd_type||'华';byId('falseAccountRegion').value=x.region||'CBD';byId('falseAccountPenaltyAction').value=x.penalty_action||'';byId('falseAccountRemark').value=x.remark||'';const images=byId('falseAccountImages');if(images)images.value='';renderFalseAccountImagePreview(falseAccountExistingImages);const btn=byId('saveFalseAccountBtn');if(btn)btn.textContent='保存修改';const title=byId('falseAccountModalTitle');if(title)title.textContent='编辑虚假账户记录';const sub=byId('falseAccountModalSub');if(sub)sub.textContent='正在编辑手机号：'+(x.phone||'-');byId('falseAccountModal')?.classList.add('show');setTimeout(()=>byId('falseAccountPhone')?.focus(),80)}
+async function deleteFalseAccountRecord(id){const x=falseAccountRecords.find(r=>r.id===id);if(!x)return;if(!confirm(`确认删除手机号 ${x.phone||'-'} 的虚假账户记录？`))return;try{if(cloudUser){const {error}=await getCloudClient().from(FALSE_ACCOUNT_TABLE).delete().eq('id',id);if(error)throw error}}catch(e){console.warn('虚假账户记录云端删除失败，仅删除本机缓存：',e?.message||e)}falseAccountRecords=falseAccountRecords.filter(r=>r.id!==id);saveFalseAccountLocal();if(falseAccountEditingId===id)resetFalseAccountForm();renderFalseAccounts();toast('虚假账户记录已删除')}
+function exportFalseAccountRecords(){const items=filteredFalseAccountRecords();if(!items.length){toast('暂无可导出的虚假账户记录');return}const header=['记录时间','手机号','是否已开户','人群','区域','处罚动作','备注','图片链接','创建时间','更新时间'];const lines=[header,...items.map(x=>[x.record_time,x.phone,x.account_opened,x.crowd_type,x.region,x.penalty_action,x.remark,(x.image_urls||[]).join(' | '),x.created_at,x.updated_at])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'虚假账户记录表.csv');toast('已导出虚假账户记录表')}
+function bindFalseAccountControls(){fillFalseAccountRegionOptions();byId('saveFalseAccountBtn')?.addEventListener('click',saveFalseAccountRecord);byId('clearFalseAccountFormBtn')?.addEventListener('click',resetFalseAccountForm);byId('openFalseAccountModalBtn')?.addEventListener('click',openFalseAccountModal);byId('closeFalseAccountModalBtn')?.addEventListener('click',closeFalseAccountModal);byId('falseAccountModal')?.addEventListener('click',e=>{if(e.target===byId('falseAccountModal'))closeFalseAccountModal()});byId('refreshFalseAccountBtn')?.addEventListener('click',()=>refreshFalseAccounts({silent:false}));byId('exportFalseAccountBtn')?.addEventListener('click',exportFalseAccountRecords);['falseAccountDateFromFilter','falseAccountDateToFilter','falseAccountOpenedFilter','falseAccountRegionFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderFalseAccounts});const search=byId('falseAccountSearchInp');if(search)search.oninput=renderFalseAccounts;const reset=byId('resetFalseAccountFilterBtn');if(reset)reset.onclick=()=>{['falseAccountDateFromFilter','falseAccountDateToFilter','falseAccountSearchInp'].forEach(id=>{const el=byId(id);if(el)el.value=''});const opened=byId('falseAccountOpenedFilter');if(opened)opened.value='all';const region=byId('falseAccountRegionFilter');if(region)region.value='all';renderFalseAccounts()};resetFalseAccountForm()}
+async function refreshFalseAccounts(opts={}){const silent=opts.silent!==false;if(falseAccountLoading)return;falseAccountLoading=true;const table=byId('falseAccountTable');if(table&&!falseAccountRecords.length)table.innerHTML='<tr><td class="empty">正在读取虚假账户记录表...</td></tr>';try{await loadFalseAccountRecords();renderFalseAccounts();if(!silent)toast('虚假账户记录表已刷新')}catch(e){console.warn('虚假账户记录表刷新失败：',e?.message||e);renderFalseAccounts();if(!silent)toast('虚假账户记录表刷新失败，请稍后重试')}finally{falseAccountLoading=false}}
+function initFalseAccountFeature(){bindFalseAccountControls();refreshFalseAccounts({silent:true})}
+
 async function loadCloudProfile(){
   cloudProfile=null;cloudAuthRole='member';
   if(!cloudUser)return;
@@ -1508,7 +1642,9 @@ async function showApp(){
   await safe(loadOrderAppeals,'申诉订单读取');
   await safe(loadNewRiderRecords,'新骑手流程读取');
   await safe(loadNewRiderQueueRecords,'新骑手排队读取');
+  await safe(loadFalseAccountRecords,'虚假账户记录读取');
   if(state.tab==='newRiderQueue')renderNewRiderQueue();
+  if(state.tab==='falseAccounts')renderFalseAccounts();
   await safe(loadCloudData,'骑手云数据读取');
   if(window.refreshDonationSummary){await safe(window.refreshDonationSummary,'打赏数据读取')}
   try{startStationReportScheduler()}catch(e){}
@@ -1599,6 +1735,7 @@ const MODULE_META=[
   {tab:'orderAppeals',label:'订单申诉管理',desc:'站外订单申诉审核'},
   {tab:'newRiderProcess',label:'新骑手流程表',desc:'新骑手信息录入、培训与跟进状态'},
   {tab:'newRiderQueue',label:'新骑手排队表',desc:'意向换区骑手排队登记与跟踪'},
+  {tab:'falseAccounts',label:'虚假账户记录表',desc:'虚假账户记录、处罚动作与图片凭证'},
   {tab:'todoList',label:'待办事项管理',desc:'本周任务、负责人、截止时间'},
   {tab:'problems',label:'问题骑手管理',desc:'风险识别和问题清单'},
   {tab:'returnPotential',label:'潜力骑手运营',desc:'回归骑手与高潜骑手识别'},
@@ -1616,13 +1753,13 @@ const MODULE_META=[
 ];
 let moduleSwitchConfig=normalizeModuleSwitchConfig(safeGet(MODULE_SWITCH_LOCAL_KEY,{}));
 let modulePermissionConfig=normalizeModulePermissionConfig(safeGet(MODULE_PERMISSION_LOCAL_KEY,{}));
-const DEFAULT_MENU_ORDER=['overview','orderAppeals','newRiderProcess','newRiderQueue','todoList','problems','returnPotential','tailOrderCenter','riderEquipment','followup','ownerFollowup','diagnosis','compare','profile','communicationManual','riderContacts','weeklyReport','systemManagement','growthCenter'];
+const DEFAULT_MENU_ORDER=['overview','orderAppeals','newRiderProcess','newRiderQueue','falseAccounts','todoList','problems','returnPotential','tailOrderCenter','riderEquipment','followup','ownerFollowup','diagnosis','compare','profile','communicationManual','riderContacts','weeklyReport','systemManagement','growthCenter'];
 let moduleOrderConfig=normalizeModuleOrderConfig(safeGet(MODULE_ORDER_LOCAL_KEY,DEFAULT_MENU_ORDER));
 let accountVisibilityConfig=normalizeAccountVisibilityConfig(safeGet(ACCOUNT_VISIBILITY_LOCAL_KEY,{}));
 let accountVisibilitySelectedEmail='';
 function normalizeModuleSwitchConfig(c={}){const out={};MODULE_META.forEach(m=>out[m.tab]=c[m.tab]!==false);return out}
 function normalizeModulePermissionConfig(c={}){const out={};MODULE_META.forEach(m=>{let v=Number(c[m.tab]??0);if(!Number.isFinite(v))v=0;out[m.tab]=Math.max(0,Math.min(10,Math.floor(v)))});return out}
-function normalizeModuleOrderConfig(c){const src=Array.isArray(c)?c:DEFAULT_MENU_ORDER;const known=new Set(DEFAULT_MENU_ORDER);const out=[];src.forEach(tab=>{if(known.has(tab)&&!out.includes(tab))out.push(tab)});DEFAULT_MENU_ORDER.forEach(tab=>{if(!out.includes(tab)){if(tab==='newRiderProcess'&&out.includes('orderAppeals'))out.splice(out.indexOf('orderAppeals')+1,0,tab);else if(tab==='newRiderQueue'&&out.includes('newRiderProcess'))out.splice(out.indexOf('newRiderProcess')+1,0,tab);else out.push(tab)}});return out}
+function normalizeModuleOrderConfig(c){const src=Array.isArray(c)?c:DEFAULT_MENU_ORDER;const known=new Set(DEFAULT_MENU_ORDER);const out=[];src.forEach(tab=>{if(known.has(tab)&&!out.includes(tab))out.push(tab)});DEFAULT_MENU_ORDER.forEach(tab=>{if(!out.includes(tab)){if(tab==='newRiderProcess'&&out.includes('orderAppeals'))out.splice(out.indexOf('orderAppeals')+1,0,tab);else if(tab==='newRiderQueue'&&out.includes('newRiderProcess'))out.splice(out.indexOf('newRiderProcess')+1,0,tab);else if(tab==='falseAccounts'&&out.includes('newRiderQueue'))out.splice(out.indexOf('newRiderQueue')+1,0,tab);else out.push(tab)}});return out}
 function accountVisibilityTabs(){return DEFAULT_MENU_ORDER.filter(tab=>tab!=='systemManagement')}
 function normalizeAccountVisibilityConfig(c={}){const src=c?.accounts||c||{};const out={accounts:{}};const valid=new Set(accountVisibilityTabs());Object.entries(src).forEach(([email,rule])=>{const key=normalizeLoginEmail(email);if(!key)return;const tabs={};const raw=Array.isArray(rule)?Object.fromEntries(rule.map(t=>[t,true])):(rule?.tabs||rule||{});valid.forEach(tab=>{if(raw[tab]!==undefined)tabs[tab]=!!raw[tab];else tabs[tab]=true});out.accounts[key]={tabs,updated_at:rule?.updated_at||'',updated_by:rule?.updated_by||''}});return out}
 function accountVisibilityRuleFor(email){const key=normalizeLoginEmail(email);return accountVisibilityConfig?.accounts?.[key]||null}
@@ -2432,7 +2569,7 @@ function initOrderAppealFeature(){bindOrderAppealControls()}
 
 function profileBackName(tab){return {followup:'问题跟进闭环',ownerFollowup:'重点专人跟进',problems:'问题骑手管理',returnPotential:'潜力骑手运营',compare:'骑手多人对比',diagnosis:'数据趋势诊断',overview:'运营数据总览',todoList:'待办事项管理',communicationManual:'沟通手册',riderContacts:'骑手通讯录',weeklyReport:'站长周报',orderAppeals:'订单申诉管理',newRiderProcess:'新骑手流程表',newRiderQueue:'新骑手排队表',systemManagement:'系统权限管理',growthCenter:'成长中心'}[tab]||'上一页'}
 function updateProfileBackButton(){const btn=byId('profileBackBtn');if(!btn)return;const back=state.profileBackTab;if(back&&back!=='profile'){btn.style.display='inline-flex';btn.textContent='返回'+profileBackName(back);btn.onclick=()=>{const target=state.profileBackTab||'followup';state.profileBackTab='';selectTab(target);if(target==='followup')renderFollowup();if(target==='ownerFollowup')renderFollowOwnerBoard();};}else{btn.style.display='none';btn.onclick=null}}
-function selectTab(tab){const requested=tab;if(tab==='systemManagement'&&!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');tab=firstAvailableMenuTab('systemManagement')}if(!canAccessModule(tab)){if(requested&&requested!==tab){}else toast(moduleAccessDeniedText(tab));tab=firstAvailableMenuTab(tab)}document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;applyModuleSwitches();if(tab==='todoList')renderTodoList();if(tab==='returnPotential')renderReturnPotentialPool();if(tab==='ownerFollowup')renderFollowOwnerBoard();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='orderAppeals')loadOrderAppeals().then(renderOrderAppeals);if(tab==='newRiderProcess')loadNewRiderRecords().then(renderNewRiderProcess);if(tab==='newRiderQueue')refreshNewRiderQueue({silent:true});if(tab==='communicationManual')renderCommunicationManual();if(tab==='systemManagement')renderSystemManagement();if(tab==='growthCenter')renderMemberGrowth();if(tab==='profile')updateProfileBackButton();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){if(state.tab&&state.tab!=='profile')state.profileBackTab=state.tab;state.selected=id;selectTab('profile');refreshControls();renderProfile();updateProfileBackButton();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
+function selectTab(tab){const requested=tab;if(tab==='systemManagement'&&!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');tab=firstAvailableMenuTab('systemManagement')}if(!canAccessModule(tab)){if(requested&&requested!==tab){}else toast(moduleAccessDeniedText(tab));tab=firstAvailableMenuTab(tab)}document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===tab));state.tab=tab;applyModuleSwitches();if(tab==='todoList')renderTodoList();if(tab==='returnPotential')renderReturnPotentialPool();if(tab==='ownerFollowup')renderFollowOwnerBoard();if(tab==='riderContacts')renderRiderContacts();if(tab==='weeklyReport')renderStationWeeklyReport();if(tab==='orderAppeals')loadOrderAppeals().then(renderOrderAppeals);if(tab==='newRiderProcess')loadNewRiderRecords().then(renderNewRiderProcess);if(tab==='newRiderQueue')refreshNewRiderQueue({silent:true});if(tab==='falseAccounts')refreshFalseAccounts({silent:true});if(tab==='communicationManual')renderCommunicationManual();if(tab==='systemManagement')renderSystemManagement();if(tab==='growthCenter')renderMemberGrowth();if(tab==='profile')updateProfileBackButton();drawCharts();setTimeout(decorateRiderIds,0)}function openProfile(id){if(state.tab&&state.tab!=='profile')state.profileBackTab=state.tab;state.selected=id;selectTab('profile');refreshControls();renderProfile();updateProfileBackButton();toast('已进入单骑手追踪')}function switchProblems(risk){selectTab('problems');state.risk=risk;document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x.dataset.risk===risk));renderProblems()}
 function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
 function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function downloadBlob(text,filename,type='text/csv;charset=utf-8'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)}
 function downloadTemplate(){const sample=['100001','示例骑手 Zhang San','120','980.5','32.7','30.0','4.0','电动车','95%','2.5%','W70'];if(window.XLSX){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([columns,sample]);XLSX.utils.book_append_sheet(wb,ws,'Sheet1');XLSX.writeFile(wb,'骑手数据导入模版.xlsx');toast('已下载 XLSX 模版');return}const csv='\ufeff'+[columns,sample].map(r=>r.map(csvEscape).join(',')).join('\n');downloadBlob(csv,'骑手数据导入模版.csv');toast('已下载 CSV 模版')}
@@ -3718,7 +3855,7 @@ function exportNewRiderRecords(){const items=filteredNewRiderRecords();if(!items
 function bindNewRiderProcessControls(){const region=byId('newRiderRegion');if(region)region.onchange=applyNewRiderOwner;const wa=byId('newRiderWhatsapp');if(wa)wa.onchange=toggleNewRiderWhatsappAccountVisibility;const save=byId('saveNewRiderBtn');if(save)save.onclick=saveNewRiderRecord;const clear=byId('clearNewRiderFormBtn');if(clear)clear.onclick=resetNewRiderForm;const openBtn=byId('openNewRiderModalBtn');if(openBtn)openBtn.onclick=openNewRiderModal;const close=byId('closeNewRiderModalBtn');if(close)close.onclick=closeNewRiderModal;const modal=byId('newRiderModal');if(modal)modal.addEventListener('click',e=>{if(e.target===modal)closeNewRiderModal()});const refresh=byId('refreshNewRiderBtn');if(refresh)refresh.onclick=async()=>{await loadNewRiderRecords();resetNewRiderPagination();renderNewRiderProcess();toast('新骑手流程表已刷新')};const exp=byId('exportNewRiderBtn');if(exp)exp.onclick=exportNewRiderRecords;['newRiderDateFromFilter','newRiderDateToFilter','newRiderDateSort','newRiderRegionFilter','newRiderOwnerFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=()=>{resetNewRiderPagination();renderNewRiderProcess()}});const search=byId('newRiderSearchInp');if(search)search.oninput=()=>{resetNewRiderPagination();renderNewRiderProcess()};const reset=byId('resetNewRiderFilterBtn');if(reset)reset.onclick=()=>{resetNewRiderListFilters();resetNewRiderPagination();renderNewRiderProcess()};resetNewRiderForm()}
 function initNewRiderProcessFeature(){bindNewRiderProcessControls();loadNewRiderRecords().then(renderNewRiderProcess)}
 
-try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
+try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
 </html>
