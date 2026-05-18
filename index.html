@@ -369,6 +369,13 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 .accountVisibilityHint{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px}
 @media(max-width:640px){.accountVisibilityToolbar{display:grid;grid-template-columns:1fr}.accountVisibilityToolbar input,.accountVisibilityToolbar select{width:100%;min-width:0}}
 
+
+/* Appeal area adjustment */
+.appealAreaAdjustWrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.appealAreaAdjustWrap select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850;min-width:260px}
+.appealAreaAdjustWrap .btn{box-shadow:none}
+.appealAreaAdjustHint{display:block;width:100%;font-size:12px;color:var(--muted);line-height:1.45;margin-top:2px}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -3854,6 +3861,94 @@ async function deleteNewRiderRecord(id){const x=newRiderRecords.find(r=>r.id===i
 function exportNewRiderRecords(){const items=filteredNewRiderRecords();if(!items.length){toast('暂无可导出的新骑手记录');return}const header=['添加日期','手机号','车型','骑手人群','区域','跟进人','是否填写Whatsapp','WhatsApp账号','是否完成培训','备注','创建时间','更新时间'];const lines=[header,...items.map(x=>[x.add_date,x.phone,x.vehicle_type,x.rider_group,x.region,x.follow_owner,x.whatsapp_filled,x.whatsapp_account,x.training_completed,x.remark,x.created_at,x.updated_at])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'新骑手流程表.csv');toast('已导出新骑手流程表')}
 function bindNewRiderProcessControls(){const region=byId('newRiderRegion');if(region)region.onchange=applyNewRiderOwner;const wa=byId('newRiderWhatsapp');if(wa)wa.onchange=toggleNewRiderWhatsappAccountVisibility;const save=byId('saveNewRiderBtn');if(save)save.onclick=saveNewRiderRecord;const clear=byId('clearNewRiderFormBtn');if(clear)clear.onclick=resetNewRiderForm;const openBtn=byId('openNewRiderModalBtn');if(openBtn)openBtn.onclick=openNewRiderModal;const close=byId('closeNewRiderModalBtn');if(close)close.onclick=closeNewRiderModal;const modal=byId('newRiderModal');if(modal)modal.addEventListener('click',e=>{if(e.target===modal)closeNewRiderModal()});const refresh=byId('refreshNewRiderBtn');if(refresh)refresh.onclick=async()=>{await loadNewRiderRecords();resetNewRiderPagination();renderNewRiderProcess();toast('新骑手流程表已刷新')};const exp=byId('exportNewRiderBtn');if(exp)exp.onclick=exportNewRiderRecords;['newRiderDateFromFilter','newRiderDateToFilter','newRiderDateSort','newRiderRegionFilter','newRiderOwnerFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=()=>{resetNewRiderPagination();renderNewRiderProcess()}});const search=byId('newRiderSearchInp');if(search)search.oninput=()=>{resetNewRiderPagination();renderNewRiderProcess()};const reset=byId('resetNewRiderFilterBtn');if(reset)reset.onclick=()=>{resetNewRiderListFilters();resetNewRiderPagination();renderNewRiderProcess()};resetNewRiderForm()}
 function initNewRiderProcessFeature(){bindNewRiderProcessControls();loadNewRiderRecords().then(renderNewRiderProcess)}
+
+
+
+/* === Patch: order appeal area editable for existing records === */
+(function(){
+  const APPEAL_AREA_OPTIONS=[
+    '悉尼市区（CBD/学生区）',
+    '悉尼郊区（HV/CW/EW/RH/BW） Sydney North'
+  ];
+  function appealAreaOptionHtml(current){
+    const cur=appealAreaLabel(current);
+    return APPEAL_AREA_OPTIONS.map(v=>`<option value="${esc(v)}" ${cur===v?'selected':''}>${esc(v)}</option>`).join('');
+  }
+  function appealAreaAdjustHtml(current){
+    return `<div class="appealAreaAdjustWrap"><select id="appealAreaAdjustSel">${appealAreaOptionHtml(current)}</select><button class="btn small primary" type="button" onclick="window.saveAppealAreaAdjustment&&window.saveAppealAreaAdjustment()">保存区域</button><span class="appealAreaAdjustHint">仅支持调整已录入申诉记录的区域，不会修改骑手原始提交内容。</span></div>`;
+  }
+  async function saveAppealAreaAdjustment(id=currentAppealId){
+    const x=(orderAppeals||[]).find(a=>a.id===id);
+    if(!x){toast('未找到申诉记录');return}
+    const sel=byId('appealAreaAdjustSel');
+    const next=sel?.value||'';
+    if(!next){toast('请选择区域');return}
+    const old=appealAreaLabel(x.appeal_area);
+    if(old===next){toast('区域未变化');return}
+    try{
+      const client=getCloudClient();
+      const payload={appeal_area:next,updated_at:new Date().toISOString()};
+      const {error}=await client.from(ORDER_APPEALS_TABLE).update(payload).eq('id',id);
+      if(error)throw error;
+      Object.assign(x,payload);
+      renderOrderAppeals();
+      openAppealDetail(id);
+      toast('申诉区域已更新');
+    }catch(e){
+      alert('区域保存失败：'+(e.message||e));
+    }
+  }
+  window.saveAppealAreaAdjustment=saveAppealAreaAdjustment;
+
+  const baseOpenAppealDetail=typeof openAppealDetail==='function'?openAppealDetail:null;
+  openAppealDetail=function(id){
+    if(baseOpenAppealDetail)baseOpenAppealDetail(id);
+    const x=(orderAppeals||[]).find(a=>a.id===id);
+    const grid=byId('appealDetailGrid');
+    if(!x||!grid)return;
+    const areaDisplay=appealAreaHtml(x.appeal_area);
+    const adjust=appealAreaAdjustHtml(x.appeal_area);
+    if(grid.classList.contains('appealDetailGridV2')){
+      const sections=grid.querySelectorAll('.appealSection');
+      const first=sections&&sections[0];
+      const kv=first?first.querySelector('.appealKv'):null;
+      if(kv){
+        const labels=Array.from(kv.querySelectorAll('b'));
+        const areaLabel=labels.find(b=>b.textContent.trim()==='区域');
+        if(areaLabel&&areaLabel.nextElementSibling){areaLabel.nextElementSibling.innerHTML=areaDisplay}
+        if(!Array.from(kv.querySelectorAll('b')).some(b=>b.textContent.trim()==='区域调整')){
+          kv.insertAdjacentHTML('beforeend',`<b>区域调整</b><span>${adjust}</span>`);
+        }else{
+          const adjustLabel=Array.from(kv.querySelectorAll('b')).find(b=>b.textContent.trim()==='区域调整');
+          if(adjustLabel&&adjustLabel.nextElementSibling)adjustLabel.nextElementSibling.innerHTML=adjust;
+        }
+        return;
+      }
+    }
+    if(!grid.querySelector('#appealAreaAdjustSel')){
+      grid.insertAdjacentHTML('afterbegin',`<b>区域调整</b><span>${adjust}</span>`);
+    }
+  };
+
+  const baseRenderOrderAppeals=typeof renderOrderAppeals==='function'?renderOrderAppeals:null;
+  renderOrderAppeals=function(){
+    if(baseRenderOrderAppeals)baseRenderOrderAppeals();
+    const table=byId('appealTable');
+    if(!table)return;
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      const btn=tr.querySelector('[data-appeal-detail]');
+      const areaCell=tr.children&&tr.children[1];
+      if(!btn||!areaCell)return;
+      const id=btn.dataset.appealDetail;
+      if(!areaCell.querySelector('.appealAreaManageHint')){
+        const div=document.createElement('div');
+        div.className='mini appealAreaManageHint';
+        div.textContent='查看内可调整';
+        areaCell.appendChild(div);
+      }
+    });
+  };
+})();
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
