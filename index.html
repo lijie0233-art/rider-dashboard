@@ -3950,6 +3950,105 @@ function initNewRiderProcessFeature(){bindNewRiderProcessControls();loadNewRider
   };
 })();
 
+
+
+/* === Patch: preserve current tab when editing profile search / owner follow-up fields === */
+(function(){
+  function renderProfileOnly(){
+    try{
+      refreshControls();
+      renderProfile();
+      if(typeof drawProfile==='function')drawProfile();
+      if(typeof updateProfileBackButton==='function')updateProfileBackButton();
+      if(typeof decorateRiderIds==='function')setTimeout(decorateRiderIds,0);
+    }catch(e){console.warn('单骑手跟踪局部刷新失败：',e?.message||e)}
+  }
+  function renderOwnerOnly(withProblems=false){
+    try{
+      state.tab='ownerFollowup';
+      renderFollowOwnerBoard();
+      if(withProblems)renderProblems();
+      if(typeof decorateRiderIds==='function')setTimeout(decorateRiderIds,0);
+    }catch(e){console.warn('重点专人跟进局部刷新失败：',e?.message||e)}
+  }
+
+  if(typeof refreshFollowupViewsAfterRealtime==='function'){
+    refreshFollowupViewsAfterRealtime=function(){
+      safeSet('rider_v5_followups',followups);
+      try{
+        if(state.tab==='followup')renderFollowup();
+        else if(state.tab==='problems')renderProblems();
+        else if(state.tab==='ownerFollowup')renderOwnerOnly(true);
+        else if(state.tab==='profile')renderProfileOnly();
+        else renderAll();
+      }catch(e){console.warn('实时刷新界面失败：',e?.message||e)}
+    };
+  }
+
+  if(typeof bind==='function'){
+    const __bindKeepTab=bind;
+    bind=function(){
+      __bindKeepTab();
+      const ps=byId('profileSearchInp');
+      if(ps){
+        ps.oninput=e=>{
+          state.tab='profile';
+          state.search=e.target.value;
+          ensureSelectedFromSearch();
+          renderProfileOnly();
+        };
+        ps.onkeydown=e=>{if(e.key==='Enter')e.preventDefault()};
+      }
+    };
+  }
+
+  if(typeof renderFollowOwnerBoard==='function'){
+    const __renderFollowOwnerBoardKeepTab=renderFollowOwnerBoard;
+    renderFollowOwnerBoard=function(){
+      __renderFollowOwnerBoardKeepTab();
+      const wrap=byId('followOwnerBoard');
+      if(!wrap)return;
+      wrap.querySelectorAll('[data-owner-status]').forEach(el=>{
+        el.onchange=e=>{
+          state.tab='ownerFollowup';
+          setFollow(e.target.dataset.ownerStatus,'status',e.target.value);
+          renderOwnerOnly(true);
+        };
+      });
+      wrap.querySelectorAll('[data-owner-reason]').forEach(el=>{
+        el.onchange=e=>{
+          state.tab='ownerFollowup';
+          setFollow(e.target.dataset.ownerReason,'reason',e.target.value);
+          renderOwnerOnly(false);
+        };
+      });
+      wrap.querySelectorAll('[data-owner-date]').forEach(el=>{
+        el.onchange=e=>{
+          state.tab='ownerFollowup';
+          setFollow(e.target.dataset.ownerDate,'nextDate',e.target.value);
+          renderOwnerOnly(false);
+        };
+      });
+      wrap.querySelectorAll('[data-owner-note]').forEach(el=>{
+        el.onchange=e=>{
+          state.tab='ownerFollowup';
+          setFollow(e.target.dataset.ownerNote,'note',e.target.value);
+          renderOwnerOnly(false);
+        };
+      });
+    };
+  }
+
+  if(typeof applyOwnerBulkUpdate==='function'){
+    const __applyOwnerBulkUpdateKeepTab=applyOwnerBulkUpdate;
+    applyOwnerBulkUpdate=function(){
+      state.tab='ownerFollowup';
+      __applyOwnerBulkUpdateKeepTab();
+      renderOwnerOnly(true);
+    };
+  }
+})();
+
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
