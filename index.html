@@ -237,6 +237,11 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 @media(max-width:640px){.falseAccountStatsGrid,.falseAccountFilterGrid,.falseAccountFormGrid{grid-template-columns:1fr}.falseAccountModal{padding:10px}.falseAccountModalHead,.falseAccountModalFoot{position:static}.falseAccountModalFoot{display:grid}.falseAccountModalFoot .btn{width:100%}}
 
 
+
+
+/* Site chat and online presence */
+.chatTopBtn{position:relative;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 8px 20px rgba(16,24,40,.04);transition:.16s}.chatTopBtn:hover{transform:translateY(-1px);background:#f8fafc;box-shadow:0 10px 22px rgba(17,24,39,.1)}.chatUnreadDot{display:none;position:absolute;right:4px;top:3px;width:8px;height:8px;border-radius:99px;background:#f04438;box-shadow:0 0 0 2px #fff}.chatTopBtn.hasUnread .chatUnreadDot{display:block}.onlineCountChip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04)}.onlineCountChip .onlineDot{width:7px;height:7px;border-radius:999px;background:#12b76a;box-shadow:0 0 0 3px rgba(18,183,106,.13)}.chatLayer{display:none;position:fixed;inset:0;z-index:1330;background:rgba(15,23,42,.18);align-items:stretch;justify-content:flex-end}.chatLayer.show{display:flex}.chatPanel{width:min(420px,100%);height:100vh;background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 70px rgba(15,23,42,.2);display:flex;flex-direction:column;color:#111827}.chatHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:16px 16px 12px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#fff,#f8fafc)}.chatHead h2{margin:0;font-size:18px;letter-spacing:-.03em}.chatHead .sub{line-height:1.5}.chatClose{border:0;background:#f2f4f7;color:#475467;border-radius:999px;width:32px;height:32px;cursor:pointer;font-weight:950;flex:0 0 auto}.chatControls{display:grid;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff}.chatControls .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none;margin:0}.chatControls .field span{color:var(--muted)}.chatControls select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 10px;color:var(--ink);width:100%;font-weight:850}.chatPrivacyHint{font-size:12px;color:#667085;line-height:1.55;background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:9px 10px}.chatMessages{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#f8fafc}.chatEmpty{border:1px dashed #cbd5e1;background:#fff;border-radius:16px;padding:22px;text-align:center;color:#667085;font-weight:850}.chatMsg{max-width:86%;border:1px solid var(--line);border-radius:16px;padding:10px 11px;background:#fff;box-shadow:0 6px 16px rgba(16,24,40,.04);align-self:flex-start}.chatMsg.mine{align-self:flex-end;background:#111827;color:#fff;border-color:#111827}.chatMsg.broadcast{border-color:#fedf89;background:#fffbeb}.chatMsg.mine.broadcast{background:#111827;color:#ffd400}.chatMsgMeta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#667085;font-weight:900;margin-bottom:5px}.chatMsg.mine .chatMsgMeta{color:#d0d5dd}.chatMsgText{font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word}.chatComposer{border-top:1px solid var(--line);background:#fff;padding:12px 16px;display:grid;gap:9px}.chatComposer textarea{width:100%;min-height:74px;max-height:150px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px 11px;color:#111827;resize:vertical}.chatComposerActions{display:flex;justify-content:space-between;gap:8px;align-items:center}.chatComposerActions small{color:#667085;font-weight:850;line-height:1.45}.chatComposerActions .btn{box-shadow:none}.chatStatusLine{font-size:12px;color:#667085;font-weight:850;min-height:16px}@media(max-width:760px){.chatTopBtn,.onlineCountChip{padding:8px 10px;font-size:12px}.chatLayer{background:rgba(15,23,42,.42)}.chatPanel{width:100%;border-left:0}.onlineCountChip{gap:5px}.onlineCountChip b{font-size:12px}}
+
 /* Donation message and history detail */
 .donateTotalChip{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;white-space:nowrap;line-height:1;box-shadow:0 8px 20px rgba(16,24,40,.04);cursor:pointer;transition:.16s}
 .donateTotalChip:hover{transform:translateY(-1px);background:#fff8cc;border-color:#f4d03f;box-shadow:0 10px 22px rgba(17,24,39,.1)}
@@ -457,6 +462,8 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <div class="topbarHint">云数据实时同步</div>
       <div class="sydneyClock" id="sydneyClock" aria-label="当地日期时间"><span id="sydneyClockDate">----/--/--</span><b id="sydneyClockTime">--:--:--</b></div>
       <button class="noticeTopBtn" id="noticeTopBtn" type="button" title="查看站内公告" aria-label="查看站内公告">🪧公告<span class="noticeTopDot" id="noticeTopDot"></span></button>
+      <span class="onlineCountChip" id="onlineCountChip" title="站内在线账号"><span class="onlineDot"></span>在线 <b id="onlineCountNum">0</b></span>
+      <button class="chatTopBtn" id="chatTopBtn" type="button" title="站内聊天" aria-label="站内聊天">💬聊天<span class="chatUnreadDot" id="chatUnreadDot"></span></button>
       <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" role="button" tabindex="0" aria-label="查看打赏明细">截止今日已打赏 ¥0</span>
     </div>
   </div>
@@ -1351,6 +1358,24 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="noticeList" id="noticeList"></div>
   </div>
 </div>
+<div class="chatLayer" id="chatLayer" aria-modal="true" role="dialog" aria-labelledby="chatLayerTitle">
+  <aside class="chatPanel">
+    <div class="chatHead">
+      <div><h2 id="chatLayerTitle">💬 站内聊天</h2><div class="sub" id="chatLayerSub">支持私聊账号或发送给全部账号。</div></div>
+      <button class="chatClose" id="closeChatBtn" type="button" aria-label="关闭聊天">×</button>
+    </div>
+    <div class="chatControls">
+      <label class="field"><span>发送对象</span><select id="chatTargetSelect"><option value="all">全部账号</option></select></label>
+      <div class="chatPrivacyHint">聊天记录存储在 Supabase 后端表中，HTML 不内置任何聊天内容；私聊仅发送人与接收人可见。</div>
+      <div class="chatStatusLine" id="chatStatusLine">登录后自动同步聊天记录。</div>
+    </div>
+    <div class="chatMessages" id="chatMessages"><div class="chatEmpty">打开聊天后加载记录。</div></div>
+    <div class="chatComposer">
+      <textarea id="chatMessageInput" maxlength="2000" placeholder="输入消息内容，最多 2000 字"></textarea>
+      <div class="chatComposerActions"><small id="chatComposerHint">选择“全部账号”可发送全员消息。</small><button class="btn primary small" id="sendChatBtn" type="button">发送消息</button></div>
+    </div>
+  </aside>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 const metrics=[{key:'orders',label:'跑单量',short:'跑单',unit:'单',drop:.2,min:10},{key:'income',label:'总收入',short:'收入',unit:'$',drop:.2,min:50},{key:'hourly',label:'时薪',short:'时薪',unit:'$/h',drop:.15,min:2},{key:'duration',label:'背单时长',short:'背单',unit:'h',drop:.2,min:3},{key:'acceptanceRate',label:'接单率',short:'接单率',unit:'%',drop:.1,min:.03},{key:'tailRate',label:'骑手责尾单率',short:'责尾单率',unit:'%',drop:.1,min:.03}];
@@ -1639,6 +1664,7 @@ async function showApp(){
   await safe(loadAccountVisibilityConfig,'账号可视配置读取');
   await safe(loadSiteAnnouncements,'公告读取');
   try{showLoginNoticeIfNeeded()}catch(e){console.warn('公告弹窗检查失败：',e?.message||e)}
+  await safe(initSiteChat,'站内聊天初始化');
   await safe(loadMemberGrowth,'成长数据读取');
   try{applyModulePermissions()}catch(e){}
   try{startMemberGrowthTimer()}catch(e){}
@@ -1680,6 +1706,7 @@ async function logoutAuth(){
   await unsubscribeFollowupsRealtime();
   stopMemberGrowthTimer();
   stopStationReportScheduler();
+  stopSiteChat();
   try{await getCloudClient().auth.signOut()}catch(e){}
   cloudUser=null;cloudProfile=null;cloudAuthRole='member';
   showLogin('已退出登录');
@@ -1708,6 +1735,7 @@ async function initAuth(){
   byId('closeAccountModalBtn')?.addEventListener('click',closeAccountModal);
   byId('accountModal')?.addEventListener('click',e=>{if(e.target?.id==='accountModal')closeAccountModal()});
   bindNoticeControls();
+  bindSiteChatControls();
   byId('createAccountBtn')?.addEventListener('click',createMemberAccount);
   try{
     const client=getCloudClient();
@@ -1734,6 +1762,11 @@ const ACCOUNT_VISIBILITY_LOCAL_KEY='rider_menu_account_visibility_v1';
 const SITE_ANNOUNCEMENTS_KEY='site_announcements_v1';
 const SITE_ANNOUNCEMENTS_LOCAL_KEY='rider_site_announcements_v1';
 const SITE_ANNOUNCEMENTS_SEEN_PREFIX='rider_site_announcements_seen_v1_';
+const SITE_CHAT_TABLE='site_chat_messages';
+const SITE_CHAT_PRESENCE_TABLE='site_chat_presence';
+const SITE_CHAT_LOCAL_SEEN_PREFIX='rider_site_chat_last_seen_v1_';
+let siteChatMessages=[],siteChatAccounts=[],siteChatTarget='all',siteChatLoaded=false,siteChatTimer=null,sitePresenceTimer=null,siteChatUnreadCount=0;
+
 let siteAnnouncements=normalizeSiteAnnouncements(safeGet(SITE_ANNOUNCEMENTS_LOCAL_KEY,{items:[]}));
 let editingNoticeId='';
 let noticeAutoIds=[];
@@ -1885,6 +1918,32 @@ async function deleteNotice(id){
 }
 function showLoginNoticeIfNeeded(){if(authIsSuperAdmin())return;const ids=unreadAnnouncementIds();if(ids.length)openNoticeCenter(true,ids)}
 function bindNoticeControls(){byId('noticeTopBtn')?.addEventListener('click',()=>openNoticeCenter(false));byId('closeNoticeBtn')?.addEventListener('click',closeNoticeCenter);byId('noticeLayer')?.addEventListener('click',e=>{if(e.target?.id==='noticeLayer')closeNoticeCenter()});byId('publishNoticeBtn')?.addEventListener('click',publishNotice);byId('saveNoticeEditBtn')?.addEventListener('click',saveNoticeEdit);byId('resetNoticeEditorBtn')?.addEventListener('click',resetNoticeEditor)}
+
+function chatSeenKey(){return SITE_CHAT_LOCAL_SEEN_PREFIX+(currentAuthEmail()||'guest')}
+function chatLastSeenAt(){return safeGet(chatSeenKey(),'')||''}
+function setChatLastSeenNow(){safeSet(chatSeenKey(),new Date().toISOString())}
+function normalizeChatEmail(v){return normalizeLoginEmail(v)}
+function normalizeSiteChatMessage(x={}){return {id:String(x.id||uid()),target_type:x.target_type==='direct'?'direct':'all',sender_id:x.sender_id||'',sender_email:normalizeChatEmail(x.sender_email||''),sender_name:String(x.sender_name||x.sender_email||''),receiver_email:normalizeChatEmail(x.receiver_email||''),content:String(x.content||''),created_at:x.created_at||new Date().toISOString()}}
+function chatMessageVisibleInTarget(m,target=siteChatTarget){const me=currentAuthEmail();if(!me)return false;if(target==='all')return m.target_type==='all';const other=normalizeChatEmail(target);return m.target_type==='direct'&&((m.sender_email===me&&m.receiver_email===other)||(m.sender_email===other&&m.receiver_email===me))}
+function chatTimeText(v){try{return new Date(v).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return String(v||'').slice(0,16)}}
+function updateChatBadge(){const btn=byId('chatTopBtn');if(!btn)return;const seen=chatLastSeenAt();const me=currentAuthEmail();siteChatUnreadCount=siteChatMessages.filter(m=>m.sender_email!==me&&(!seen||String(m.created_at)>seen)).length;btn.classList.toggle('hasUnread',siteChatUnreadCount>0)}
+function updateOnlineCount(n){const el=byId('onlineCountNum');if(el)el.textContent=String(Math.max(0,+n||0))}
+async function heartbeatSitePresence(){if(!cloudUser)return;try{const email=currentAuthEmail();if(!email)return;const client=getCloudClient();const payload={user_id:cloudUser.id,email,last_seen:new Date().toISOString(),user_agent:(navigator.userAgent||'').slice(0,180)};const {error}=await client.from(SITE_CHAT_PRESENCE_TABLE).upsert(payload,{onConflict:'user_id'});if(error)throw error}catch(e){console.warn('在线心跳失败：',e?.message||e)}}
+async function loadOnlineCount(){try{const client=getCloudClient();const since=new Date(Date.now()-3*60*1000).toISOString();const {data,error}=await client.from(SITE_CHAT_PRESENCE_TABLE).select('email,last_seen').gte('last_seen',since);if(error)throw error;const emails=[...new Set((data||[]).map(x=>normalizeChatEmail(x.email)).filter(Boolean))];updateOnlineCount(emails.length);return emails.length}catch(e){console.warn('在线人数读取失败：',e?.message||e);return 0}}
+function startSitePresenceTimers(){stopSitePresenceTimers();heartbeatSitePresence();loadOnlineCount();sitePresenceTimer=setInterval(()=>{heartbeatSitePresence();loadOnlineCount()},60000)}
+function stopSitePresenceTimers(){if(sitePresenceTimer){clearInterval(sitePresenceTimer);sitePresenceTimer=null}}
+async function loadSiteChatAccounts(){const emails=new Set(['tangjiejack@qq.com']);const me=currentAuthEmail();if(me)emails.add(me);try{Object.keys((accountVisibilityConfig&&accountVisibilityConfig.accounts)||{}).forEach(e=>{e=normalizeChatEmail(e);if(e)emails.add(e)})}catch(e){}try{const client=getCloudClient();const {data,error}=await client.from(CLOUD_CONFIG.profileTable).select('email,role').not('email','is',null);if(!error)(data||[]).forEach(x=>{const e=normalizeChatEmail(x.email);if(e)emails.add(e)})}catch(e){console.warn('聊天账号列表读取失败：',e?.message||e)}try{const since=new Date(Date.now()-14*24*60*60*1000).toISOString();const {data,error}=await getCloudClient().from(SITE_CHAT_PRESENCE_TABLE).select('email,last_seen').gte('last_seen',since);if(!error)(data||[]).forEach(x=>{const e=normalizeChatEmail(x.email);if(e)emails.add(e)})}catch(e){}siteChatAccounts=[...emails].filter(Boolean).sort();renderSiteChatTargets();return siteChatAccounts}
+function renderSiteChatTargets(){const sel=byId('chatTargetSelect');if(!sel)return;const me=currentAuthEmail();const opts=['<option value="all">全部账号</option>'].concat(siteChatAccounts.filter(e=>e&&e!==me).map(e=>`<option value="${esc(e)}">${esc(e)}</option>`));sel.innerHTML=opts.join('');if(siteChatTarget!=='all'&&!siteChatAccounts.includes(siteChatTarget))siteChatTarget='all';sel.value=siteChatTarget}
+async function loadSiteChatMessages(){if(!cloudUser)return[];try{const client=getCloudClient();const {data,error}=await client.from(SITE_CHAT_TABLE).select('*').order('created_at',{ascending:false}).limit(300);if(error)throw error;siteChatMessages=(data||[]).map(normalizeSiteChatMessage).sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));siteChatLoaded=true;updateChatBadge();return siteChatMessages}catch(e){console.warn('聊天记录读取失败：',e?.message||e);siteChatLoaded=true;updateChatBadge();return siteChatMessages}}
+function renderSiteChatMessages(){const box=byId('chatMessages');if(!box)return;const me=currentAuthEmail();const items=siteChatMessages.filter(m=>chatMessageVisibleInTarget(m,siteChatTarget));const status=byId('chatStatusLine');if(status)status.textContent=siteChatLoaded?`已加载 ${items.length} 条${siteChatTarget==='all'?'全员消息':'私聊消息'}。`:'正在加载聊天记录...';if(!items.length){box.innerHTML='<div class="chatEmpty">暂无聊天记录。</div>';return}box.innerHTML=items.map(m=>{const mine=m.sender_email===me;const target=m.target_type==='all'?'全部账号':(mine?'发送给 '+m.receiver_email:'私聊');return `<div class="chatMsg ${mine?'mine':''} ${m.target_type==='all'?'broadcast':''}"><div class="chatMsgMeta"><span>${mine?'我':esc(m.sender_email||'未知账号')}</span><span>${esc(target)}</span><span>${esc(chatTimeText(m.created_at))}</span></div><div class="chatMsgText">${esc(m.content||'')}</div></div>`}).join('');box.scrollTop=box.scrollHeight}
+async function refreshSiteChat(silent=true){if(!cloudUser)return;await loadSiteChatAccounts();await loadSiteChatMessages();renderSiteChatMessages();if(!silent)toast('聊天记录已刷新')}
+function openSiteChat(){const layer=byId('chatLayer');if(!layer)return;layer.classList.add('show');setChatLastSeenNow();updateChatBadge();refreshSiteChat(true);setTimeout(()=>byId('chatMessageInput')?.focus(),80)}
+function closeSiteChat(){byId('chatLayer')?.classList.remove('show');setChatLastSeenNow();updateChatBadge()}
+async function sendSiteChatMessage(){if(!cloudUser){toast('请先登录');return}const inp=byId('chatMessageInput');const content=(inp?.value||'').trim();if(!content){toast('请输入消息内容');inp?.focus();return}const target=siteChatTarget||'all';const sender=currentAuthEmail();if(target!=='all'&&target===sender){toast('不能给自己发送私聊');return}const payload={target_type:target==='all'?'all':'direct',receiver_email:target==='all'?null:target,sender_id:cloudUser.id,sender_email:sender,sender_name:sender,content,created_at:new Date().toISOString()};try{const {data,error}=await getCloudClient().from(SITE_CHAT_TABLE).insert(payload).select('*').single();if(error)throw error;siteChatMessages.push(normalizeSiteChatMessage(data||payload));siteChatMessages.sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));if(inp)inp.value='';renderSiteChatMessages();setChatLastSeenNow();updateChatBadge();toast('消息已发送')}catch(e){console.warn('消息发送失败：',e?.message||e);toast('消息发送失败：请检查聊天表 SQL / RLS 配置')}}
+function bindSiteChatControls(){byId('chatTopBtn')?.addEventListener('click',openSiteChat);byId('closeChatBtn')?.addEventListener('click',closeSiteChat);byId('chatLayer')?.addEventListener('click',e=>{if(e.target?.id==='chatLayer')closeSiteChat()});const sel=byId('chatTargetSelect');if(sel)sel.onchange=()=>{siteChatTarget=sel.value||'all';renderSiteChatMessages();const hint=byId('chatComposerHint');if(hint)hint.textContent=siteChatTarget==='all'?'选择“全部账号”可发送全员消息。':'当前为私聊，仅双方可见。'};byId('sendChatBtn')?.addEventListener('click',sendSiteChatMessage);const inp=byId('chatMessageInput');if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();sendSiteChatMessage()}})}
+async function initSiteChat(){if(!cloudUser)return;startSitePresenceTimers();await refreshSiteChat(true);if(!siteChatTimer){siteChatTimer=setInterval(()=>{if(cloudUser)refreshSiteChat(true)},30000)}}
+function stopSiteChat(){if(siteChatTimer){clearInterval(siteChatTimer);siteChatTimer=null}stopSitePresenceTimers();siteChatMessages=[];siteChatAccounts=[];siteChatLoaded=false;updateChatBadge();updateOnlineCount(0)}
+
 
 function renderSystemManagement(){if(!authIsSuperAdmin()){toast('系统权限管理仅超级管理员 tangjiejack@qq.com 可查看');selectTab('overview');return}const grid=byId('moduleSwitchGrid');if(!grid)return;moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);grid.innerHTML=MODULE_META.map(m=>`<label class="systemSwitchCard"><div><b>${esc(m.label)}</b><span>${esc(m.desc)}</span></div><input class="switchInput" type="checkbox" data-module-switch="${esc(m.tab)}" ${moduleSwitchConfig[m.tab]!==false?'checked':''}></label>`).join('');grid.querySelectorAll('[data-module-switch]').forEach(el=>el.onchange=()=>{moduleSwitchConfig[el.dataset.moduleSwitch]=el.checked});renderMenuOrderGrid();renderModulePermissionGrid();renderAccountVisibilityPanel();renderMemberGrowthStats()}
 function bindSystemManagementControls(){const save=byId('saveModuleSwitchBtn');if(save)save.onclick=saveModuleSwitchConfig;const reset=byId('resetModuleSwitchBtn');if(reset)reset.onclick=()=>{moduleSwitchConfig=normalizeModuleSwitchConfig({});saveModuleSwitchConfig()};const saveOrder=byId('saveModuleOrderBtn');if(saveOrder)saveOrder.onclick=saveModuleOrderConfig;const resetOrder=byId('resetModuleOrderBtn');if(resetOrder)resetOrder.onclick=()=>{moduleOrderConfig=normalizeModuleOrderConfig(DEFAULT_MENU_ORDER);saveModuleOrderConfig()};const savePerm=byId('saveModulePermissionBtn');if(savePerm)savePerm.onclick=saveModulePermissionConfig;const resetPerm=byId('resetModulePermissionBtn');if(resetPerm)resetPerm.onclick=()=>{modulePermissionConfig=normalizeModulePermissionConfig({});saveModulePermissionConfig()};const addAcc=byId('addAccountVisibilityBtn');if(addAcc)addAcc.onclick=addAccountVisibilityConfig;const saveAcc=byId('saveAccountVisibilityBtn');if(saveAcc)saveAcc.onclick=saveAccountVisibilityConfig;const resetAcc=byId('resetAccountVisibilityBtn');if(resetAcc)resetAcc.onclick=()=>{if(!confirm('确认清空所有账号单独可视配置？'))return;accountVisibilityConfig=normalizeAccountVisibilityConfig({});accountVisibilitySelectedEmail='';saveAccountVisibilityConfig()};const allAcc=byId('selectAllAccountVisibilityBtn');if(allAcc)allAcc.onclick=()=>setAccountVisibilityAll(true);const clearAcc=byId('clearAccountVisibilityBtn');if(clearAcc)clearAcc.onclick=()=>setAccountVisibilityAll(false);const delAcc=byId('deleteAccountVisibilityBtn');if(delAcc)delAcc.onclick=deleteAccountVisibilityConfig;const emailInp=byId('accountVisibilityEmailInp');if(emailInp)emailInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addAccountVisibilityConfig()}})}
