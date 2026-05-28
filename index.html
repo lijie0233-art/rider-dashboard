@@ -4244,6 +4244,50 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
   };
 })();
 
+
+
+/* === fix: show unified rider notes in Problem Rider Management final table === */
+(function(){
+  function problemSharedNoteCell(id){
+    try{
+      if(typeof sharedRiderNoteControlHTML === 'function') return sharedRiderNoteControlHTML(id, '问题骑手管理');
+      return '<span class="mini">统一备注组件未初始化</span>';
+    }catch(e){return '<span class="mini">备注加载失败</span>'}
+  }
+  const __prevRefreshSharedNoteViewsProblems = typeof refreshSharedNoteViews === 'function' ? refreshSharedNoteViews : null;
+  refreshSharedNoteViews=function(){
+    try{
+      if(state.tab==='problems')renderProblems();
+      else if(__prevRefreshSharedNoteViewsProblems)__prevRefreshSharedNoteViewsProblems();
+    }catch(e){console.warn('统一备注刷新问题骑手管理失败：',e?.message||e)}
+  };
+  renderProblems=function(){
+    window.ensureVehicleFilterControls&&window.ensureVehicleFilterControls();
+    const chips=byId('issueChips');
+    if(chips){
+      chips.innerHTML=issueDefs.map(([k,l])=>`<button class="chip ${state.issue===k?'active':''}" data-issue="${k}">${l}</button>`).join('');
+      chips.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{state.issue=b.dataset.issue;renderProblems()});
+    }
+    const items=filteredProblems();
+    const sub=byId('problemSub');
+    if(sub)sub.textContent=rows.length?`${state.cycle} vs ${state.compare} · 当前显示 ${items.length} 名问题骑手管理`:'读取 Supabase 云数据后自动识别问题骑手管理';
+    const fs=byId('filterSummary');
+    if(fs)fs.textContent=`${items.length}人 · ${state.action==='all'?'全部动作':state.action}`;
+    const table=byId('problemTable');
+    if(!table)return;
+    if(!rows.length){table.innerHTML='<tr><td class="empty">暂无云数据，请先检查 Supabase 表</td></tr>';return}
+    if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无问题骑手管理</td></tr>';return}
+    let html='<thead><tr><th>骑手</th><th>风险</th><th>建议动作</th><th>问题标签</th><th>变化原因</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    items.forEach(x=>{
+      const cur=x.cur||{};
+      html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td><td><b>${esc(x.action)}</b></td><td>${x.issues.map(i=>`<span class="pill ${i.tone}">${esc(i.label)}</span>`).join('')}</td><td>${getFollow(x.id,state.cycle).reason?`<span class="pill purple">${esc(getFollow(x.id,state.cycle).reason)}</span>`:''}</td>${riderExtraCells(cur)}<td>${fmt(val(x.cur,'orders'),'orders')}<br>${deltaHTML(val(x.cur,'orders'),val(x.pre,'orders'),'orders')}</td><td>${fmt(val(x.cur,'income'),'income')}<br>${deltaHTML(val(x.cur,'income'),val(x.pre,'income'),'income')}</td><td>${fmt(val(x.cur,'hourly'),'hourly')}<br>${deltaHTML(val(x.cur,'hourly'),val(x.pre,'hourly'),'hourly')}</td><td>${fmt(val(x.cur,'duration'),'duration')}<br>${deltaHTML(val(x.cur,'duration'),val(x.pre,'duration'),'duration')}</td><td>${fmt(val(x.cur,'periodAvg'),'periodAvg')}</td><td>${problemSharedNoteCell(x.id)}</td><td><div class="inlineActions"><button class="btn small trackBtn" data-track="${esc(x.id)}">跟踪</button><button class="btn small" data-follow="${esc(x.id)}">跟进</button></div></td></tr>`;
+    });
+    table.innerHTML=html+'</tbody>';
+    table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+    table.querySelectorAll('[data-follow]').forEach(b=>b.onclick=()=>openFollowup(b.dataset.follow));
+  };
+})();
+
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
