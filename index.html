@@ -4177,7 +4177,7 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
   function returnPotentialRateCompareBadges(id){
     const cur=rec(state.cycle,id)||{};
     const pre=rec(state.compare,id)||{};
-    return `<div class="poolMetricLine"><span>接单率 ${esc(fmtField(cur,'acceptanceRate'))} ${rateDeltaText(cur&&cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</span><span>责尾单率 ${esc(fmtField(cur,'tailRate'))} ${rateDeltaText(cur&&cur.tailRate,pre&&pre.tailRate,'tailRate')}</span></div>`;
+    return `<div class="poolMetricLine"><span>接单率 ${esc(fmtField(cur,'acceptanceRate'))} ${deltaText(cur&&cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</span><span>责尾单率 ${esc(fmtField(cur,'tailRate'))} ${deltaText(cur&&cur.tailRate,pre&&pre.tailRate,'tailRate')}</span></div>`;
   }
   renderReturnPotentialPool=function(){
     const returnTable=byId('returnPoolTable'),potentialTable=byId('potentialPoolTable');
