@@ -386,6 +386,15 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 /* Unified rider note history */
 .sharedNoteCell{min-width:230px;display:grid;gap:6px}.sharedNoteCell .followNote{width:100%;min-width:210px;min-height:44px}.sharedNoteSaveHint{font-size:11px;color:var(--muted);line-height:1.35}.sharedNoteSaving{color:var(--amber)!important;font-weight:900}.sharedNoteSaved{color:var(--green)!important;font-weight:900}.sharedNoteError{color:var(--red)!important;font-weight:900}
 
+
+/* High potential delta color display */
+.potentialDeltaStack{display:grid;gap:6px;min-width:150px}
+.potentialDeltaRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;line-height:1.35}
+.potentialDeltaRow b{font-size:12px;color:#344054;font-weight:950;min-width:54px}
+.potentialDeltaRow .potentialNow{font-weight:950;color:#111827}
+.potentialDeltaRow .delta{margin:0;padding:3px 7px;font-size:11px}
+.potentialDeltaRow em{font-style:normal;color:#98a2b3;font-size:11px;font-weight:850}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -4177,7 +4186,14 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
   function returnPotentialRateCompareBadges(id){
     const cur=rec(state.cycle,id)||{};
     const pre=rec(state.compare,id)||{};
-    return `<div class="poolMetricLine"><span>接单率 ${esc(fmtField(cur,'acceptanceRate'))} ${deltaText(cur&&cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}</span><span>责尾单率 ${esc(fmtField(cur,'tailRate'))} ${deltaText(cur&&cur.tailRate,pre&&pre.tailRate,'tailRate')}</span></div>`;
+    const accNow=esc(fmtField(cur,'acceptanceRate'));
+    const tailNow=esc(fmtField(cur,'tailRate'));
+    const accCmp=esc(fmtField(pre,'acceptanceRate'));
+    const tailCmp=esc(fmtField(pre,'tailRate'));
+    return `<div class="potentialDeltaStack">
+      <div class="potentialDeltaRow"><b>接单率</b><span class="potentialNow">${accNow}</span>${deltaHTML(cur&&cur.acceptanceRate,pre&&pre.acceptanceRate,'acceptanceRate')}<em>对比 ${accCmp}</em></div>
+      <div class="potentialDeltaRow"><b>责尾单率</b><span class="potentialNow">${tailNow}</span>${deltaHTML(cur&&cur.tailRate,pre&&pre.tailRate,'tailRate')}<em>对比 ${tailCmp}</em></div>
+    </div>`;
   }
   renderReturnPotentialPool=function(){
     const returnTable=byId('returnPoolTable'),potentialTable=byId('potentialPoolTable');
