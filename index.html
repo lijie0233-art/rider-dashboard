@@ -395,6 +395,18 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 .potentialDeltaRow .delta{margin:0;padding:3px 7px;font-size:11px}
 .potentialDeltaRow em{font-style:normal;color:#98a2b3;font-size:11px;font-weight:850}
 
+
+
+/* Todo reminder modal and reminder mode */
+.todoFormGrid{grid-template-columns:1.2fr .65fr .75fr .72fr auto!important}
+.todoReminderTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#eff6ff;color:#2563eb;white-space:nowrap}
+.todoReminderTag.none{background:#f2f4f7;color:#667085}.todoReminderTag.login{background:#eff6ff;color:#2563eb}.todoReminderTag.due_today{background:#fffaeb;color:#dc6803}.todoReminderTag.overdue{background:#fef3f2;color:#d92d20}
+.todoReminderLayer{display:none;position:fixed;inset:0;z-index:1450;background:rgba(15,23,42,.48);align-items:center;justify-content:center;padding:18px}
+.todoReminderLayer.show{display:flex}
+.todoReminderPanel{width:min(680px,100%);max-height:86vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:0 28px 90px rgba(15,23,42,.26);padding:18px;color:#111827}
+.todoReminderHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.todoReminderHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.todoReminderHead .sub{margin-top:5px}.todoReminderList{display:grid;gap:10px;margin-top:10px}.todoReminderItem{border:1px solid var(--line);border-radius:18px;background:#f8fafc;padding:12px}.todoReminderItemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.todoReminderTask{font-weight:950;color:#111827;line-height:1.45}.todoReminderMeta{font-size:12px;color:#667085;line-height:1.6;margin-top:5px}.todoReminderActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}.todoReminderMiniActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.todoReminderMiniActions .btn{box-shadow:none;padding:6px 9px;font-size:12px}
+@media(max-width:900px){.todoFormGrid{grid-template-columns:1fr!important}.todoReminderItemTop{display:block}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -1391,6 +1403,22 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
   </aside>
 </div>
 <div class="toast" id="toast"></div>
+
+
+<div class="todoReminderLayer" id="todoReminderLayer" aria-hidden="true">
+  <div class="todoReminderPanel">
+    <div class="todoReminderHead">
+      <div><h2>📝 待办任务提醒</h2><div class="sub">以下任务已配置提醒方式，可在这里快速标记完成，或进入待办事项管理查看。</div></div>
+      <button class="btn small" id="todoReminderCloseBtn" type="button">关闭</button>
+    </div>
+    <div class="todoReminderList" id="todoReminderList"></div>
+    <div class="todoReminderActions">
+      <button class="btn" id="todoReminderLaterBtn" type="button">稍后提醒</button>
+      <button class="btn primary" id="todoReminderGoBtn" type="button">前往待办事项管理</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const metrics=[{key:'orders',label:'跑单量',short:'跑单',unit:'单',drop:.2,min:10},{key:'income',label:'总收入',short:'收入',unit:'$',drop:.2,min:50},{key:'hourly',label:'时薪',short:'时薪',unit:'$/h',drop:.15,min:2},{key:'duration',label:'背单时长',short:'背单',unit:'h',drop:.2,min:3},{key:'acceptanceRate',label:'接单率',short:'接单率',unit:'%',drop:.1,min:.03},{key:'tailRate',label:'骑手责尾单率',short:'责尾单率',unit:'%',drop:.1,min:.03}];
 const mMap=Object.fromEntries(metrics.map(m=>[m.key,m]));
@@ -4308,6 +4336,208 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
     table.querySelectorAll('[data-follow]').forEach(b=>b.onclick=()=>openFollowup(b.dataset.follow));
   };
 })();
+
+
+
+/* === Todo reminder fix and popup reminder feature === */
+(function(){
+  const TODO_REMINDER_MODES=[
+    ['none','不提醒'],
+    ['login','登录后弹窗'],
+    ['due_today','截止当天弹窗'],
+    ['overdue','逾期弹窗']
+  ];
+  const TODO_REMINDER_LABELS=Object.fromEntries(TODO_REMINDER_MODES);
+  function normalizeTodoReminderMode(v){
+    const x=String(v||'none').trim();
+    return TODO_REMINDER_LABELS[x]?x:'none';
+  }
+  function todoReminderOptionsHtml(active){
+    const cur=normalizeTodoReminderMode(active);
+    return TODO_REMINDER_MODES.map(([v,l])=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(l)}</option>`).join('');
+  }
+  function ensureTodoReminderControls(){
+    const grid=byId('todoTaskInp')?.closest('.todoFormGrid');
+    const addBtn=byId('addTodoBtn');
+    if(addBtn){addBtn.type='button';addBtn.removeAttribute('disabled')}
+    if(grid&&!byId('todoReminderModeInp')){
+      const label=document.createElement('label');
+      label.className='field';
+      label.id='todoReminderModeField';
+      label.innerHTML=`<span>提醒方式</span><select id="todoReminderModeInp">${todoReminderOptionsHtml('none')}</select>`;
+      if(addBtn)grid.insertBefore(label,addBtn);else grid.appendChild(label);
+    }
+  }
+  function normalizeTodoRecord(t){
+    return {...(t||{}),reminder_mode:normalizeTodoReminderMode(t?.reminder_mode)};
+  }
+  function todoReminderTag(mode){
+    const m=normalizeTodoReminderMode(mode);
+    return `<span class="todoReminderTag ${esc(m)}">${esc(TODO_REMINDER_LABELS[m]||'不提醒')}</span>`;
+  }
+  function todoReminderDateKey(){
+    const d=new Date();
+    d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+    return d.toISOString().slice(0,10);
+  }
+  function todoReminderSeenKey(){
+    return `todo_reminder_seen_${cloudUser?.id||cloudUser?.email||'guest'}_${todoReminderDateKey()}`;
+  }
+  function getSeenTodoReminderSet(){
+    try{return new Set(JSON.parse(localStorage.getItem(todoReminderSeenKey())||'[]'))}catch(e){return new Set()}
+  }
+  function setSeenTodoReminder(ids){
+    const set=getSeenTodoReminderSet();
+    ids.forEach(id=>set.add(String(id)));
+    try{localStorage.setItem(todoReminderSeenKey(),JSON.stringify([...set].slice(-500)))}catch(e){}
+  }
+  function todoReminderSeenId(t){return `${t.id||''}|${t.updated_at||t.created_at||''}|${normalizeTodoReminderMode(t.reminder_mode)}`}
+  function sameLocalDate(a,b){return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+  function isTodoDueToday(t){if(!t.due_at)return false;const d=new Date(t.due_at);if(Number.isNaN(d.getTime()))return false;return sameLocalDate(d,new Date())}
+  function isTodoOverdue(t){if(!t.due_at)return false;const d=new Date(t.due_at);return !Number.isNaN(d.getTime())&&d<new Date()}
+  function shouldTodoPopup(t){
+    if(!t||t.is_done)return false;
+    const mode=normalizeTodoReminderMode(t.reminder_mode);
+    if(mode==='none')return false;
+    if(mode==='login')return true;
+    if(mode==='due_today')return isTodoDueToday(t);
+    if(mode==='overdue')return isTodoOverdue(t);
+    return false;
+  }
+  function pendingTodoReminders(){
+    const seen=getSeenTodoReminderSet();
+    return (weeklyTodos||[]).map(normalizeTodoRecord).filter(t=>shouldTodoPopup(t)&&!seen.has(todoReminderSeenId(t)));
+  }
+  window.closeTodoReminderPopup=function(markSeen=true){
+    const layer=byId('todoReminderLayer');
+    if(markSeen){const ids=(window.__todoReminderCurrentItems||[]).map(todoReminderSeenId);setSeenTodoReminder(ids)}
+    if(layer){layer.classList.remove('show');layer.setAttribute('aria-hidden','true')}
+    window.__todoReminderCurrentItems=[];
+  };
+  window.showTodoReminderPopupIfNeeded=function(force=false){
+    try{
+      const items=force?(weeklyTodos||[]).map(normalizeTodoRecord).filter(shouldTodoPopup):pendingTodoReminders();
+      if(!items.length)return;
+      const list=byId('todoReminderList'),layer=byId('todoReminderLayer');
+      if(!list||!layer)return;
+      window.__todoReminderCurrentItems=items;
+      list.innerHTML=items.map(t=>{
+        const cd=countdownText(t.due_at);
+        return `<div class="todoReminderItem">
+          <div class="todoReminderItemTop">
+            <div><div class="todoReminderTask">${esc(t.task||'未命名任务')}</div><div class="todoReminderMeta">负责人：${esc(t.owner||'-')} · 截止：${esc(formatDateTimeLocal(t.due_at)||'未设置')} · <span class="todoCountdown ${cd.cls}">${esc(cd.txt)}</span></div></div>
+            <div>${todoReminderTag(t.reminder_mode)}</div>
+          </div>
+          <div class="todoReminderMiniActions"><button class="btn small" type="button" data-todo-reminder-done="${esc(t.id)}">标记完成</button></div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('[data-todo-reminder-done]').forEach(btn=>btn.onclick=async()=>{
+        const id=btn.dataset.todoReminderDone;
+        await toggleTodoDone(id,true);
+        window.__todoReminderCurrentItems=(window.__todoReminderCurrentItems||[]).filter(x=>String(x.id)!==String(id));
+        if(!window.__todoReminderCurrentItems.length)closeTodoReminderPopup(false);
+        else showTodoReminderPopupIfNeeded(true);
+      });
+      layer.classList.add('show');layer.setAttribute('aria-hidden','false');
+    }catch(e){console.warn('待办弹窗提醒失败：',e?.message||e)}
+  };
+
+  const __prevLoadWeeklyTodos=typeof loadWeeklyTodos==='function'?loadWeeklyTodos:null;
+  loadWeeklyTodos=async function(){
+    if(__prevLoadWeeklyTodos)await __prevLoadWeeklyTodos.apply(this,arguments);
+    weeklyTodos=(weeklyTodos||[]).map(normalizeTodoRecord);
+    return weeklyTodos;
+  };
+
+  addTodo=async function(evt){
+    if(evt&&evt.preventDefault)evt.preventDefault();
+    ensureTodoReminderControls();
+    const btn=byId('addTodoBtn');
+    const task=(byId('todoTaskInp')?.value||'').trim();
+    const owner=(byId('todoOwnerInp')?.value||'').trim();
+    const dueVal=byId('todoDueInp')?.value||'';
+    const reminderMode=normalizeTodoReminderMode(byId('todoReminderModeInp')?.value||'none');
+    if(!task){toast('请填写任务内容');byId('todoTaskInp')?.focus();return}
+    const payload={task,owner,due_at:dueVal?new Date(dueVal).toISOString():null,is_done:false,week_key:currentWeekKey(),reminder_mode:reminderMode,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()};
+    if(btn)btn.disabled=true;
+    try{
+      const client=getCloudClient();
+      let result=await client.from(TODO_TABLE).insert(payload).select('*').single();
+      if(result.error){
+        const msg=String(result.error.message||'');
+        if(msg.includes('reminder_mode')||msg.includes('column')){
+          const fallback={...payload};delete fallback.reminder_mode;
+          result=await client.from(TODO_TABLE).insert(fallback).select('*').single();
+          if(!result.error)toast('待办已保存；如需保存提醒方式，请先执行提醒字段 SQL');
+        }
+      }
+      if(result.error)throw result.error;
+      const row=normalizeTodoRecord({...result.data,reminder_mode:result.data?.reminder_mode||reminderMode});
+      weeklyTodos.push(row);
+      byId('todoTaskInp').value='';
+      if(byId('todoOwnerInp'))byId('todoOwnerInp').value='';
+      if(byId('todoDueInp'))byId('todoDueInp').value='';
+      const rm=byId('todoReminderModeInp');if(rm)rm.value='none';
+      renderTodoList();
+      if(reminderMode!=='none')setTimeout(()=>showTodoReminderPopupIfNeeded(true),250);
+      toast('待办任务已保存');
+    }catch(e){toast('待办保存失败：'+(e.message||e));}
+    finally{if(btn)btn.disabled=false}
+  };
+
+  renderTodoList=function(){
+    ensureTodoReminderControls();
+    const table=byId('todoTable');updateTodoMenuBadge();if(!table)return;
+    const week=currentWeekKey();
+    const list=(weeklyTodos||[]).map(normalizeTodoRecord).filter(x=>(x.week_key||week)===week).sort((a,b)=>(a.is_done===b.is_done?0:a.is_done?1:-1)||String(a.due_at||'').localeCompare(String(b.due_at||'')));
+    const total=list.length,done=list.filter(x=>x.is_done).length,overdue=list.filter(x=>!x.is_done&&x.due_at&&new Date(x.due_at)<new Date()).length;
+    const remind=list.filter(x=>!x.is_done&&normalizeTodoReminderMode(x.reminder_mode)!=='none').length;
+    const next=list.filter(x=>!x.is_done&&x.due_at).sort((a,b)=>new Date(a.due_at)-new Date(b.due_at))[0];
+    const stats=byId('todoStats');
+    if(stats)stats.innerHTML=[['本周任务',total,`周期：${week}`,'blue'],['已完成',done,`完成率 ${total?Math.round(done/total*100):0}%`,'green'],['已超时',overdue,'请优先处理','red'],['已设提醒',remind,next?`最近：${formatDateTimeLocal(next.due_at)}`:'暂无截止项','amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n" style="font-size:${typeof x[1]==='number'?'24px':'16px'}">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');
+    if(!list.length){table.innerHTML='<tr><td class="empty">本周暂无待办任务。请在上方新增任务。</td></tr>';return}
+    let html='<thead><tr><th>完成</th><th>任务</th><th>负责人</th><th>截止日期时间</th><th>提醒方式</th><th>离完成时间倒计时</th><th>更新时间</th><th>操作</th></tr></thead><tbody>';
+    list.forEach(t=>{const cd=countdownText(t.due_at);html+=`<tr class="${t.is_done?'todoDoneRow':''}"><td><input class="rowCheck" type="checkbox" data-todo-done="${esc(t.id)}" ${t.is_done?'checked':''}></td><td><b class="todoTaskText">${esc(t.task||'未命名任务')}</b><div class="mini">${esc(t.week_key||week)}</div></td><td><b>${esc(t.owner||'-')}</b></td><td>${formatDateTimeLocal(t.due_at)}</td><td>${todoReminderTag(t.reminder_mode)}</td><td><span class="todoCountdown ${cd.cls}">${esc(cd.txt)}</span></td><td><span class="mini">${formatDateTimeLocal(t.updated_at||t.created_at)}</span></td><td><button class="btn danger todoActionBtn" type="button" data-todo-delete="${esc(t.id)}">删除</button></td></tr>`});
+    table.innerHTML=html+'</tbody>';
+    table.querySelectorAll('[data-todo-done]').forEach(el=>el.onchange=e=>toggleTodoDone(e.target.dataset.todoDone,e.target.checked));
+    table.querySelectorAll('[data-todo-delete]').forEach(btn=>btn.onclick=()=>deleteTodo(btn.dataset.todoDelete));
+  };
+
+  bindTodoControls=function(){
+    ensureTodoReminderControls();
+    const add=byId('addTodoBtn');
+    if(add&&!add.dataset.todoBound){add.dataset.todoBound='1';add.onclick=null;add.addEventListener('click',addTodo)}
+    const grid=byId('todoTaskInp')?.closest('.todoFormGrid');
+    if(grid&&!grid.dataset.todoEnterBound){grid.dataset.todoEnterBound='1';grid.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.tagName!=='TEXTAREA'){e.preventDefault();addTodo(e)}})}
+    const refresh=byId('refreshTodoBtn');
+    if(refresh&&!refresh.dataset.todoBound){refresh.dataset.todoBound='1';refresh.onclick=null;refresh.addEventListener('click',async()=>{await loadWeeklyTodos();renderTodoList();toast('待办已刷新');setTimeout(()=>showTodoReminderPopupIfNeeded(false),250)})}
+    byId('todoReminderCloseBtn')?.addEventListener('click',()=>closeTodoReminderPopup(true),{once:false});
+    byId('todoReminderLaterBtn')?.addEventListener('click',()=>closeTodoReminderPopup(true),{once:false});
+    byId('todoReminderGoBtn')?.addEventListener('click',()=>{closeTodoReminderPopup(true);selectTab('todoList')},{once:false});
+    byId('todoReminderLayer')?.addEventListener('click',e=>{if(e.target===byId('todoReminderLayer'))closeTodoReminderPopup(true)},{once:false});
+    if(!window.__todoCountdownTimer){window.__todoCountdownTimer=setInterval(()=>{if(state.tab==='todoList')renderTodoList();if(state.tab==='overview')showTodoReminderPopupIfNeeded(false)},60000)}
+  };
+
+  const __prevShowAppTodoReminder=typeof showApp==='function'?showApp:null;
+  if(__prevShowAppTodoReminder&&!window.__todoShowAppWrapped){
+    window.__todoShowAppWrapped=true;
+    showApp=async function(){
+      const r=await __prevShowAppTodoReminder.apply(this,arguments);
+      setTimeout(()=>showTodoReminderPopupIfNeeded(false),900);
+      return r;
+    };
+  }
+  const __prevSelectTabTodoReminder=typeof selectTab==='function'?selectTab:null;
+  if(__prevSelectTabTodoReminder&&!window.__todoSelectTabWrapped){
+    window.__todoSelectTabWrapped=true;
+    selectTab=function(tab){
+      const r=__prevSelectTabTodoReminder.apply(this,arguments);
+      if(tab==='overview')setTimeout(()=>showTodoReminderPopupIfNeeded(false),400);
+      return r;
+    };
+  }
+})();
+
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
