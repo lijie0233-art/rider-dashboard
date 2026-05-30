@@ -200,6 +200,21 @@ body.auth-locked .donateLayer,body.auth-locked .donateThanksLayer{display:none!i
 .noticeTopBtn{position:relative;border:1px solid #e5e7eb;background:#fff;color:#172033;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:950;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 8px 20px rgba(16,24,40,.04);transition:.16s}.noticeTopBtn:hover{transform:translateY(-1px);background:#f8fafc;box-shadow:0 10px 22px rgba(17,24,39,.1)}.noticeTopDot{display:none;position:absolute;right:4px;top:3px;width:8px;height:8px;border-radius:99px;background:#f04438;box-shadow:0 0 0 2px #fff}.noticeTopBtn.hasUnread .noticeTopDot{display:block}.noticeLayer{display:none;position:fixed;inset:0;z-index:1320;background:rgba(15,23,42,.46);padding:18px;align-items:flex-start;justify-content:flex-end}.noticeLayer.show{display:flex}.noticePanel{width:min(760px,100%);max-height:92vh;overflow:auto;margin-top:54px;background:rgba(255,255,255,.99);border:1px solid rgba(226,232,240,.95);border-radius:24px;box-shadow:0 28px 90px rgba(15,23,42,.24);padding:18px;color:#111827}.noticeHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.noticeHead h2{margin:0;font-size:19px;letter-spacing:-.03em}.noticeHead .sub{line-height:1.55}.noticeClose{border:0;background:#f2f4f7;color:#475467;border-radius:999px;width:32px;height:32px;cursor:pointer;font-weight:950;flex:0 0 auto}.noticeAutoBanner{display:none;background:#fffaeb;border:1px solid #fedf89;color:#92400e;border-radius:16px;padding:10px 12px;margin:0 0 12px;font-size:13px;font-weight:850;line-height:1.55}.noticeLayer.autoMode .noticeAutoBanner{display:block}.noticeAdminBox{display:none;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;margin-bottom:12px}.noticeLayer.superAdmin .noticeAdminBox{display:block}.noticeAdminGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.noticeAdminGrid .field,.noticeAdminBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.noticeAdminGrid .field span,.noticeAdminBox .field span{color:var(--muted)}.noticeAdminBox input,.noticeAdminBox textarea{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 11px;color:var(--ink);width:100%}.noticeAdminBox textarea{min-height:120px;resize:vertical}.noticeAdminActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.noticeEditHint{font-size:12px;color:var(--muted);font-weight:850}.noticeList{display:grid;gap:10px}.noticeCard{border:1px solid var(--line);background:#fff;border-radius:18px;padding:13px;box-shadow:var(--shadow2)}.noticeCard.unseen{border-color:#fbbf24;background:linear-gradient(135deg,#fff7ed,#fff)}.noticeCardHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:7px}.noticeCard h3{margin:0;font-size:16px;letter-spacing:-.02em}.noticeMeta{font-size:12px;color:var(--muted);font-weight:850;white-space:nowrap}.noticeContent{white-space:pre-wrap;line-height:1.7;color:#344054;font-size:13px}.noticeAdminInline{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.noticeEmpty{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:18px;padding:22px;text-align:center;color:#667085;font-weight:850}@media(max-width:760px){.noticeTopBtn{padding:8px 10px;font-size:12px}.noticeLayer{justify-content:center;padding:12px}.noticePanel{margin-top:56px;border-radius:22px}.noticeAdminGrid{grid-template-columns:1fr}.noticeCardHead{display:block}.noticeMeta{display:block;margin-top:4px}}
 
 
+/* Top marquee notice */
+.topMarqueeWrap{display:none;margin:-6px 0 14px;background:linear-gradient(135deg,#111827,#1f2937);border:1px solid rgba(255,212,0,.32);border-radius:16px;box-shadow:0 12px 28px rgba(16,24,40,.10);overflow:hidden;color:#fff}
+.topMarqueeWrap.show{display:flex;align-items:center;gap:10px}
+.topMarqueeLabel{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;background:#ffd400;color:#111827;font-size:12px;font-weight:950;padding:9px 12px;align-self:stretch}
+.topMarqueeViewport{min-width:0;flex:1;overflow:hidden;white-space:nowrap;padding:9px 0}
+.topMarqueeText{display:inline-block;padding-left:100%;font-size:13px;font-weight:850;line-height:1.4;animation:topMarqueeMove 22s linear infinite}
+.topMarqueeWrap:hover .topMarqueeText{animation-play-state:paused}
+.topMarqueeExpire{flex:0 0 auto;font-size:11px;color:#d0d5dd;padding:0 12px 0 4px;white-space:nowrap}
+@keyframes topMarqueeMove{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+.marqueeAdminBox{display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:12px;margin-bottom:12px}.noticeLayer.superAdmin .marqueeAdminBox{display:block}
+.marqueeAdminGrid{display:grid;grid-template-columns:1fr 180px;gap:10px;align-items:end}.marqueeAdminGrid .field,.marqueeAdminBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.marqueeAdminGrid .field span,.marqueeAdminBox .field span{color:var(--muted)}
+.marqueeAdminBox textarea{min-height:72px;resize:vertical}.marqueeAdminActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.marqueeStatus{font-size:12px;color:#92400e;font-weight:850;line-height:1.5}
+@media(max-width:760px){.topMarqueeWrap{margin:-4px 0 12px;border-radius:14px}.topMarqueeLabel{padding:8px 10px;font-size:11px}.topMarqueeText{font-size:12px;animation-duration:18s}.topMarqueeExpire{display:none}.marqueeAdminGrid{grid-template-columns:1fr}}
+
+
 /* Order appeal processing center */
 .appealGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.appealCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px;box-shadow:var(--shadow2)}.appealCard b{display:block;font-size:12px;color:#475467}.appealCard .num{font-size:24px;font-weight:950;margin-top:6px;color:#111827}.appealFilterGrid{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;align-items:end;margin-bottom:12px}.appealFilterGrid .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealFilterGrid .field span{color:var(--muted)}.appealReasonTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#fff7ed;color:#c2410c}.appealStatusTag{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.appealStatusTag.ok{background:var(--green2);color:var(--green)}.appealStatusTag.no{background:var(--red2);color:var(--red)}.appealPhotoLink{display:inline-flex;margin:2px 6px 2px 0;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850;color:#2563eb;text-decoration:none}.appealDetailModal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.52);align-items:center;justify-content:center;padding:18px}.appealDetailModal.show{display:flex}.appealDetailPanel{width:min(920px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 26px 86px rgba(16,24,40,.25);padding:18px;border:1px solid var(--line)}.appealDetailHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.appealDetailHead h2{margin:0;font-size:18px}.appealDetailGrid{display:grid;grid-template-columns:140px 1fr;gap:8px 12px;border:1px solid var(--line);border-radius:18px;padding:14px;background:#f8fafc}.appealDetailGrid b{font-size:13px;color:#475467}.appealDetailGrid span{font-size:13px;color:#111827;line-height:1.55}.appealImageGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px}.appealImageGrid a{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.appealImageGrid img{width:100%;height:110px;object-fit:cover;display:block}.appealReviewBox{margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end}.appealReviewBox .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}.appealReviewBox .field span{color:var(--muted)}.appealPublicLink{font-size:12px;color:#475467;line-height:1.6;background:#fffaeb;border:1px solid #fedf89;border-radius:14px;padding:10px;margin-bottom:12px}.appealPublicLink code{background:#fff;border:1px solid #fde68a;border-radius:8px;padding:2px 6px;color:#92400e}.appealPagination{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px 12px}.appealPagination .left,.appealPagination .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.appealPagination select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850}.appealPageBtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font-weight:900;cursor:pointer}.appealPageBtn.active{background:#111827;color:#fff;border-color:#111827}.appealPageBtn:disabled{opacity:.45;cursor:not-allowed}.appealPageInfo{font-size:12px;color:var(--muted);font-weight:850}@media(max-width:980px){.appealGrid{grid-template-columns:repeat(2,1fr)}.appealFilterGrid,.appealReviewBox{grid-template-columns:1fr}.appealDetailGrid{grid-template-columns:1fr}}@media(max-width:640px){.appealGrid{grid-template-columns:1fr}.appealDetailPanel{padding:14px;border-radius:20px}.appealImageGrid{grid-template-columns:repeat(2,1fr)}}
 .newRiderPagination{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px 12px}.newRiderPagination .left,.newRiderPagination .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.newRiderPagination select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;color:var(--ink);font-weight:850}.newRiderPagination label{display:inline-flex;align-items:center;gap:6px}.newRiderPagination .pageJumpLabel{color:var(--muted);font-size:12px;font-weight:850}
@@ -492,6 +507,11 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <button class="chatTopBtn" id="chatTopBtn" type="button" title="站内聊天" aria-label="站内聊天">💬聊天<span class="chatUnreadDot" id="chatUnreadDot"></span></button>
       <button class="donateTopBtn" id="donateFloatBtn" type="button" title="元气打赏" aria-label="元气打赏">元气打赏👊</button><span class="donateTotalChip" id="donateTotalChip" role="button" tabindex="0" aria-label="查看打赏明细">截止今日已打赏 ¥0</span>
     </div>
+  </div>
+  <div class="topMarqueeWrap" id="topMarqueeWrap" aria-live="polite">
+    <div class="topMarqueeLabel">📣 走马灯</div>
+    <div class="topMarqueeViewport"><span class="topMarqueeText" id="topMarqueeText"></span></div>
+    <div class="topMarqueeExpire" id="topMarqueeExpire"></div>
   </div>
 <header class="hero" id="hero">
   <div class="heroTop">
@@ -1368,6 +1388,21 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <button class="noticeClose" id="closeNoticeBtn" type="button" aria-label="关闭公告">×</button>
     </div>
     <div class="noticeAutoBanner" id="noticeAutoBanner">有新的站内公告，请查看。每条公告仅首次登录自动提醒一次，之后可通过右上角“🪧公告”再次查看。</div>
+    <div class="marqueeAdminBox" id="marqueeAdminBox">
+      <div class="noticeHead" style="margin-bottom:8px">
+        <div><h2 style="font-size:16px;margin:0">📣 顶部走马灯通知</h2><div class="sub">仅超级管理员可发布。超过展示时长后，通知会自动隐藏。</div></div>
+      </div>
+      <label class="field"><span>通知内容</span><textarea id="marqueeContentInp" placeholder="请输入要在页面顶部滚动展示的通知内容"></textarea></label>
+      <div class="marqueeAdminGrid" style="margin-top:10px">
+        <label class="field"><span>展示时长（分钟）</span><input id="marqueeDurationInp" type="number" min="1" step="1" value="60" placeholder="例如：60" /></label>
+        <label class="field"><span>当前状态</span><input id="marqueeStatusInp" value="未发布" readonly /></label>
+      </div>
+      <div class="marqueeAdminActions">
+        <button class="btn primary small" id="publishMarqueeBtn" type="button">发布 / 更新走马灯</button>
+        <button class="btn small danger" id="clearMarqueeBtn" type="button">关闭走马灯</button>
+        <span class="marqueeStatus" id="marqueeAdminHint">发布后所有账号顶部可见，过期自动隐藏。</span>
+      </div>
+    </div>
     <div class="noticeAdminBox" id="noticeAdminBox">
       <div class="noticeAdminGrid">
         <label class="field"><span>公告标题</span><input id="noticeTitleInp" placeholder="例如：本周重点运营提醒" maxlength="80" /></label>
@@ -1705,6 +1740,7 @@ async function showApp(){
   await safe(loadModulePermissionConfig,'板块权限读取');
   await safe(loadAccountVisibilityConfig,'账号可视配置读取');
   await safe(loadSiteAnnouncements,'公告读取');
+  await safe(loadTopMarqueeNotice,'走马灯通知读取');
   try{showLoginNoticeIfNeeded()}catch(e){console.warn('公告弹窗检查失败：',e?.message||e)}
   await safe(initSiteChat,'站内聊天初始化');
   await safe(loadMemberGrowth,'成长数据读取');
@@ -1807,12 +1843,16 @@ const ACCOUNT_VISIBILITY_LOCAL_KEY='rider_menu_account_visibility_v1';
 const SITE_ANNOUNCEMENTS_KEY='site_announcements_v1';
 const SITE_ANNOUNCEMENTS_LOCAL_KEY='rider_site_announcements_v1';
 const SITE_ANNOUNCEMENTS_SEEN_PREFIX='rider_site_announcements_seen_v1_';
+const TOP_MARQUEE_KEY='top_marquee_notice_v1';
+const TOP_MARQUEE_LOCAL_KEY='rider_top_marquee_notice_v1';
 const SITE_CHAT_TABLE='site_chat_messages';
 const SITE_CHAT_PRESENCE_TABLE='site_chat_presence';
 const SITE_CHAT_LOCAL_SEEN_PREFIX='rider_site_chat_last_seen_v1_';
 let siteChatMessages=[],siteChatAccounts=[],siteChatTarget='all',siteChatLoaded=false,siteChatTimer=null,sitePresenceTimer=null,siteChatUnreadCount=0,siteChatChannel=null,sitePresenceChannel=null,siteChatRefreshDebounce=null,siteOnlineRefreshDebounce=null;
 
 let siteAnnouncements=normalizeSiteAnnouncements(safeGet(SITE_ANNOUNCEMENTS_LOCAL_KEY,{items:[]}));
+let topMarqueeNotice=normalizeTopMarqueeNotice(safeGet(TOP_MARQUEE_LOCAL_KEY,{}));
+let topMarqueeTimer=null;
 let editingNoticeId='';
 let noticeAutoIds=[];
 const MODULE_META=[
@@ -1901,6 +1941,80 @@ function publishedAnnouncements(){siteAnnouncements=normalizeSiteAnnouncements(s
 function unreadAnnouncementIds(){const seen=new Set(getSeenNoticeIds());return publishedAnnouncements().filter(x=>!seen.has(x.id)).map(x=>x.id)}
 function markNoticeIdsSeen(ids){const merged=[...getSeenNoticeIds(),...(ids||[])];setSeenNoticeIds(merged);updateNoticeBadge()}
 function updateNoticeBadge(){const btn=byId('noticeTopBtn');if(!btn)return;const ids=authIsSuperAdmin()?[]:unreadAnnouncementIds();btn.classList.toggle('hasUnread',ids.length>0)}
+
+function normalizeTopMarqueeNotice(x={}){
+  const active=x&&x.active!==false&&String(x.content||'').trim();
+  return {
+    active:!!active,
+    content:String(x?.content||'').trim(),
+    duration_minutes:Math.max(1,parseInt(x?.duration_minutes||60,10)||60),
+    started_at:x?.started_at||'',
+    expires_at:x?.expires_at||'',
+    updated_at:x?.updated_at||'',
+    updated_by:x?.updated_by||''
+  };
+}
+function topMarqueeIsActive(n=topMarqueeNotice){
+  n=normalizeTopMarqueeNotice(n);
+  if(!n.active||!n.content)return false;
+  if(!n.expires_at)return true;
+  const t=new Date(n.expires_at).getTime();
+  return !Number.isFinite(t)||t>Date.now();
+}
+function topMarqueeExpireText(n=topMarqueeNotice){
+  if(!n?.expires_at)return '';
+  try{return '至 '+new Date(n.expires_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})}catch(e){return ''}
+}
+function renderTopMarqueeNotice(){
+  const wrap=byId('topMarqueeWrap'),text=byId('topMarqueeText'),exp=byId('topMarqueeExpire');
+  if(!wrap)return;
+  const active=topMarqueeIsActive(topMarqueeNotice);
+  wrap.classList.toggle('show',active);
+  if(text)text.textContent=active?topMarqueeNotice.content:'';
+  if(exp)exp.textContent=active?topMarqueeExpireText(topMarqueeNotice):'';
+  const c=byId('marqueeContentInp'),d=byId('marqueeDurationInp'),st=byId('marqueeStatusInp'),hint=byId('marqueeAdminHint');
+  if(c&&!document.activeElement?.isSameNode(c))c.value=topMarqueeNotice.content||'';
+  if(d&&!document.activeElement?.isSameNode(d))d.value=String(topMarqueeNotice.duration_minutes||60);
+  if(st)st.value=active?'展示中':'未展示 / 已过期';
+  if(hint)hint.textContent=active?('当前走马灯'+(topMarqueeExpireText(topMarqueeNotice)||'持续展示')):'发布后所有账号顶部可见，过期自动隐藏。';
+}
+function startTopMarqueeTimer(){
+  if(topMarqueeTimer)clearInterval(topMarqueeTimer);
+  topMarqueeTimer=setInterval(renderTopMarqueeNotice,60000);
+}
+async function loadTopMarqueeNotice(){
+  try{
+    const client=getCloudClient();
+    const {data,error}=await client.from(SYSTEM_SETTINGS_TABLE).select('config').eq('setting_key',TOP_MARQUEE_KEY).maybeSingle();
+    if(!error&&data?.config){topMarqueeNotice=normalizeTopMarqueeNotice(data.config);safeSet(TOP_MARQUEE_LOCAL_KEY,topMarqueeNotice)}
+  }catch(e){topMarqueeNotice=normalizeTopMarqueeNotice(safeGet(TOP_MARQUEE_LOCAL_KEY,{}))}
+  renderTopMarqueeNotice();startTopMarqueeTimer();
+}
+async function saveTopMarqueeNotice(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可发布顶部走马灯');return false}
+  topMarqueeNotice=normalizeTopMarqueeNotice(topMarqueeNotice);
+  safeSet(TOP_MARQUEE_LOCAL_KEY,topMarqueeNotice);
+  try{
+    const client=getCloudClient();
+    await client.from(SYSTEM_SETTINGS_TABLE).upsert({setting_key:TOP_MARQUEE_KEY,config:topMarqueeNotice,updated_by:cloudUser?.id||null,updated_at:new Date().toISOString()},{onConflict:'setting_key'});
+  }catch(e){console.warn('走马灯云端保存失败，已保存到本机：',e?.message||e);toast('走马灯云端保存失败，已先保存到本机')}
+  renderTopMarqueeNotice();return true;
+}
+async function publishTopMarqueeNotice(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可发布顶部走马灯');return}
+  const content=(byId('marqueeContentInp')?.value||'').trim();
+  const minutes=Math.max(1,parseInt(byId('marqueeDurationInp')?.value||'60',10)||60);
+  if(!content){toast('请填写走马灯通知内容');byId('marqueeContentInp')?.focus();return}
+  const now=new Date();
+  topMarqueeNotice=normalizeTopMarqueeNotice({active:true,content,duration_minutes:minutes,started_at:now.toISOString(),expires_at:new Date(now.getTime()+minutes*60000).toISOString(),updated_at:now.toISOString(),updated_by:currentAuthEmail()});
+  const ok=await saveTopMarqueeNotice();if(ok)toast('顶部走马灯已发布');
+}
+async function clearTopMarqueeNotice(){
+  if(!authIsSuperAdmin()){toast('仅超级管理员可关闭顶部走马灯');return}
+  if(topMarqueeNotice?.content&&!confirm('确认关闭当前顶部走马灯通知？'))return;
+  topMarqueeNotice=normalizeTopMarqueeNotice({...topMarqueeNotice,active:false,updated_at:new Date().toISOString(),updated_by:currentAuthEmail()});
+  const ok=await saveTopMarqueeNotice();if(ok)toast('顶部走马灯已关闭');
+}
 async function loadSiteAnnouncements(){
   try{
     const client=getCloudClient();
@@ -1919,7 +2033,7 @@ async function saveSiteAnnouncements(){
   }catch(e){console.warn('公告云端保存失败，已保存到本机：',e?.message||e);toast('公告云端保存失败，已先保存到本机')}
   renderNoticeCenter();updateNoticeBadge();return true;
 }
-function openNoticeCenter(auto=false,ids=[]){noticeAutoIds=Array.isArray(ids)?ids:[];const layer=byId('noticeLayer');if(!layer)return;layer.classList.toggle('superAdmin',authIsSuperAdmin());layer.classList.toggle('autoMode',!!auto);renderNoticeCenter();layer.classList.add('show');if(auto&&noticeAutoIds.length)markNoticeIdsSeen(noticeAutoIds)}
+function openNoticeCenter(auto=false,ids=[]){noticeAutoIds=Array.isArray(ids)?ids:[];const layer=byId('noticeLayer');if(!layer)return;layer.classList.toggle('superAdmin',authIsSuperAdmin());layer.classList.toggle('autoMode',!!auto);renderNoticeCenter();try{renderTopMarqueeNotice()}catch(e){}layer.classList.add('show');if(auto&&noticeAutoIds.length)markNoticeIdsSeen(noticeAutoIds)}
 function closeNoticeCenter(){byId('noticeLayer')?.classList.remove('show');byId('noticeLayer')?.classList.remove('autoMode');noticeAutoIds=[];updateNoticeBadge()}
 function resetNoticeEditor(){editingNoticeId='';const title=byId('noticeTitleInp'),content=byId('noticeContentInp'),status=byId('noticeEditStatusInp');if(title)title.value='';if(content)content.value='';if(status)status.value='新建公告'}
 function noticeDateText(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(e){return String(v).slice(0,16)}}
@@ -1962,7 +2076,7 @@ async function deleteNotice(id){
   siteAnnouncements=normalizeSiteAnnouncements({items:publishedAnnouncements().filter(x=>x.id!==id)});const ok=await saveSiteAnnouncements();if(ok){if(editingNoticeId===id)resetNoticeEditor();toast('公告已删除')}
 }
 function showLoginNoticeIfNeeded(){if(authIsSuperAdmin())return;const ids=unreadAnnouncementIds();if(ids.length)openNoticeCenter(true,ids)}
-function bindNoticeControls(){byId('noticeTopBtn')?.addEventListener('click',()=>openNoticeCenter(false));byId('closeNoticeBtn')?.addEventListener('click',closeNoticeCenter);byId('noticeLayer')?.addEventListener('click',e=>{if(e.target?.id==='noticeLayer')closeNoticeCenter()});byId('publishNoticeBtn')?.addEventListener('click',publishNotice);byId('saveNoticeEditBtn')?.addEventListener('click',saveNoticeEdit);byId('resetNoticeEditorBtn')?.addEventListener('click',resetNoticeEditor)}
+function bindNoticeControls(){byId('noticeTopBtn')?.addEventListener('click',()=>openNoticeCenter(false));byId('closeNoticeBtn')?.addEventListener('click',closeNoticeCenter);byId('noticeLayer')?.addEventListener('click',e=>{if(e.target?.id==='noticeLayer')closeNoticeCenter()});byId('publishNoticeBtn')?.addEventListener('click',publishNotice);byId('saveNoticeEditBtn')?.addEventListener('click',saveNoticeEdit);byId('resetNoticeEditorBtn')?.addEventListener('click',resetNoticeEditor);byId('publishMarqueeBtn')?.addEventListener('click',publishTopMarqueeNotice);byId('clearMarqueeBtn')?.addEventListener('click',clearTopMarqueeNotice)}
 
 function chatSeenKey(){return SITE_CHAT_LOCAL_SEEN_PREFIX+(currentAuthEmail()||'guest')}
 function chatLastSeenAt(){return safeGet(chatSeenKey(),'')||''}
