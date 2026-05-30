@@ -4681,12 +4681,12 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
   renderFollowup=function(){
     const table=byId('followupTable');if(!table)return;applyFollowConfigToInputs();renderReasonLibraryControls();renderFollowFilterControls();const hint=byId('followCycleHint');if(hint)hint.textContent=state.cycle||'-';const metricSel=byId('followReviewMetricSel');if(metricSel){metricSel.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===(state.followReviewMetric||state.metric)?'selected':''}>${m.label}</option>`).join('')}if(!rows.length){byId('followSummaryGrid').innerHTML='';table.innerHTML='<tr><td class="empty">请先检查 Supabase 云表是否有数据</td></tr>';renderFollowOwnerBoard();renderFollowReview();return}const items=followItems();const all=contactCandidateItems(),counts=Object.fromEntries(followStatuses.map(s=>[s,0]));all.forEach(x=>counts[getFollow(x.id).status]=(counts[getFollow(x.id).status]||0)+1);byId('followSummaryGrid').innerHTML=[['待联系',counts['未联系']||0,'符合人群配置且尚未开始处理','amber'],['已联系',counts['已联系']||0,'已触达但未完成闭环','blue'],['继续观察',counts['继续观察']||0,'需要后续复查','purple'],['已改善',counts['已改善']||0,'可作为闭环完成','green']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${x[2]}</div></div>`).join('');if(!items.length){table.innerHTML='<tr><td class="empty">当前配置 / 筛选下暂无待跟进骑手</td></tr>';renderFollowOwnerBoard();renderFollowReview();return}
     let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>风险</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>当前跑单</th><th>建议动作</th><th>跟进状态</th><th>变化原因</th><th>负责人</th><th>下一步日期</th><th>跟进备注</th><th>更新时间</th></tr></thead><tbody>';
-    items.forEach(x=>{const f=getFollow(x.id),cur=x.cur||{},pre=x.pre||{};html+=`<tr><td><input class="rowCheck" type="checkbox" data-follow-check value="${safeEsc(x.id)}" /></td><td><button class="nameBtn" data-track="${safeEsc(x.id)}"><div class="riderName">${safeEsc(x.name)}</div><div class="mini">ID ${safeEsc(x.id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td>${riderExtraCells(cur,pre)}<td><b>${fmt(val(cur,'orders'),'orders')}</b><br>${deltaHTML(val(cur,'orders'),val(pre,'orders'),'orders')}</td><td><b>${safeEsc(x.action)}</b><div class="mini">${x.issues.slice(0,2).map(i=>i.label).join('、')||'持续观察'}</div></td><td><select class="statusSelect" data-follow-status="${safeEsc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-follow-reason="${safeEsc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" data-follow-owner="${safeEsc(x.id)}" value="${safeEsc(f.owner)}" placeholder="负责人" /></td><td><input class="followInput" type="date" data-follow-date="${safeEsc(x.id)}" value="${safeEsc(f.nextDate)}" /></td><td><textarea class="followNote" data-follow-note="${safeEsc(x.id)}" placeholder="记录联系结果、承诺动作或补充原因">${safeEsc((typeof sharedLatestNoteText==='function'?sharedLatestNoteText(x.id):'')||f.note)}</textarea>${noteHistoryHTML(x.id)}${typeof changeHistoryHTML==='function'?changeHistoryHTML(x.id):''}</td><td><span class="mini">${safeEsc(f.updatedAt||'-')}</span></td></tr>`});
+    items.forEach(x=>{const f=getFollow(x.id),cur=x.cur||{},pre=x.pre||{};html+=`<tr><td><input class="rowCheck" type="checkbox" data-follow-check value="${safeEsc(x.id)}" /></td><td><button class="nameBtn" data-track="${safeEsc(x.id)}"><div class="riderName">${safeEsc(x.name)}</div><div class="mini">ID ${safeEsc(x.id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td>${riderExtraCells(cur,pre)}<td><b>${fmt(val(cur,'orders'),'orders')}</b><br>${deltaHTML(val(cur,'orders'),val(pre,'orders'),'orders')}</td><td><b>${safeEsc(x.action)}</b><div class="mini">${x.issues.slice(0,2).map(i=>i.label).join('、')||'持续观察'}</div></td><td><select class="statusSelect" data-follow-status="${safeEsc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-follow-reason="${safeEsc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" data-follow-owner="${safeEsc(x.id)}" value="${safeEsc(f.owner)}" placeholder="负责人" /></td><td><input class="followInput" type="date" data-follow-date="${safeEsc(x.id)}" value="${safeEsc(f.nextDate)}" /></td><td><textarea class="followNote" data-follow-note="${safeEsc(x.id)}" placeholder="记录联系结果、承诺动作或补充原因">${safeEsc(sharedLatestNoteText?sharedLatestNoteText(x.id)||f.note:f.note)}</textarea>${noteHistoryHTML(x.id)}${typeof changeHistoryHTML==='function'?changeHistoryHTML(x.id):''}</td><td><span class="mini">${safeEsc(f.updatedAt||'-')}</span></td></tr>`});
     table.innerHTML=html+'</tbody>';const allCheck=byId('followSelectAll');if(allCheck)allCheck.checked=false;bindTrackButtons(table);table.querySelectorAll('[data-follow-status]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followStatus,'status',e.target.value);renderFollowup();renderProblems()});table.querySelectorAll('[data-follow-reason]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followReason,'reason',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-owner]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followOwner,'owner',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-date]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followDate,'nextDate',e.target.value);renderFollowup()});table.querySelectorAll('[data-follow-note]').forEach(el=>el.onchange=e=>{setFollow(e.target.dataset.followNote,'note',e.target.value);renderFollowup()});renderFollowOwnerBoard();renderFollowReview();
   };
 
   renderFollowOwnerBoard=function(){
-    const wrap=byId('followOwnerBoard');if(!wrap)return;renderFollowOwnerControls();const owners=followupOwnerOptions();const owner=state.followOwner||owners[0]||'';const base=contactCandidateItems();const ownerItems=base.filter(x=>String(getFollow(x.id).owner||'').trim()===owner);const reviewMap=ownerReviewMap();const countStatus=s=>ownerItems.filter(x=>getFollow(x.id).status===s).length;const summary=byId('ownerBoardSummaryGrid');if(summary)summary.innerHTML=[['负责人名下',ownerItems.length,owner?`${owner} 当前周期跟进清单`:'请选择负责人','blue'],['未联系',countStatus('未联系'),'负责人待触达骑手','purple'],['已联系',countStatus('已联系'),'已完成首次触达','green'],['继续观察',countStatus('继续观察'),'需要后续复查','amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${safeEsc(x[2])}</div></div>`).join('');const title=byId('ownerBoardTitle');if(title)title.textContent=owner?`${owner} 的负责人跟进清单`:'负责人跟进清单';const ownerTable=byId('ownerBoardTable');if(ownerTable){if(!ownerItems.length)ownerTable.innerHTML='<tr><td class="empty">该负责人当前暂无骑手。请到“问题跟进闭环”板块分配负责人。</td></tr>';else{let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>当前跑单</th><th>状态</th><th>原因</th><th>下一步</th><th>复盘</th><th>备注</th><th>更新</th></tr></thead><tbody>';ownerItems.forEach(x=>{const f=getFollow(x.id),rv=reviewMap.get(x.id),cur=x.cur||{},pre=x.pre||{};html+=`<tr><td><input class="rowCheck" type="checkbox" data-owner-check value="${safeEsc(x.id)}"></td><td><button class="nameBtn" data-track="${safeEsc(x.id)}"><div class="riderName">${safeEsc(x.name)}</div><div class="mini">ID ${safeEsc(x.id)} · 风险 ${x.score}</div></button></td>${riderExtraCells(cur,pre)}<td><b>${fmt(val(cur,'orders'),'orders')}</b><br>${deltaHTML(val(cur,'orders'),val(pre,'orders'),'orders')}</td><td><select class="statusSelect" data-owner-status="${safeEsc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-owner-reason="${safeEsc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" type="date" data-owner-date="${safeEsc(x.id)}" value="${safeEsc(f.nextDate)}"></td><td>${rv?`<span class="effectTag ${rv.cls}">${safeEsc(rv.effect)}</span><div class="reviewMini">${rv.next?safeEsc(rv.next):'待下一周期'}</div>`:'<span class="effectTag pending">未复盘</span>'}</td><td><textarea class="followNote" data-owner-note="${safeEsc(x.id)}" placeholder="负责人跟进备注">${safeEsc((typeof sharedLatestNoteText==='function'?sharedLatestNoteText(x.id):'')||f.note)}</textarea>${noteHistoryHTML(x.id)}</td><td><span class="mini">${safeEsc(f.updatedAt||'-')}</span></td></tr>`});ownerTable.innerHTML=html+'</tbody>';}}
+    const wrap=byId('followOwnerBoard');if(!wrap)return;renderFollowOwnerControls();const owners=followupOwnerOptions();const owner=state.followOwner||owners[0]||'';const base=contactCandidateItems();const ownerItems=base.filter(x=>String(getFollow(x.id).owner||'').trim()===owner);const reviewMap=ownerReviewMap();const countStatus=s=>ownerItems.filter(x=>getFollow(x.id).status===s).length;const summary=byId('ownerBoardSummaryGrid');if(summary)summary.innerHTML=[['负责人名下',ownerItems.length,owner?`${owner} 当前周期跟进清单`:'请选择负责人','blue'],['未联系',countStatus('未联系'),'负责人待触达骑手','purple'],['已联系',countStatus('已联系'),'已完成首次触达','green'],['继续观察',countStatus('继续观察'),'需要后续复查','amber']].map(x=>`<div class="snap ${x[3]}"><b>${x[0]}</b><div class="n">${x[1]}</div><div class="t">${safeEsc(x[2])}</div></div>`).join('');const title=byId('ownerBoardTitle');if(title)title.textContent=owner?`${owner} 的负责人跟进清单`:'负责人跟进清单';const ownerTable=byId('ownerBoardTable');if(ownerTable){if(!ownerItems.length)ownerTable.innerHTML='<tr><td class="empty">该负责人当前暂无骑手。请到“问题跟进闭环”板块分配负责人。</td></tr>';else{let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>当前跑单</th><th>状态</th><th>原因</th><th>下一步</th><th>复盘</th><th>备注</th><th>更新</th></tr></thead><tbody>';ownerItems.forEach(x=>{const f=getFollow(x.id),rv=reviewMap.get(x.id),cur=x.cur||{},pre=x.pre||{};html+=`<tr><td><input class="rowCheck" type="checkbox" data-owner-check value="${safeEsc(x.id)}"></td><td><button class="nameBtn" data-track="${safeEsc(x.id)}"><div class="riderName">${safeEsc(x.name)}</div><div class="mini">ID ${safeEsc(x.id)} · 风险 ${x.score}</div></button></td>${riderExtraCells(cur,pre)}<td><b>${fmt(val(cur,'orders'),'orders')}</b><br>${deltaHTML(val(cur,'orders'),val(pre,'orders'),'orders')}</td><td><select class="statusSelect" data-owner-status="${safeEsc(x.id)}">${followStatuses.map(s=>`<option ${s===f.status?'selected':''}>${s}</option>`).join('')}</select></td><td><select class="reasonSelect" data-owner-reason="${safeEsc(x.id)}">${reasonOptions(f.reason)}</select></td><td><input class="followInput" type="date" data-owner-date="${safeEsc(x.id)}" value="${safeEsc(f.nextDate)}"></td><td>${rv?`<span class="effectTag ${rv.cls}">${safeEsc(rv.effect)}</span><div class="reviewMini">${rv.next?safeEsc(rv.next):'待下一周期'}</div>`:'<span class="effectTag pending">未复盘</span>'}</td><td><textarea class="followNote" data-owner-note="${safeEsc(x.id)}" placeholder="负责人跟进备注">${safeEsc(sharedLatestNoteText?sharedLatestNoteText(x.id)||f.note:f.note)}</textarea>${noteHistoryHTML(x.id)}</td><td><span class="mini">${safeEsc(f.updatedAt||'-')}</span></td></tr>`});ownerTable.innerHTML=html+'</tbody>';}}
     const boardSel=byId('followOwnerBoardSel');if(boardSel)boardSel.onchange=e=>{state.followOwner=e.target.value;renderFollowOwnerBoard()};const toggleBtn=byId('toggleOwnerConfigBtn');if(toggleBtn)toggleBtn.onclick=()=>{const bar=byId('ownerConfigBar');if(!bar)return;const hidden=bar.style.display==='none'||!bar.style.display;bar.style.display=hidden?'flex':'none';toggleBtn.textContent=hidden?'隐藏负责人配置':'负责人配置'};const addBtn=byId('addFollowOwnerBtn');if(addBtn)addBtn.onclick=addFollowupOwner;const delBtn=byId('removeFollowOwnerBtn');if(delBtn)delBtn.onclick=removeFollowupOwner;const ownerSelectAll=byId('ownerSelectAll');if(ownerSelectAll)ownerSelectAll.onchange=e=>{wrap.querySelectorAll('[data-owner-check]').forEach(ch=>ch.checked=e.target.checked)};const applyBtn=byId('ownerBulkApplyBtn');if(applyBtn)applyBtn.onclick=applyOwnerBulkUpdate;wrap.querySelectorAll('[data-owner-status]').forEach(el=>el.onchange=e=>{state.tab='ownerFollowup';setFollow(e.target.dataset.ownerStatus,'status',e.target.value);renderFollowOwnerBoard();renderProblems()});wrap.querySelectorAll('[data-owner-reason]').forEach(el=>el.onchange=e=>{state.tab='ownerFollowup';setFollow(e.target.dataset.ownerReason,'reason',e.target.value);renderFollowOwnerBoard()});wrap.querySelectorAll('[data-owner-date]').forEach(el=>el.onchange=e=>{state.tab='ownerFollowup';setFollow(e.target.dataset.ownerDate,'nextDate',e.target.value);renderFollowOwnerBoard()});wrap.querySelectorAll('[data-owner-note]').forEach(el=>el.onchange=e=>{state.tab='ownerFollowup';setFollow(e.target.dataset.ownerNote,'note',e.target.value);renderFollowOwnerBoard()});bindTrackButtons(wrap);
   };
 
@@ -4711,6 +4711,135 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
 
   renderProfile=function(){
     const sel=byId('riderSel'),search=byId('profileSearchInp');if(search)search.value=state.search;const weeklyTable=byId('profileWeeklyCompareTable');if(!rows.length){sel.innerHTML='<option>暂无数据</option>';byId('profileSummary').innerHTML='<div class="empty">请先检查 Supabase 云表是否有数据</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无数据</td></tr>';if(weeklyTable)weeklyTable.innerHTML='<tr><td class="empty">暂无数据</td></tr>';return}const list=filteredRiders();if(!list.length){state.selected=null;sel.innerHTML='<option>未找到骑手</option>';byId('profileSummary').innerHTML='<div class="empty">没有匹配“'+safeEsc(state.search)+'”的骑手，请调整搜索关键词。</div>';byId('profileMetrics').innerHTML='';byId('profileCompareGrid').innerHTML='';byId('profileTable').innerHTML='<tr><td class="empty">暂无匹配骑手</td></tr>';if(weeklyTable)weeklyTable.innerHTML='<tr><td class="empty">暂无匹配骑手</td></tr>';drawProfile();return}if(!state.selected||!list.some(r=>r.id===state.selected))state.selected=list[0].id;sel.innerHTML=list.map(r=>`<option value="${safeEsc(r.id)}" ${r.id===state.selected?'selected':''}>${safeEsc(r.name)} · ${safeEsc(r.id)}</option>`).join('');const rider=riderMap.get(state.selected);const cur=rec(state.cycle,state.selected),pre=rec(state.compare,state.selected);const item=analyze().items.find(x=>x.id===state.selected)||{issues:[],score:0,level:'low',action:'持续观察',cOrders:0,cIncome:0};byId('profileSummary').innerHTML=`<div class="profileTitle">${safeEsc(rider?.name||'')}</div><div class="mini">ID ${safeEsc(state.selected)} ｜ ${state.cycle} vs ${state.compare}</div>${riderExtraLine(cur,pre)}<div style="margin-top:10px"><span class="pill ${item.level==='high'?'red':item.level==='mid'?'amber':'green'}">${riskText(item.level)} ${item.score}分</span><span class="pill blue">${safeEsc(item.action)}</span>${item.issues.slice(0,4).map(i=>`<span class="pill ${i.tone}">${safeEsc(i.label)}</span>`).join('')}</div><div class="profileHint">下方展示该骑手当前周期、对比周期、排名和每周变化；顶部切换“重点指标”可改变趋势图。</div>`;byId('profileMetrics').innerHTML=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].filter((m,i,a)=>a.findIndex(x=>x.key===m.key)===i).map(m=>{const rCur=rankFor(state.cycle,m.key,state.selected),rPre=rankFor(state.compare,m.key,state.selected);const rankDelta=(rCur&&rPre)?rPre-rCur:null;return `<div class="kpi"><div class="label">${m.label}</div><div class="value">${fmt(val(cur,m.key),m.key)}</div><div class="mini">排名 ${rCur?('#'+rCur):'-'}${rankDelta!==null?`｜较对比 ${rankDelta>0?'+':''}${rankDelta}`:''}</div></div>`}).join('');byId('profileCompareGrid').innerHTML=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].filter((m,i,a)=>a.findIndex(x=>x.key===m.key)===i).map(m=>`<div class="compareCard"><b>${m.label}</b><div class="v">${fmt(val(cur,m.key),m.key)}</div><div class="mini">对比：${fmt(val(pre,m.key),m.key)}</div>${deltaHTML(val(cur,m.key),val(pre,m.key),m.key)}</div>`).join('');let html='<thead><tr><th>周期</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;html+=`<tr><td><b>${safeEsc(c)}</b></td><td>${safeEsc(fmtField(r,'acceptanceRate'))}<br>${p?deltaHTML(val(r,'acceptanceRate'),val(p,'acceptanceRate'),'acceptanceRate'):'-'}</td><td>${safeEsc(fmtField(r,'tailRate'))}<br>${p?deltaHTML(val(r,'tailRate'),val(p,'tailRate'),'tailRate'):'-'}</td><td>${attendanceCell(r,p)}</td><td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}<br>${p?deltaHTML(val(r,'periodAvg'),val(p,'periodAvg'),'periodAvg'):'-'}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`});byId('profileTable').innerHTML=html+'</tbody>';if(weeklyTable){let weeklyHtml='<thead><tr><th>周期</th><th>周出勤天数</th><th>较上一周</th><th>时段均单/H</th><th>较上一周</th><th>接单率</th><th>较上一周</th><th>骑手责尾单率</th><th>较上一周</th></tr></thead><tbody>';cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;weeklyHtml+=`<tr><td><b>${safeEsc(c)}</b></td><td>${attendanceText(r)}</td><td>${p?attendanceDeltaHTML(r,p):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}</td><td>${p?deltaHTML(val(r,'periodAvg'),val(p,'periodAvg'),'periodAvg'):'-'}</td><td>${safeEsc(fmtField(r,'acceptanceRate'))}</td><td>${p?deltaHTML(val(r,'acceptanceRate'),val(p,'acceptanceRate'),'acceptanceRate'):'-'}</td><td>${safeEsc(fmtField(r,'tailRate'))}</td><td>${p?deltaHTML(val(r,'tailRate'),val(p,'tailRate'),'tailRate'):'-'}</td></tr>`});weeklyTable.innerHTML=weeklyHtml+'</tbody>'}byId('profileChartTitle').textContent=`${(rider?.name||'').split('-').pop()} · ${mMap[state.metric].label}趋势`;drawProfile();
+  };
+})();
+
+
+
+/* Final fix: multi-compare toggle selection + empty default single rider tracking */
+(function(){
+  function escHtml(v){
+    if(typeof safeEsc==='function')return safeEsc(v);
+    if(typeof esc==='function')return esc(v);
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function clearProfileEmptyFinal(msg){
+    const summary=byId('profileSummary'),metricsBox=byId('profileMetrics'),compareBox=byId('profileCompareGrid'),profileTable=byId('profileTable'),weekly=byId('profileWeeklyCompareTable'),title=byId('profileChartTitle');
+    if(summary)summary.innerHTML=`<div class="empty">${escHtml(msg)}</div>`;
+    if(metricsBox)metricsBox.innerHTML='';
+    if(compareBox)compareBox.innerHTML='';
+    if(profileTable)profileTable.innerHTML='<tr><td class="empty">请选择骑手后查看明细</td></tr>';
+    if(weekly)weekly.innerHTML='<tr><td class="empty">请选择骑手后查看周维度对比</td></tr>';
+    if(title)title.textContent='请选择骑手';
+    if(typeof drawProfile==='function')drawProfile();
+  }
+
+  window.toggleCompareRider=function(id){
+    if(!id||!riderMap.has(id)){if(id&&typeof toast==='function')toast('未找到该骑手');return;}
+    state.compareRiders=state.compareRiders||[];
+    if(state.compareRiders.includes(id)){
+      state.compareRiders=state.compareRiders.filter(x=>x!==id);
+    }else{
+      if(state.compareRiders.length>=8){if(typeof toast==='function')toast('最多同时对比 8 名骑手');return;}
+      state.compareRiders.push(id);
+    }
+    renderCompare();
+    if(typeof drawMulti==='function')drawMulti();
+  };
+
+  const __renderCompareToggleBase=renderCompare;
+  renderCompare=function(){
+    __renderCompareToggleBase.apply(this,arguments);
+    const grid=byId('compareCandidateGrid');
+    if(grid){
+      grid.querySelectorAll('[data-add-compare]').forEach(btn=>{
+        btn.onclick=e=>{e.preventDefault();window.toggleCompareRider(btn.dataset.addCompare)};
+        btn.title=state.compareRiders?.includes(btn.dataset.addCompare)?'再次点击取消选择':'点击加入对比';
+      });
+    }
+  };
+
+  let __openingProfileFromRecord=false;
+  const __selectTabProfileBase=selectTab;
+  selectTab=function(tab){
+    if(tab==='profile'&&!__openingProfileFromRecord){state.selected=null;}
+    const r=__selectTabProfileBase.apply(this,arguments);
+    if(tab==='profile')setTimeout(()=>renderProfile(),0);
+    return r;
+  };
+
+  const __openProfileBase=typeof openProfile==='function'?openProfile:null;
+  openProfile=function(id){
+    if(!id)return;
+    if(state.tab&&state.tab!=='profile')state.profileBackTab=state.tab;
+    state.selected=id;
+    __openingProfileFromRecord=true;
+    if(__openProfileBase){
+      try{__openProfileBase.apply(this,arguments)}
+      finally{__openingProfileFromRecord=false;}
+    }else{
+      try{selectTab('profile')}finally{__openingProfileFromRecord=false;}
+    }
+    state.selected=id;
+    refreshControls();
+    renderProfile();
+    if(typeof updateProfileBackButton==='function')updateProfileBackButton();
+  };
+
+  ensureSelectedFromSearch=function(){
+    if(!rows.length)return;
+    const list=filteredRiders();
+    if(state.selected&&!list.some(r=>r.id===state.selected))state.selected=null;
+  };
+
+  renderProfile=function(){
+    const sel=byId('riderSel'),search=byId('profileSearchInp');
+    if(!sel)return;
+    if(search)search.value=state.search||'';
+    const weeklyTable=byId('profileWeeklyCompareTable');
+    if(!rows.length){
+      sel.innerHTML='<option value="">无</option>';
+      clearProfileEmptyFinal('请先检查 Supabase 云表是否有数据');
+      return;
+    }
+    const list=filteredRiders();
+    if(!list.length){
+      state.selected=null;
+      sel.innerHTML='<option value="">未找到骑手</option>';
+      clearProfileEmptyFinal(`没有匹配“${state.search||''}”的骑手，请调整搜索关键词。`);
+      return;
+    }
+    if(state.selected&&!list.some(r=>r.id===state.selected))state.selected=null;
+    sel.innerHTML='<option value="">请选择骑手</option>'+list.map(r=>`<option value="${escHtml(r.id)}" ${r.id===state.selected?'selected':''}>${escHtml(r.name)} · ${escHtml(r.id)}</option>`).join('');
+    if(!state.selected){
+      sel.value='';
+      clearProfileEmptyFinal('当前未选择骑手。请在上方下拉框选择骑手，或从其他板块点击骑手姓名进入追踪。');
+      return;
+    }
+    const rider=riderMap.get(state.selected),cur=rec(state.cycle,state.selected),pre=rec(state.compare,state.selected);
+    const item=analyze().items.find(x=>x.id===state.selected)||{issues:[],score:0,level:'low',action:'持续观察',cOrders:0,cIncome:0};
+    byId('profileSummary').innerHTML=`<div class="profileTitle">${escHtml(rider?.name||'')}</div><div class="mini">ID ${escHtml(state.selected)} ｜ ${state.cycle} vs ${state.compare}</div>${typeof riderExtraLine==='function'?riderExtraLine(cur,pre):''}<div style="margin-top:10px"><span class="pill ${item.level==='high'?'red':item.level==='mid'?'amber':'green'}">${riskText(item.level)} ${item.score}分</span><span class="pill blue">${escHtml(item.action)}</span>${item.issues.slice(0,4).map(i=>`<span class="pill ${i.tone}">${escHtml(i.label)}</span>`).join('')}</div><div class="profileHint">下方展示该骑手当前周期、对比周期、排名和每周变化；顶部切换“重点指标”可改变趋势图。</div>`;
+    const profileMetricList=[...metrics,{key:'periodAvg',label:'时段均单/H',short:'均单'}].filter((m,i,a)=>a.findIndex(x=>x.key===m.key)===i);
+    byId('profileMetrics').innerHTML=profileMetricList.map(m=>{const rCur=rankFor(state.cycle,m.key,state.selected),rPre=rankFor(state.compare,m.key,state.selected);const rankDelta=(rCur&&rPre)?rPre-rCur:null;return `<div class="kpi"><div class="label">${escHtml(m.label)}</div><div class="value">${fmt(val(cur,m.key),m.key)}</div><div class="mini">排名 ${rCur?('#'+rCur):'-'}${rankDelta!==null?`｜较对比 ${rankDelta>0?'+':''}${rankDelta}`:''}</div></div>`}).join('');
+    byId('profileCompareGrid').innerHTML=profileMetricList.map(m=>`<div class="compareCard"><b>${escHtml(m.label)}</b><div class="v">${fmt(val(cur,m.key),m.key)}</div><div class="mini">对比：${fmt(val(pre,m.key),m.key)}</div>${deltaHTML(val(cur,m.key),val(pre,m.key),m.key)}</div>`).join('');
+    let html='<thead><tr><th>周期</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';
+    cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;html+=`<tr><td><b>${escHtml(c)}</b></td><td>${escHtml(fmtField(r,'acceptanceRate'))}<br>${p?deltaHTML(val(r,'acceptanceRate'),val(p,'acceptanceRate'),'acceptanceRate'):'-'}</td><td>${escHtml(fmtField(r,'tailRate'))}<br>${p?deltaHTML(val(r,'tailRate'),val(p,'tailRate'),'tailRate'):'-'}</td><td>${typeof attendanceCell==='function'?attendanceCell(r,p):(fmt(val(r,'attendanceDays'),'attendanceDays')+'<br>'+(p?deltaHTML(val(r,'attendanceDays'),val(p,'attendanceDays'),'attendanceDays'):'-'))}</td><td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}<br>${p?deltaHTML(val(r,'periodAvg'),val(p,'periodAvg'),'periodAvg'):'-'}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`});
+    byId('profileTable').innerHTML=html+'</tbody>';
+    if(weeklyTable){
+      let weeklyHtml='<thead><tr><th>周期</th><th>周出勤天数</th><th>较上一周</th><th>时段均单/H</th><th>较上一周</th><th>接单率</th><th>较上一周</th><th>骑手责尾单率</th><th>较上一周</th></tr></thead><tbody>';
+      cycles.forEach((c,i)=>{const r=rec(c,state.selected),p=i>0?rec(cycles[i-1],state.selected):null;weeklyHtml+=`<tr><td><b>${escHtml(c)}</b></td><td>${typeof attendanceText==='function'?attendanceText(r):fmt(val(r,'attendanceDays'),'attendanceDays')}</td><td>${p?(typeof attendanceDeltaHTML==='function'?attendanceDeltaHTML(r,p):deltaHTML(val(r,'attendanceDays'),val(p,'attendanceDays'),'attendanceDays')):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}</td><td>${p?deltaHTML(val(r,'periodAvg'),val(p,'periodAvg'),'periodAvg'):'-'}</td><td>${escHtml(fmtField(r,'acceptanceRate'))}</td><td>${p?deltaHTML(val(r,'acceptanceRate'),val(p,'acceptanceRate'),'acceptanceRate'):'-'}</td><td>${escHtml(fmtField(r,'tailRate'))}</td><td>${p?deltaHTML(val(r,'tailRate'),val(p,'tailRate'),'tailRate'):'-'}</td></tr>`});
+      weeklyTable.innerHTML=weeklyHtml+'</tbody>';
+    }
+    const title=byId('profileChartTitle');if(title)title.textContent=`${(rider?.name||'').split('-').pop()} · ${mMap[state.metric].label}趋势`;
+    if(typeof drawProfile==='function')drawProfile();
+  };
+
+  const __refreshControlsProfileBase=refreshControls;
+  refreshControls=function(){
+    const r=__refreshControlsProfileBase.apply(this,arguments);
+    const rs=byId('riderSel');
+    if(rs&&state.tab==='profile'&&!state.selected)rs.value='';
+    return r;
   };
 })();
 
