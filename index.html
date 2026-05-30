@@ -4943,6 +4943,154 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
   };
 })();
 
+
+
+/* === fix: problem rider tracking + remove recent avg + robust unified notes === */
+(function(){
+  if(!window.CSS) window.CSS = {};
+  if(!window.CSS.escape){
+    window.CSS.escape = function(v){return String(v||'').replace(/[^a-zA-Z0-9_-]/g,function(ch){return '\\'+ch})};
+  }
+  function safeText(v){try{return typeof esc==='function'?esc(v):String(v??'')}catch(e){return String(v??'')}}
+  function safeTrack(scope){
+    (scope||document).querySelectorAll('[data-track]').forEach(btn=>{
+      btn.type='button';
+      btn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation();}
+        const id=this.dataset.track;
+        if(!id){toast&&toast('未找到骑手 ID');return;}
+        if(typeof openProfile==='function')openProfile(id);
+      };
+    });
+  }
+  function selectedProblemIds(){state.problemCompareTargets=Array.isArray(state.problemCompareTargets)?state.problemCompareTargets:[];return state.problemCompareTargets.map(String)}
+  function cleanProblemIds(items){
+    const visible=new Set((items||[]).map(x=>String(x.id)));
+    state.problemCompareTargets=selectedProblemIds().filter(id=>visible.has(id)&&(!riderMap||riderMap.has(id)));
+    return state.problemCompareTargets;
+  }
+  function ensureProblemCompareBar(items){
+    const table=byId('problemTable');if(!table)return;
+    const wrap=table.closest('.tableWrap')||table.parentElement;if(!wrap||!wrap.parentElement)return;
+    let bar=byId('problemCompareBar');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='problemCompareBar';
+      bar.className='bulkBar problemCompareBar';
+      bar.innerHTML='<label><input type="checkbox" id="problemCompareSelectAll"> 选择当前列表</label><span class="mini" id="problemCompareCount">已选 0 名</span><button class="btn primary small" id="problemCompareGoBtn" type="button">对比已选目标</button><button class="btn small" id="problemCompareClearBtn" type="button">清空选择</button><span class="mini">最多选择 8 名，点击后跳转至“骑手多人对比”。</span>';
+      wrap.parentElement.insertBefore(bar,wrap);
+    }
+    const list=Array.isArray(items)?items:[];
+    const selected=cleanProblemIds(list);
+    const count=byId('problemCompareCount');if(count)count.textContent='已选 '+selected.length+' 名';
+    const visibleIds=list.map(x=>String(x.id));
+    const all=byId('problemCompareSelectAll');
+    if(all){
+      all.checked=visibleIds.length>0&&visibleIds.every(id=>selected.includes(id));
+      all.indeterminate=visibleIds.some(id=>selected.includes(id))&&!all.checked;
+      all.onchange=function(e){
+        const cur=new Set(selectedProblemIds());
+        if(e.target.checked){
+          for(const id of visibleIds){
+            if(cur.size>=8&&!cur.has(id)){toast&&toast('最多选择 8 名骑手进行多人对比');break;}
+            cur.add(id);
+          }
+        }else visibleIds.forEach(id=>cur.delete(id));
+        state.problemCompareTargets=[...cur];
+        renderProblems();
+      };
+    }
+    const go=byId('problemCompareGoBtn');
+    if(go)go.onclick=function(){
+      const ids=cleanProblemIds(list);
+      if(!ids.length){toast&&toast('请先勾选需要对比的骑手');return;}
+      state.compareRiders=ids.slice(0,8).filter(id=>!riderMap||riderMap.has(id));
+      if(!state.compareRiders.length){toast&&toast('未找到可对比的骑手数据');return;}
+      if(typeof selectTab==='function')selectTab('compare');else state.tab='compare';
+      if(typeof renderCompare==='function')renderCompare();
+      if(typeof drawMulti==='function')drawMulti();
+      toast&&toast('已加入 '+state.compareRiders.length+' 名骑手到多人对比');
+    };
+    const clear=byId('problemCompareClearBtn');if(clear)clear.onclick=function(){state.problemCompareTargets=[];renderProblems();};
+  }
+  function bindProblemChecks(table,items){
+    const selected=new Set(selectedProblemIds());
+    table.querySelectorAll('[data-problem-compare-check]').forEach(ch=>{
+      ch.checked=selected.has(String(ch.value));
+      ch.onchange=function(e){
+        const id=String(e.target.value||'');
+        const cur=new Set(selectedProblemIds());
+        if(e.target.checked){
+          if(cur.size>=8&&!cur.has(id)){e.target.checked=false;toast&&toast('最多选择 8 名骑手进行多人对比');return;}
+          cur.add(id);
+        }else cur.delete(id);
+        state.problemCompareTargets=[...cur];
+        ensureProblemCompareBar(items);
+      };
+    });
+  }
+  renderProblems=function(){
+    const chips=byId('issueChips');
+    if(chips){
+      chips.innerHTML=issueDefs.map(([k,l])=>`<button class="chip ${state.issue===k?'active':''}" data-issue="${k}">${l}</button>`).join('');
+      chips.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{state.issue=b.dataset.issue;renderProblems();});
+    }
+    const items=typeof filteredProblems==='function'?filteredProblems():[];
+    const sub=byId('problemSub');if(sub)sub.textContent=rows.length?`${state.cycle} vs ${state.compare} · 当前显示 ${items.length} 名问题骑手管理`:'读取 Supabase 云数据后自动识别问题骑手管理';
+    const fs=byId('filterSummary');if(fs)fs.textContent=`${items.length}人 · ${state.action==='all'?'全部动作':state.action}`;
+    const table=byId('problemTable');if(!table)return;
+    ensureProblemCompareBar(items);
+    if(!rows.length){table.innerHTML='<tr><td class="empty">暂无云数据，请先检查 Supabase 表</td></tr>';return;}
+    if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无问题骑手管理</td></tr>';return;}
+    cleanProblemIds(items);
+    let html='<thead><tr><th class="nowrap">选择</th><th>骑手</th><th>风险</th><th>建议动作</th><th>问题标签</th><th>变化原因</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    const selected=new Set(selectedProblemIds());
+    items.forEach(x=>{
+      const cur=x.cur||{},pre=x.pre||{},id=String(x.id);
+      const noteCell=typeof problemSharedNoteCell==='function'?problemSharedNoteCell(id):(typeof sharedRiderNoteControlHTML==='function'?sharedRiderNoteControlHTML(id,'问题骑手管理'):'');
+      const checked=selected.has(id)?'checked':'';
+      html+=`<tr><td><input class="rowCheck" type="checkbox" data-problem-compare-check value="${safeText(id)}" ${checked}></td><td><button type="button" class="nameBtn" data-track="${safeText(id)}"><div class="riderName">${safeText(x.name)}</div><div class="mini">ID ${safeText(id)}</div></button></td><td><span class="riskDot ${x.level==='high'?'riskHigh':x.level==='mid'?'riskMid':'riskLow'}"></span>${riskText(x.level)} · ${x.score}</td><td><b>${safeText(x.action)}</b></td><td>${x.issues.map(i=>`<span class="pill ${i.tone}">${safeText(i.label)}</span>`).join('')}</td><td>${getFollow(id,state.cycle).reason?`<span class="pill purple">${safeText(getFollow(id,state.cycle).reason)}</span>`:''}</td>${riderExtraCells(cur,pre)}<td>${fmt(val(cur,'orders'),'orders')}<br>${deltaHTML(val(cur,'orders'),val(pre,'orders'),'orders')}</td><td>${fmt(val(cur,'income'),'income')}<br>${deltaHTML(val(cur,'income'),val(pre,'income'),'income')}</td><td>${fmt(val(cur,'hourly'),'hourly')}<br>${deltaHTML(val(cur,'hourly'),val(pre,'hourly'),'hourly')}</td><td>${fmt(val(cur,'duration'),'duration')}<br>${deltaHTML(val(cur,'duration'),val(pre,'duration'),'duration')}</td><td>${fmt(val(cur,'periodAvg'),'periodAvg')}</td><td>${noteCell}</td><td><div class="inlineActions"><button type="button" class="btn small trackBtn" data-track="${safeText(id)}">跟踪</button><button type="button" class="btn small" data-follow="${safeText(id)}">跟进</button></div></td></tr>`;
+    });
+    table.innerHTML=html+'</tbody>';
+    safeTrack(table);
+    table.querySelectorAll('[data-follow]').forEach(b=>b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();openFollowup(this.dataset.follow);});
+    bindProblemChecks(table,items);
+    ensureProblemCompareBar(items);
+  };
+
+  if(typeof sharedRiderNoteControlHTML==='function'&&!window.__sharedNoteControlWithSave){
+    window.__sharedNoteControlWithSave=true;
+    sharedRiderNoteControlHTML=function(id,source=''){
+      const latest=typeof sharedLatestNoteText==='function'?sharedLatestNoteText(id):'';
+      return `<div class="sharedNoteCell"><textarea class="followNote" data-shared-rider-note="${safeText(id)}" data-shared-note-source="${safeText(source)}" placeholder="填写统一备注，保存后全模块同步">${safeText(latest)}</textarea><div class="inlineActions"><button type="button" class="btn small" data-shared-note-save="${safeText(id)}">保存备注</button></div>${typeof noteHistoryHTML==='function'?noteHistoryHTML(id):''}<div class="sharedNoteSaveHint" data-shared-note-hint="${safeText(id)}">备注全平台同步</div></div>`;
+    };
+  }
+  async function saveSharedNoteFromEl(el){
+    if(!el||!el.matches||!el.matches('[data-shared-rider-note]'))return;
+    const id=el.dataset.sharedRiderNote;
+    const source=el.dataset.sharedNoteSource||'';
+    const box=el.closest('.sharedNoteCell');
+    const hint=box?box.querySelector('[data-shared-note-hint]'):null;
+    if(hint){hint.textContent='保存中…';hint.className='sharedNoteSaveHint sharedNoteSaving';}
+    const ok=await saveSharedRiderNote(id,el.value,source,state.cycle);
+    if(hint){hint.textContent=ok?'已同步保存':'已本机暂存，云端待同步';hint.className='sharedNoteSaveHint '+(ok?'sharedNoteSaved':'sharedNoteError');}
+    try{if(state.tab==='problems')renderProblems();else if(state.tab==='returnPotential')renderReturnPotentialPool();else if(state.tab==='diagnosis')renderDiagnosis();else if(typeof refreshSharedNoteViews==='function')refreshSharedNoteViews();}catch(e){}
+  }
+  if(!window.__sharedNoteRobustBind){
+    window.__sharedNoteRobustBind=true;
+    document.addEventListener('blur',e=>{const el=e.target;if(el&&el.matches&&el.matches('[data-shared-rider-note]'))saveSharedNoteFromEl(el);},true);
+    document.addEventListener('click',e=>{const btn=e.target?.closest?.('[data-shared-note-save]');if(!btn)return;const box=btn.closest('.sharedNoteCell');const el=box?.querySelector?.('[data-shared-rider-note]');saveSharedNoteFromEl(el);},true);
+    document.addEventListener('keydown',e=>{const el=e.target;if(!el||!el.matches||!el.matches('[data-shared-rider-note]'))return;if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveSharedNoteFromEl(el);}},true);
+  }
+  if(typeof refreshSharedNoteViews==='function'&&!window.__refreshSharedNoteViewsProblemPatched){
+    window.__refreshSharedNoteViewsProblemPatched=true;
+    const oldRefresh=refreshSharedNoteViews;
+    refreshSharedNoteViews=function(){
+      try{if(state.tab==='problems')renderProblems();else oldRefresh.apply(this,arguments);}catch(e){console.warn('统一备注刷新界面失败：',e?.message||e);}
+    };
+  }
+})();
+
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 </script>
 </body>
