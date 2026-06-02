@@ -5,7 +5,134 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
 <title>骑手周度数据看板｜账号登录管理员版</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+
+/* === 2026-06 fix: vehicle filters for diagnosis/followup + robust notes editor in potential === */
+(function(){
+  const NF_FLAG='__vehicleFilterAndPotentialNoteFixV1';
+  if(window[NF_FLAG]) return;
+  window[NF_FLAG]=true;
+  const $=id=>document.getElementById(id);
+  const htmlEsc=typeof esc==='function'?esc:(v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  function curVehicleOf(id){
+    try{return String((typeof fmtField==='function'?fmtField((typeof rec==='function'?rec(state.cycle,id):{}),'vehicle'):(typeof rec==='function'?(rec(state.cycle,id)||{}).vehicle:''))||'').trim()||'空白'}catch(e){return '空白'}
+  }
+  function vehicleOptionsHTML(){
+    let vals=[];
+    try{
+      const seen=new Set();
+      (typeof riderIds==='function'?riderIds():[]).forEach(id=>{
+        const v=curVehicleOf(id);
+        if(v&&!seen.has(v)){seen.add(v);vals.push(v)}
+      });
+    }catch(e){}
+    const preferred=['电动自行车','自行车','步行','摩托车','汽车','机动车','其他','空白'];
+    vals=[...preferred.filter(v=>vals.includes(v)),...vals.filter(v=>!preferred.includes(v)).sort((a,b)=>a.localeCompare(b,'zh-Hans-CN'))];
+    return '<option value="all">全部交通工具</option>'+vals.map(v=>`<option value="${htmlEsc(v)}">${htmlEsc(v)}</option>`).join('');
+  }
+  function ensureVehicleFilterControl(id,label,afterId,onChange){
+    if($(id)) return;
+    const after=$(afterId);
+    if(!after) return;
+    const lab=document.createElement('label');
+    lab.className='field';
+    lab.innerHTML=`<span>${htmlEsc(label)}</span><select id="${id}"></select>`;
+    after.parentNode.insertBefore(lab, after.nextSibling);
+    const sel=$(id);
+    if(sel){
+      sel.innerHTML=vehicleOptionsHTML();
+      sel.addEventListener('change',()=>{ try{onChange&&onChange(sel.value)}catch(e){} });
+    }
+  }
+  function refreshVehicleFilterOptions(id){
+    const sel=$(id); if(!sel) return;
+    const old=sel.value||'all';
+    sel.innerHTML=vehicleOptionsHTML();
+    sel.value=[...sel.options].some(o=>o.value===old)?old:'all';
+  }
+  function setupVehicleFilters(){
+    ensureVehicleFilterControl('diagnosisVehicleSel','交通工具筛选','diagnosisLookbackSel',()=>{try{if(typeof renderDiagnosis==='function')renderDiagnosis()}catch(e){}});
+    ensureVehicleFilterControl('followVehicleSel','交通工具筛选','followBaseSel',()=>{try{if(typeof renderFollowup==='function')renderFollowup()}catch(e){}});
+    refreshVehicleFilterOptions('diagnosisVehicleSel');
+    refreshVehicleFilterOptions('followVehicleSel');
+  }
+  setupVehicleFilters();
+  const __oldRefreshControlsVehicleFix=typeof refreshControls==='function'?refreshControls:null;
+  if(__oldRefreshControlsVehicleFix && !window.__refreshControlsVehicleFilterPatched){
+    window.__refreshControlsVehicleFilterPatched=true;
+    refreshControls=function(){
+      const r=__oldRefreshControlsVehicleFix.apply(this,arguments);
+      try{setupVehicleFilters()}catch(e){}
+      return r;
+    };
+  }
+  if(typeof diagnosisItems==='function' && !window.__diagnosisVehicleFilterPatched){
+    window.__diagnosisVehicleFilterPatched=true;
+    const __oldDiagnosisItemsVehicle=diagnosisItems;
+    diagnosisItems=function(){
+      const items=__oldDiagnosisItemsVehicle.apply(this,arguments)||[];
+      const v=$('diagnosisVehicleSel')?.value||'all';
+      if(v==='all') return items;
+      return items.filter(x=>curVehicleOf(x.id)===v);
+    };
+  }
+  if(typeof contactCandidateItems==='function' && !window.__followVehicleFilterPatched){
+    window.__followVehicleFilterPatched=true;
+    const __oldContactCandidateItemsVehicle=contactCandidateItems;
+    contactCandidateItems=function(){
+      const items=__oldContactCandidateItemsVehicle.apply(this,arguments)||[];
+      const v=$('followVehicleSel')?.value||'all';
+      if(v==='all') return items;
+      return items.filter(x=>curVehicleOf(x.id)===v);
+    };
+  }
+  // Force a visible, editable unified note box for potential rider and diagnosis/problem tables.
+  sharedRiderNoteControlHTML=function(id,source=''){
+    const latest=typeof sharedLatestNoteText==='function'?sharedLatestNoteText(id):'';
+    return `<div class="sharedNoteCell"><textarea class="followNote" data-shared-rider-note="${htmlEsc(id)}" data-shared-note-source="${htmlEsc(source)}" placeholder="填写统一备注，保存后全模块同步">${htmlEsc(latest)}</textarea><div class="inlineActions"><button type="button" class="btn small" data-shared-note-save="${htmlEsc(id)}">保存备注</button></div>${typeof noteHistoryHTML==='function'?noteHistoryHTML(id):''}<div class="sharedNoteSaveHint" data-shared-note-hint="${htmlEsc(id)}">备注全平台同步</div></div>`;
+  };
+  async function saveSharedNoteElement(el){
+    if(!el||!el.matches||!el.matches('[data-shared-rider-note]')) return;
+    const note=String(el.value||'').trim();
+    const id=el.dataset.sharedRiderNote||'';
+    const source=el.dataset.sharedNoteSource||'';
+    const box=el.closest('.sharedNoteCell');
+    const hint=box?box.querySelector('[data-shared-note-hint]'):null;
+    if(!note){ if(hint){hint.textContent='未填写备注';hint.className='sharedNoteSaveHint';} return; }
+    if(hint){hint.textContent='保存中…';hint.className='sharedNoteSaveHint sharedNoteSaving';}
+    let ok=false;
+    try{ok=await saveSharedRiderNote(id,note,source,state.cycle)}catch(e){ok=false; console.warn('统一备注保存失败',e?.message||e)}
+    if(hint){hint.textContent=ok?'已同步保存':'已本机暂存，云端待同步';hint.className='sharedNoteSaveHint '+(ok?'sharedNoteSaved':'sharedNoteError');}
+    try{
+      if(state.tab==='returnPotential'&&typeof renderReturnPotentialPool==='function') renderReturnPotentialPool();
+      else if(state.tab==='diagnosis'&&typeof renderDiagnosis==='function') renderDiagnosis();
+      else if(state.tab==='problems'&&typeof renderProblems==='function') renderProblems();
+      else if(typeof refreshSharedNoteViews==='function') refreshSharedNoteViews();
+    }catch(e){}
+  }
+  if(!window.__sharedNoteEditorVehicleFixBound){
+    window.__sharedNoteEditorVehicleFixBound=true;
+    document.addEventListener('click',e=>{
+      const btn=e.target?.closest?.('[data-shared-note-save]');
+      if(!btn) return;
+      const box=btn.closest('.sharedNoteCell');
+      const el=box?.querySelector?.('[data-shared-rider-note]');
+      saveSharedNoteElement(el);
+    },true);
+    document.addEventListener('keydown',e=>{
+      const el=e.target;
+      if(!el||!el.matches||!el.matches('[data-shared-rider-note]')) return;
+      if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveSharedNoteElement(el)}
+    },true);
+  }
+  setTimeout(()=>{
+    try{setupVehicleFilters()}catch(e){}
+    try{if(typeof renderDiagnosis==='function')renderDiagnosis()}catch(e){}
+    try{if(typeof renderFollowup==='function')renderFollowup()}catch(e){}
+  },0);
+})();
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f5f7fb;--panel:#fff;--ink:#101828;--muted:#667085;--line:#e5e7eb;--blue:#2563eb;--blue2:#eff6ff;--green:#079455;--green2:#ecfdf3;--red:#d92d20;--red2:#fef3f2;--amber:#dc6803;--amber2:#fffaeb;--purple:#7a5af8;--purple2:#f4f3ff;--shadow:0 16px 44px rgba(16,24,40,.08);--shadow2:0 8px 22px rgba(16,24,40,.06);--r:20px}
