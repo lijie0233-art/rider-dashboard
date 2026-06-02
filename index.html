@@ -5206,6 +5206,181 @@ async function unsubscribeSharedRiderNotesRealtime(){if(!sharedNotesRealtimeChan
 })();
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
+
+
+/* Final fix: correct trend diagnosis rules for acceptance rate and rider tail rate */
+(function(){
+  const __oldTrendDiagnosisForRateRule = typeof trendDiagnosisFor === 'function' ? trendDiagnosisFor : null;
+  const __oldDiagnosisItemsRateRule = typeof diagnosisItems === 'function' ? diagnosisItems : null;
+
+  function rateRuleEsc(v){
+    if(typeof safeEsc==='function')return safeEsc(v);
+    if(typeof esc==='function')return esc(v);
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function rateRuleMetric(){return state.diagnosisMetric||state.metric||'orders'}
+  function isRateRuleMetric(k){return k==='acceptanceRate'||k==='tailRate'}
+  function rateRulePercentile(arr,p){
+    const xs=(arr||[]).map(Number).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>a-b);
+    if(!xs.length)return 0;
+    const idx=(xs.length-1)*p,lo=Math.floor(idx),hi=Math.ceil(idx);
+    return xs[lo]+(xs[hi]-xs[lo])*(idx-lo);
+  }
+  function rateRuleThreshold(name, fallback){
+    try{return typeof nRule==='function' ? Number(nRule(name))||fallback : fallback}catch(_){return fallback}
+  }
+  function rateRuleTrendFor(id,k,windowCycles,bounds){
+    if(!isRateRuleMetric(k)){
+      return __oldTrendDiagnosisForRateRule ? __oldTrendDiagnosisForRateRule(id,k,windowCycles,bounds&&bounds.q75!=null?bounds.q75:bounds) : {id,name:riderMap.get(id)?.name||id,values:[],first:0,last:0,pctChange:null,drops:0,rises:0,tag:'稳定观察',cls:'neutral',action:'持续观察'};
+    }
+    const vals=windowCycles.map(c=>Number(val(rec(c,id),k))||0);
+    const name=riderMap.get(id)?.name||id;
+    const first=vals.find(v=>v>0)||0;
+    const last=vals.length?vals[vals.length-1]||0:0;
+    const q25=Number(bounds&&bounds.q25)||0;
+    const q75=Number(bounds&&bounds.q75)||0;
+    const continuousWeeks=Math.max(2, rateRuleThreshold('continuousWeeks',2));
+    const stepPct=rateRuleThreshold('continuousPct',10)/100;
+    const totalPctLimit=rateRuleThreshold('ordersDropPct',20);
+    let badMoves=0, goodMoves=0, weakBadMoves=0;
+    for(let i=1;i<vals.length;i++){
+      const prev=vals[i-1],cur=vals[i];
+      if(prev<=0||cur<=0)continue;
+      if(k==='acceptanceRate'){
+        const decline=(prev-cur)/prev;
+        const rise=(cur-prev)/prev;
+        if(decline>=stepPct)badMoves++;
+        else if(decline>0)weakBadMoves++;
+        if(rise>=stepPct)goodMoves++;
+      }else{
+        const rise=(cur-prev)/prev;
+        const decline=(prev-cur)/prev;
+        if(rise>=stepPct)badMoves++;
+        else if(rise>0)weakBadMoves++;
+        if(decline>=stepPct)goodMoves++;
+      }
+    }
+    const pctChange=first?((last-first)/first*100):null;
+    const badTotalPct = !first ? 0 : (k==='acceptanceRate' ? ((first-last)/first*100) : ((last-first)/first*100));
+    const severeByTrend = badMoves>=continuousWeeks || badTotalPct>=totalPctLimit;
+    const lowAcceptance = k==='acceptanceRate' && q25>0 && last>0 && last<=q25;
+    const highTail = k==='tailRate' && q75>0 && last>=q75;
+    const excellent = k==='acceptanceRate'
+      ? (q75>0 && last>=q75 && badMoves===0)
+      : (q25>0 && last>0 && last<=q25 && badMoves===0);
+    let tag='持续关注',cls='neutral',action='持续关注';
+    if(k==='acceptanceRate'){
+      if(severeByTrend || (lowAcceptance && badMoves>=1)){tag='接单率裂化';cls='down';action='优先复盘挑单风险'}
+      else if(excellent){tag='稳定优秀';cls='stable';action='重点维护'}
+      else if(badMoves>=1||weakBadMoves>=1||goodMoves>=1){tag='短期波动';cls='watch';action='观察复盘'}
+      else {tag='持续关注';cls='neutral';action='持续关注'}
+    }else{
+      if(severeByTrend || (highTail && badMoves>=1)){tag='效率裂化';cls='down';action='优先复盘尾单效率'}
+      else if(excellent){tag='稳定优秀';cls='stable';action='重点维护'}
+      else if(badMoves>=1||weakBadMoves>=1||goodMoves>=1){tag='短期波动';cls='watch';action='观察复盘'}
+      else {tag='持续关注';cls='neutral';action='持续关注'}
+    }
+    return {id,name,values:vals,first,last,pctChange,drops:badMoves,rises:goodMoves,badMoves,goodMoves,tag,cls,action};
+  }
+  trendDiagnosisFor=rateRuleTrendFor;
+
+  diagnosisItems=function(){
+    const metric=rateRuleMetric(),win=trendWindow(),q=(byId('diagnosisSearchInp')?.value||'').trim().toLowerCase();
+    const ids=riderIds().filter(id=>!q||(riderMap.get(id)?.name||'').toLowerCase().includes(q)||id.toLowerCase().includes(q));
+    const current=ids.map(id=>Number(val(rec(state.cycle,id),metric))||0).filter(v=>v>0);
+    const bounds={q25:rateRulePercentile(current,.25),q75:rateRulePercentile(current,.75)};
+    if(!isRateRuleMetric(metric) && __oldDiagnosisItemsRateRule){
+      return ids.map(id=>rateRuleTrendFor(id,metric,win,bounds)).sort((a,b)=>{
+        const order={'疑似流失':5,'持续变差':4,'短期波动':3,'恢复中':2,'稳定优秀':1,'稳定观察':0};
+        return (order[b.tag]||0)-(order[a.tag]||0)||Math.abs(b.pctChange||0)-Math.abs(a.pctChange||0);
+      });
+    }
+    const order = metric==='acceptanceRate'
+      ? {'接单率裂化':4,'短期波动':3,'持续关注':2,'稳定优秀':1}
+      : {'效率裂化':4,'短期波动':3,'持续关注':2,'稳定优秀':1};
+    return ids.map(id=>rateRuleTrendFor(id,metric,win,bounds)).sort((a,b)=>{
+      return (order[b.tag]||0)-(order[a.tag]||0)||Math.abs(b.pctChange||0)-Math.abs(a.pctChange||0);
+    });
+  };
+
+  function rateRuleSummaryConfig(metric, counts){
+    if(metric==='acceptanceRate'){
+      return [
+        ['接单率裂化',counts['接单率裂化']||0,'接单率低位或连续下降','red'],
+        ['短期波动',counts['短期波动']||0,'近期变化需复盘','amber'],
+        ['持续关注',counts['持续关注']||0,'暂无明显裂化但需观察','purple'],
+        ['稳定优秀',counts['稳定优秀']||0,'接单率保持较好','green']
+      ];
+    }
+    if(metric==='tailRate'){
+      return [
+        ['效率裂化',counts['效率裂化']||0,'责尾单率高位或连续上升','red'],
+        ['短期波动',counts['短期波动']||0,'近期变化需复盘','amber'],
+        ['持续关注',counts['持续关注']||0,'暂无明显裂化但需观察','purple'],
+        ['稳定优秀',counts['稳定优秀']||0,'责尾单率保持较低','green']
+      ];
+    }
+    return [['持续变差',counts['持续变差']||0,'建议优先处理','red'],['疑似流失',counts['疑似流失']||0,'最新周期无活跃','amber'],['恢复中',counts['恢复中']||0,'仍需继续观察','green'],['稳定优秀',counts['稳定优秀']||0,'可重点维护','blue']];
+  }
+  function rateRuleNeedTags(metric){
+    if(metric==='acceptanceRate')return ['接单率裂化'];
+    if(metric==='tailRate')return ['效率裂化'];
+    return ['疑似流失','持续变差'];
+  }
+  function rateRuleHint(metric){
+    const pct=rateRuleThreshold('continuousPct',10),weeks=Math.max(2,rateRuleThreshold('continuousWeeks',2));
+    if(metric==='acceptanceRate')return `接单率判定：数值偏低代表挑单风险；连续 ${weeks} 次下降且单次 ≥${pct}% 或当前处于低位并下滑，判定为“接单率裂化”。`;
+    if(metric==='tailRate')return `骑手责尾单率判定：数值越高代表效率劣化越严重；连续 ${weeks} 次上升且单次 ≥${pct}% 或当前处于高位并上升，判定为“效率裂化”。`;
+    return `系统默认：连续下滑 ${weeks} 次，每次 ≥${pct}%`;
+  }
+
+  renderDiagnosis=function(){
+    const table=byId('diagnosisTable');if(!table)return;
+    const metric=rateRuleMetric();
+    const ms=byId('diagnosisMetricSel');if(ms)ms.innerHTML=metrics.map(m=>`<option value="${m.key}" ${m.key===metric?'selected':''}>${rateRuleEsc(m.label)}</option>`).join('');
+    const ls=byId('diagnosisLookbackSel');if(ls)ls.value=state.diagnosisLookback;
+    if(!rows.length){
+      const sg=byId('diagnosisSummaryGrid');if(sg)sg.innerHTML='';
+      const insight=byId('diagnosisInsight');if(insight)insight.innerHTML='请先检查 Supabase 云表是否有数据';
+      table.innerHTML='<tr><td class="empty">暂无数据</td></tr>';
+      if(typeof drawDiagnosis==='function')drawDiagnosis();
+      return;
+    }
+    const items=diagnosisItems(),counts={};items.forEach(x=>counts[x.tag]=(counts[x.tag]||0)+1);
+    const hint=byId('diagnosisRuleHint');if(hint)hint.textContent=rateRuleHint(metric);
+    const summary=byId('diagnosisSummaryGrid');if(summary)summary.innerHTML=rateRuleSummaryConfig(metric,counts).map(x=>`<div class="snap ${x[3]}"><b>${rateRuleEsc(x[0])}</b><div class="n">${x[1]}</div><div class="t">${rateRuleEsc(x[2])}</div></div>`).join('');
+    const badTags=rateRuleNeedTags(metric),need=items.filter(x=>badTags.includes(x.tag)).slice(0,5);
+    const insight=byId('diagnosisInsight');
+    if(insight){
+      if(metric==='acceptanceRate')insight.innerHTML=`观察窗口：<b>${trendWindow().join(' → ')}</b>。当前识别出接单率裂化 <b>${counts['接单率裂化']||0}</b> 人、短期波动 <b>${counts['短期波动']||0}</b> 人、持续关注 <b>${counts['持续关注']||0}</b> 人。`;
+      else if(metric==='tailRate')insight.innerHTML=`观察窗口：<b>${trendWindow().join(' → ')}</b>。当前识别出效率裂化 <b>${counts['效率裂化']||0}</b> 人、短期波动 <b>${counts['短期波动']||0}</b> 人、持续关注 <b>${counts['持续关注']||0}</b> 人。`;
+      else insight.innerHTML=`观察窗口：<b>${trendWindow().join(' → ')}</b>。当前识别出持续变差 <b>${counts['持续变差']||0}</b> 人、疑似流失 <b>${counts['疑似流失']||0}</b> 人、恢复中 <b>${counts['恢复中']||0}</b> 人。`;
+    }
+    const priority=byId('diagnosisPriorityList');
+    if(priority)priority.innerHTML=need.length?need.map((x,i)=>`<div class="priorityItem"><div class="rank">${i+1}</div><button class="nameBtn" data-track="${rateRuleEsc(x.id)}"><div class="name">${rateRuleEsc(x.name)}</div><div class="reason">${rateRuleEsc(x.tag)}｜${x.pctChange==null?'无首值':x.pctChange.toFixed(1)+'%'}</div></button><div class="right"><span class="trendTag ${x.cls}">${rateRuleEsc(x.action)}</span><div class="mini">${fmt(x.last,metric)}</div></div></div>`).join(''):'<div class="empty">当前窗口暂无高优先级趋势风险</div>';
+    const abnormalLabel=isRateRuleMetric(metric)?'异常次数':'下滑次数';
+    let html=`<thead><tr><th>骑手</th><th>交通工具</th><th>接单率</th><th>骑手责尾单率</th><th>趋势状态</th><th>首值</th><th>末值</th><th>变化率</th><th>${abnormalLabel}</th><th>窗口序列</th><th>备注</th><th>建议动作</th></tr></thead><tbody>`;
+    items.forEach(x=>{
+      const cur=rec(state.cycle,x.id)||{},pre=rec(state.compare,x.id)||{};
+      const extra=(typeof riderExtraCells==='function')?riderExtraCells(cur,pre):'';
+      const note=(typeof safeSharedNoteCell==='function')?safeSharedNoteCell(x.id,'数据趋势诊断'):(typeof sharedRiderNoteControlHTML==='function'?sharedRiderNoteControlHTML(x.id,'数据趋势诊断'):'');
+      html+=`<tr><td><button class="nameBtn" data-track="${rateRuleEsc(x.id)}"><div class="riderName">${rateRuleEsc(x.name)}</div><div class="mini">ID ${rateRuleEsc(x.id)}</div></button></td>${extra}<td><span class="trendTag ${x.cls}">${rateRuleEsc(x.tag)}</span></td><td>${fmt(x.first,metric)}</td><td>${fmt(x.last,metric)}</td><td>${x.pctChange==null?'-':(x.pctChange>=0?'+':'')+x.pctChange.toFixed(1)+'%'}</td><td>${x.badMoves??x.drops??0}</td><td><span class="mini">${x.values.map(v=>fmt(v,metric)).join(' → ')}</span></td><td>${note}</td><td><b>${rateRuleEsc(x.action)}</b></td></tr>`;
+    });
+    table.innerHTML=html+'</tbody>';
+    if(typeof bindTrackButtons==='function')bindTrackButtons(table);else table.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+    if(typeof drawDiagnosis==='function')drawDiagnosis();
+  };
+
+  exportDiagnosis=function(){
+    const items=diagnosisItems();if(!items.length){toast('暂无诊断数据可导出');return}
+    const metric=rateRuleMetric();
+    const header=['观察窗口','指标','ID','骑手姓名','趋势状态','首值','末值','变化率%','异常/下滑次数','建议动作','窗口序列','备注历史'];
+    const lines=[header];
+    items.forEach(x=>lines.push([trendWindow().join('|'),mMap[metric]?.label||metric,x.id,x.name,x.tag,plain(x.first,metric),plain(x.last,metric),x.pctChange==null?'':x.pctChange.toFixed(1),x.badMoves??x.drops??0,x.action,x.values.map(v=>plain(v,metric)).join('|'),typeof safeNotePlain==='function'?safeNotePlain(x.id):'']));
+    downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`骑手多周期数据趋势诊断_${metric}_${state.cycle||'未选择'}.csv`);
+  };
+})();
+
 </script>
 </body>
 </html>
