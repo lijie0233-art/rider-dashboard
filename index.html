@@ -5492,11 +5492,12 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 
 
-/* === 申领物料处理 + 外链骑手物料申请表 v1 === */
+/* === 申领物料处理 + 外链骑手物料申请表 v2: 表单链接 / 维护弹窗 / 过往归集 === */
 (function(){
   const TAB='materialApplications';
   const MATERIAL_ITEMS_TABLE='material_equipment_items';
   const MATERIAL_APPLICATIONS_TABLE='material_applications';
+  const MATERIAL_FORM_URL='https://www.riderhpsearch.com//material_application_form.html';
   const DEFAULT_MATERIAL_ITEMS=[
     {equipment_name:'雨衣',specs:['S','M','L','XL','2XL','3XL']},
     {equipment_name:'马甲',specs:['S','M','L','XL','2XL','3XL']},
@@ -5506,9 +5507,13 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let materialItems=[];
   let materialApplications=[];
   let materialExpandedId='';
+  let materialHistoryExpandedId='';
   let materialFilterStatus='all';
+  let materialHistoryFilterStatus='all';
   let materialSearchKeyword='';
+  let materialHistorySearchKeyword='';
   let materialRealtimeReady=false;
+
   function m$(id){return document.getElementById(id)}
   function mEsc(v){return String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]))}
   function mDate(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(_){return String(v)}}
@@ -5531,17 +5536,29 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function mPickupText(s){return s==='received'?'已领取':'未领取'}
   function mStatusClass(s){return s==='approved'?'ok':s==='rejected'?'bad':'warn'}
   function mPickupClass(s){return s==='received'?'ok':'warn'}
+  function mArchiveText(x){return x?.archive_reason==='ignored'?'已忽略':'已归集'}
   function mTotalQty(app){
     const n=Number(app.total_qty);
     if(Number.isFinite(n)&&n>0)return Math.floor(n);
     return mItemsArray(app.items).reduce((sum,it)=>sum+(Number(it.qty)||1),0);
+  }
+  function materialAppKey(x){return String(x?.id||x?.case_no||'')}
+  function materialIsTerminal(x){return x?.review_status==='rejected'||(x?.review_status==='approved'&&x?.pickup_status==='received')}
+  function materialIsArchived(x){return x?.is_archived===true||x?.archived===true||String(x?.archive_reason||'').trim()==='ignored'}
+  function materialIsPast(x){return materialIsArchived(x)||materialIsTerminal(x)}
+  function materialMatchSearch(x,q){
+    q=String(q||'').trim().toLowerCase();
+    if(!q)return true;
+    const rows=mItemsArray(x.items).map(it=>[it.equipment_name,it.name,it.spec,it.size,it.size_spec].join(' ')).join(' ');
+    const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone,x.region,x.remark,rows].map(v=>String(v||'').toLowerCase()).join(' ');
+    return hay.includes(q);
   }
   function materialEnsureStyle(){
     if(m$('materialApplicationsStyle'))return;
     const st=document.createElement('style');
     st.id='materialApplicationsStyle';
     st.textContent=`
-      .materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-top:10px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}}`;
+      .materialTopActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.materialFormUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:16px;padding:10px 12px;margin:10px 0 0;font-size:13px;font-weight:850}.materialFormUrl code{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 8px;color:#1e3a8a;word-break:break-all}.materialSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.materialSectionTitle h3{margin:0;font-size:16px;letter-spacing:-.02em}.materialSectionTitle .sub{margin:2px 0 0}.materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard.history{background:linear-gradient(135deg,#fff,#f8fafc)}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialPill.info{background:#eff6ff;color:#1d4ed8}.materialPill.muted{background:#f2f4f7;color:#667085}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialManageLayer{display:none;position:fixed;inset:0;z-index:1350;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}.materialManageLayer.show{display:flex}.materialManagePanel{width:min(960px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}.materialManageHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.materialManageHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.materialManageBody{padding:16px 18px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-bottom:12px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}.materialHistoryPanel{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}.materialTopActions{justify-content:flex-start}}`;
     document.head.appendChild(st);
   }
   function materialEnsureMenu(){
@@ -5588,27 +5605,42 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     sec.innerHTML=`
       <div class="panel">
         <div class="panelHead">
-          <div><h2>申领物料处理</h2><div class="sub">统一管理外部“骑手物料申请表”提交的物料申请记录。点击卡片可展开申领明细与处理流程。</div></div>
-          <div class="inlineActions"><button class="btn small" id="refreshMaterialApplicationsBtn">刷新记录</button></div>
+          <div><h2>申领物料处理</h2><div class="sub">统一管理外部“骑手物料申请表”提交的物料申请记录。当前待处理与过往申请记录分开归集，点击卡片可展开申领明细与处理流程。</div></div>
+          <div class="materialTopActions"><button class="btn small" id="copyMaterialFormLinkBtn">复制表单链接</button><button class="btn small primary" id="openMaterialManageBtn">骑手物料申请表 - 物料维护</button><button class="btn small" id="refreshMaterialApplicationsBtn">刷新记录</button></div>
         </div>
-        <div class="compareControlGrid">
-          <label class="field"><span>状态筛选</span><select id="materialStatusFilter"><option value="all">全部状态</option><option value="pending">待审核</option><option value="approved">审核通过</option><option value="rejected">审核拒绝</option><option value="not_received">审核通过未领取</option><option value="received">已领取</option></select></label>
-          <label class="field"><span>搜索</span><input id="materialSearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域" /></label>
+        <div class="materialFormUrl"><b>外链表单：</b><code>${mEsc(MATERIAL_FORM_URL)}</code><button class="btn small" id="copyMaterialFormLinkInlineBtn">复制链接</button></div>
+        <div class="compareControlGrid" style="margin-top:12px">
+          <label class="field"><span>当前记录状态</span><select id="materialStatusFilter"><option value="all">全部待处理</option><option value="pending">待审核</option><option value="approved_not_received">审核通过未领取</option></select></label>
+          <label class="field"><span>当前记录搜索</span><input id="materialSearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域 / 装备" /></label>
           <div class="field"><span>当前记录数</span><b id="materialApplicationCount">-</b></div>
-          <div class="field"><span>外链页面</span><b>material_application_form.html</b></div>
+          <div class="field"><span>过往记录数</span><b id="materialHistoryCount">-</b></div>
         </div>
         <div class="snapshotGrid" id="materialApplicationSummary"></div>
+        <div class="materialSectionTitle"><div><h3>当前待处理申请</h3><div class="sub">待审核、审核通过但未领取的记录会停留在这里。</div></div></div>
         <div class="materialCards" id="materialApplicationCards"></div>
-      </div>
-      <div class="panel">
-        <div class="panelHead"><div><h2>骑手物料申请表 - 物料维护</h2><div class="sub">维护外链申请表可选择的装备名称与尺码/规格。保存后外部申请页会自动读取最新选项。</div></div></div>
-        <div class="materialExternalBox"><b>部署说明：</b><span>请将部署包中的 <b>material_application_form.html</b> 放到线上同目录，可单独分享给骑手填写。</span></div>
-        <div class="materialManageGrid" style="margin-top:12px">
-          <label class="field"><span>装备名称</span><input id="materialNewNameInp" placeholder="例如：头盔" /></label>
-          <label class="field"><span>尺码 / 规格</span><input id="materialNewSpecsInp" placeholder="多个规格用逗号分隔，例如 S,M,L,XL" /></label>
-          <button class="btn primary" id="materialAddItemBtn">新增装备</button>
+        <div class="materialHistoryPanel">
+          <div class="materialSectionTitle"><div><h3>过往申请记录</h3><div class="sub">审核拒绝、审核通过且已领取、或手动忽略的记录会自动归集到这里，可继续检索并查看明细。</div></div></div>
+          <div class="compareControlGrid">
+            <label class="field"><span>过往记录状态</span><select id="materialHistoryStatusFilter"><option value="all">全部过往</option><option value="rejected">审核拒绝</option><option value="received">已领取</option><option value="ignored">已忽略</option></select></label>
+            <label class="field"><span>过往记录搜索</span><input id="materialHistorySearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域 / 装备" /></label>
+            <div class="field"><span>归集规则</span><b>拒绝 / 已领取 / 忽略</b></div>
+          </div>
+          <div class="materialCards" id="materialHistoryCards"></div>
         </div>
-        <div class="tableWrap"><table class="materialManageTable" id="materialItemsTable"></table></div>
+      </div>
+      <div class="materialManageLayer" id="materialManageLayer" aria-modal="true" role="dialog" aria-labelledby="materialManageTitle">
+        <div class="materialManagePanel">
+          <div class="materialManageHead"><div><h2 id="materialManageTitle">骑手物料申请表 - 物料维护</h2><div class="sub">维护外链申请表可选择的装备名称与尺码/规格。保存后外部申请页会自动读取最新选项。</div></div><button class="noticeClose" id="closeMaterialManageBtn">×</button></div>
+          <div class="materialManageBody">
+            <div class="materialExternalBox"><b>同步说明：</b><span>此处新增、删除或修改装备后，外部线上骑手物料申请表会读取同一张 Supabase 物料维护表。</span></div>
+            <div class="materialManageGrid" style="margin-top:12px">
+              <label class="field"><span>装备名称</span><input id="materialNewNameInp" placeholder="例如：头盔" /></label>
+              <label class="field"><span>尺码 / 规格</span><input id="materialNewSpecsInp" placeholder="多个规格用逗号分隔，例如 S,M,L,XL" /></label>
+              <button class="btn primary" id="materialAddItemBtn">新增装备</button>
+            </div>
+            <div class="tableWrap" style="margin-top:12px"><table class="materialManageTable" id="materialItemsTable"></table></div>
+          </div>
+        </div>
       </div>`;
     const main=document.querySelector('main');
     const ref=m$('followup')||m$('riderEquipment')?.nextElementSibling;
@@ -5619,94 +5651,117 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       const {data,error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
       if(error)throw error;
       materialItems=(data||[]).map((x,i)=>({id:x.id,equipment_name:x.equipment_name||x.name||'',specs:mSpecsArray(x.specs||x.size_specs),sort_order:x.sort_order??i,is_active:x.is_active!==false})).filter(x=>x.equipment_name);
-      if(!materialItems.length){
-        try{await seedDefaultMaterialItems();}catch(_){ }
-      }
+      if(!materialItems.length){try{await seedDefaultMaterialItems();}catch(_){ }}
     }catch(e){
       console.warn('物料维护读取失败：',e?.message||e);
       if(!materialItems.length)materialItems=DEFAULT_MATERIAL_ITEMS.map((x,i)=>({id:'local_'+i,equipment_name:x.equipment_name,specs:x.specs,sort_order:i,is_active:true}));
-      toast('物料维护云端读取失败，请确认已执行申领物料 SQL');
     }
   }
   async function seedDefaultMaterialItems(){
-    const payload=DEFAULT_MATERIAL_ITEMS.map((x,i)=>({equipment_name:x.equipment_name,specs:x.specs,sort_order:i,is_active:true,updated_at:new Date().toISOString()}));
+    const payload=DEFAULT_MATERIAL_ITEMS.map((x,i)=>({...x,sort_order:i+1,is_active:true,updated_at:new Date().toISOString()}));
     const {data,error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).upsert(payload,{onConflict:'equipment_name'}).select('*');
     if(error)throw error;
     materialItems=(data||payload).map((x,i)=>({id:x.id,equipment_name:x.equipment_name,specs:mSpecsArray(x.specs),sort_order:x.sort_order??i,is_active:x.is_active!==false}));
   }
   async function materialLoadApplications(){
     try{
-      const {data,error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).select('*').order('created_at',{ascending:false}).limit(300);
+      const {data,error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).select('*').order('created_at',{ascending:false});
       if(error)throw error;
       materialApplications=(data||[]).map(x=>({...x,items:mItemsArray(x.items)}));
     }catch(e){
-      console.warn('物料申领记录读取失败：',e?.message||e);
+      console.warn('物料申请读取失败：',e?.message||e);
       materialApplications=[];
-      toast('物料申领记录读取失败，请确认已执行申领物料 SQL');
     }
   }
-  function materialFilteredApplications(){
-    const q=String(materialSearchKeyword||'').trim().toLowerCase();
+  function materialFilteredCurrentApplications(){
     return (materialApplications||[]).filter(x=>{
+      if(materialIsPast(x))return false;
       if(materialFilterStatus==='pending'&&x.review_status!=='pending')return false;
-      if(materialFilterStatus==='approved'&&x.review_status!=='approved')return false;
-      if(materialFilterStatus==='rejected'&&x.review_status!=='rejected')return false;
-      if(materialFilterStatus==='not_received'&&!(x.review_status==='approved'&&x.pickup_status!=='received'))return false;
-      if(materialFilterStatus==='received'&&x.pickup_status!=='received')return false;
-      if(q){
-        const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone,x.region,x.remark].map(v=>String(v||'').toLowerCase()).join(' ');
-        if(!hay.includes(q))return false;
-      }
-      return true;
+      if(materialFilterStatus==='approved_not_received'&&!(x.review_status==='approved'&&x.pickup_status!=='received'))return false;
+      return materialMatchSearch(x,materialSearchKeyword);
     });
   }
-  function renderMaterialSummary(items){
+  function materialFilteredHistoryApplications(){
+    return (materialApplications||[]).filter(x=>{
+      if(!materialIsPast(x))return false;
+      if(materialHistoryFilterStatus==='rejected'&&x.review_status!=='rejected')return false;
+      if(materialHistoryFilterStatus==='received'&&!(x.review_status==='approved'&&x.pickup_status==='received'))return false;
+      if(materialHistoryFilterStatus==='ignored'&&!materialIsArchived(x))return false;
+      return materialMatchSearch(x,materialHistorySearchKeyword);
+    });
+  }
+  function renderMaterialSummary(currentItems,historyItems){
     const box=m$('materialApplicationSummary');if(!box)return;
-    const total=materialApplications.length;
-    const pending=materialApplications.filter(x=>x.review_status==='pending').length;
-    const approved=materialApplications.filter(x=>x.review_status==='approved').length;
-    const received=materialApplications.filter(x=>x.pickup_status==='received').length;
+    const all=materialApplications||[];
+    const pending=all.filter(x=>!materialIsPast(x)&&x.review_status==='pending').length;
+    const approvedNotReceived=all.filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received').length;
+    const rejected=all.filter(x=>x.review_status==='rejected').length;
+    const received=all.filter(x=>x.review_status==='approved'&&x.pickup_status==='received').length;
     box.innerHTML=[
-      ['全部申请',total],['待审核',pending],['审核通过',approved],['已领取',received]
-    ].map(([k,v])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">当前筛选显示 ${items.length} 条</div></div>`).join('');
+      ['当前待处理',currentItems.length],['待审核',pending],['通过未领取',approvedNotReceived],['过往申请',historyItems.length],['已领取',received],['审核拒绝',rejected]
+    ].map(([k,v])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">物料申请记录</div></div>`).join('');
   }
   function materialTimelineHTML(x){
-    const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at]];
+    const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at],[x.archive_reason==='ignored'?'手动忽略':'归集过往',x.archived_at]];
     return `<div class="materialTimeline">${rows.filter(r=>r[1]).map(r=>`<div><b>${mEsc(r[0])}</b><span>${mEsc(mDate(r[1]))}</span></div>`).join('')||'<div><b>暂无流程时间</b><span>-</span></div>'}</div>`;
   }
+  function materialCardHTML(x,{history=false}={}){
+    const rows=mItemsArray(x.items);
+    const appId=x.id||x.case_no;
+    const open=String(history?materialHistoryExpandedId:materialExpandedId)===String(appId);
+    const name=x.rider_name||x.name||'-';
+    const phone=x.rider_phone||x.phone||'-';
+    const past=materialIsPast(x);
+    const archived=materialIsArchived(x);
+    const terminal=materialIsTerminal(x);
+    const archivePill=archived?`<span class="materialPill info">${mEsc(mArchiveText(x))}</span>`:(terminal?'<span class="materialPill muted">自动归集</span>':'');
+    return `<article class="materialCard ${history?'history':''} ${open?'open':''}" data-material-card="${mEsc(appId)}" data-material-history="${history?'1':'0'}">
+      <div class="materialCardTop"><div><div class="materialCase">${mEsc(x.case_no||'-')}</div><div class="mini">${mEsc(mDate(x.created_at))}</div></div><span class="materialPill ${mStatusClass(x.review_status)}">${mEsc(mStatusText(x.review_status))}</span></div>
+      <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
+      <div class="materialPills"><span class="materialPill ${mPickupClass(x.pickup_status)}">${mEsc(mPickupText(x.pickup_status))}</span><span class="materialPill">${rows.length} 个明细</span>${archivePill}</div>
+      <div class="materialDetail">
+        <div class="sub"><b>申领明细</b></div>
+        <div class="materialDetailList">${rows.map(it=>`<div class="materialDetailItem"><span>${mEsc(it.equipment_name||it.name||'-')} · ${mEsc(it.spec||it.size||it.size_spec||'标准')}</span><b>x ${mEsc(Number(it.qty)||1)}</b></div>`).join('')||'<div class="empty">暂无明细</div>'}</div>
+        ${x.remark?`<div class="sub"><b>备注：</b>${mEsc(x.remark)}</div>`:''}
+        <div class="sub" style="margin-top:8px"><b>处理流程</b></div>${materialTimelineHTML(x)}
+        ${history?'<div class="sub" style="margin-top:10px">该记录已进入过往申请记录列表，可继续检索并查看完整明细。</div>':`<div class="materialActions">
+          <button class="btn primary small" data-material-approve="${mEsc(appId)}" ${x.review_status==='approved'?'disabled':''}>审核通过</button>
+          <button class="btn danger small" data-material-reject="${mEsc(appId)}" ${x.review_status==='rejected'?'disabled':''}>审核拒绝</button>
+          <button class="btn small" data-material-pickup="${mEsc(appId)}" ${x.review_status==='approved'&&x.pickup_status!=='received'?'':'disabled'}>已领取</button>
+          <button class="btn small" data-material-ignore="${mEsc(appId)}">忽略</button>
+        </div>`}
+      </div>
+    </article>`;
+  }
+  function bindMaterialCardEvents(root){
+    if(!root)return;
+    root.querySelectorAll('[data-material-card]').forEach(card=>card.onclick=e=>{
+      if(e.target.closest('button'))return;
+      const id=card.dataset.materialCard;
+      if(card.dataset.materialHistory==='1')materialHistoryExpandedId=materialHistoryExpandedId===id?'':id;else materialExpandedId=materialExpandedId===id?'':id;
+      renderMaterialApplications();
+    });
+    root.querySelectorAll('[data-material-approve]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialApprove,'approve')});
+    root.querySelectorAll('[data-material-reject]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialReject,'reject')});
+    root.querySelectorAll('[data-material-pickup]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialPickup,'pickup')});
+    root.querySelectorAll('[data-material-ignore]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialIgnore,'ignore')});
+  }
   function renderMaterialApplications(){
-    const cards=m$('materialApplicationCards');if(!cards)return;
-    const items=materialFilteredApplications();
-    if(m$('materialApplicationCount'))m$('materialApplicationCount').textContent=String(items.length);
-    renderMaterialSummary(items);
-    if(!items.length){cards.innerHTML='<div class="materialEmpty">暂无符合条件的物料申请记录</div>';return;}
-    cards.innerHTML=items.map(x=>{
-      const rows=mItemsArray(x.items);
-      const open=String(materialExpandedId)===String(x.id||x.case_no);
-      const name=x.rider_name||x.name||'-';
-      const phone=x.rider_phone||x.phone||'-';
-      const appId=x.id||x.case_no;
-      return `<article class="materialCard ${open?'open':''}" data-material-card="${mEsc(appId)}">
-        <div class="materialCardTop"><div><div class="materialCase">${mEsc(x.case_no||'-')}</div><div class="mini">${mEsc(mDate(x.created_at))}</div></div><span class="materialPill ${mStatusClass(x.review_status)}">${mEsc(mStatusText(x.review_status))}</span></div>
-        <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
-        <div class="materialPills"><span class="materialPill ${mPickupClass(x.pickup_status)}">${mEsc(mPickupText(x.pickup_status))}</span><span class="materialPill">${rows.length} 个明细</span></div>
-        <div class="materialDetail">
-          <div class="sub"><b>申领明细</b></div>
-          <div class="materialDetailList">${rows.map(it=>`<div class="materialDetailItem"><span>${mEsc(it.equipment_name||it.name||'-')} · ${mEsc(it.spec||it.size||it.size_spec||'标准')}</span><b>x ${mEsc(Number(it.qty)||1)}</b></div>`).join('')||'<div class="empty">暂无明细</div>'}</div>
-          ${x.remark?`<div class="sub"><b>备注：</b>${mEsc(x.remark)}</div>`:''}
-          <div class="sub" style="margin-top:8px"><b>处理流程</b></div>${materialTimelineHTML(x)}
-          <div class="materialActions">
-            <button class="btn primary small" data-material-approve="${mEsc(appId)}" ${x.review_status==='approved'?'disabled':''}>审核通过</button>
-            <button class="btn danger small" data-material-reject="${mEsc(appId)}" ${x.review_status==='rejected'?'disabled':''}>审核拒绝</button>
-            <button class="btn small" data-material-pickup="${mEsc(appId)}" ${x.review_status==='approved'&&x.pickup_status!=='received'?'':'disabled'}>已领取</button>
-          </div>
-        </div>
-      </article>`;
-    }).join('');
-    cards.querySelectorAll('[data-material-card]').forEach(card=>card.onclick=e=>{if(e.target.closest('button'))return;const id=card.dataset.materialCard;materialExpandedId=materialExpandedId===id?'':id;renderMaterialApplications()});
-    cards.querySelectorAll('[data-material-approve]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialApprove,'approve')});
-    cards.querySelectorAll('[data-material-reject]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialReject,'reject')});
-    cards.querySelectorAll('[data-material-pickup]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialPickup,'pickup')});
+    const currentCards=m$('materialApplicationCards');
+    const historyCards=m$('materialHistoryCards');
+    const currentItems=materialFilteredCurrentApplications();
+    const historyItems=materialFilteredHistoryApplications();
+    if(m$('materialApplicationCount'))m$('materialApplicationCount').textContent=String(currentItems.length);
+    if(m$('materialHistoryCount'))m$('materialHistoryCount').textContent=String(historyItems.length);
+    renderMaterialSummary(currentItems,historyItems);
+    if(currentCards){
+      currentCards.innerHTML=currentItems.length?currentItems.map(x=>materialCardHTML(x,{history:false})).join(''):'<div class="materialEmpty">暂无当前待处理物料申请记录</div>';
+      bindMaterialCardEvents(currentCards);
+    }
+    if(historyCards){
+      historyCards.innerHTML=historyItems.length?historyItems.map(x=>materialCardHTML(x,{history:true})).join(''):'<div class="materialEmpty">暂无符合条件的过往申请记录</div>';
+      bindMaterialCardEvents(historyCards);
+    }
   }
   function renderMaterialItems(){
     const tbl=m$('materialItemsTable');if(!tbl)return;
@@ -5765,19 +5820,38 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(action==='approve')patch={...patch,review_status:'approved',approved_at:now,approved_by:by,rejected_at:null,rejected_by:null,pickup_status:app.pickup_status||'not_received'};
     if(action==='reject')patch={...patch,review_status:'rejected',rejected_at:now,rejected_by:by};
     if(action==='pickup')patch={...patch,pickup_status:'received',picked_up_at:now,picked_up_by:by};
+    if(action==='ignore'){
+      if(!confirm(`确认将案例 ${app.case_no||''} 移入过往申请记录？`))return;
+      patch={...patch,is_archived:true,archived_at:now,archived_by:by,archive_reason:'ignored'};
+    }
     try{
       const {error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).update(patch).eq('id',app.id);
       if(error)throw error;
       Object.assign(app,patch);
       renderMaterialApplications();
-      toast(action==='approve'?'已审核通过':action==='reject'?'已审核拒绝':'已标记为已领取');
-    }catch(e){console.warn(e);toast('操作失败，请确认当前账号有处理权限')}
+      toast(action==='approve'?'已审核通过':action==='reject'?'已审核拒绝并归集到过往申请':action==='pickup'?'已标记为已领取并归集到过往申请':'已忽略并移入过往申请');
+    }catch(e){
+      console.warn(e);
+      toast(action==='ignore'?'忽略失败，请先执行过往申请归集 SQL':'操作失败，请确认当前账号有处理权限');
+    }
   }
+  async function materialCopyFormLink(){
+    try{await navigator.clipboard.writeText(MATERIAL_FORM_URL);toast('已复制骑手物料申请表链接')}catch(_){prompt('复制骑手物料申请表链接',MATERIAL_FORM_URL)}
+  }
+  function openMaterialManageModal(){m$('materialManageLayer')?.classList.add('show');renderMaterialItems()}
+  function closeMaterialManageModal(){m$('materialManageLayer')?.classList.remove('show')}
   function bindMaterialControls(){
     const refresh=m$('refreshMaterialApplicationsBtn');if(refresh)refresh.onclick=()=>materialRefreshAll();
     const st=m$('materialStatusFilter');if(st)st.onchange=e=>{materialFilterStatus=e.target.value;renderMaterialApplications()};
     const search=m$('materialSearchInp');if(search)search.oninput=e=>{materialSearchKeyword=e.target.value;renderMaterialApplications()};
+    const hst=m$('materialHistoryStatusFilter');if(hst)hst.onchange=e=>{materialHistoryFilterStatus=e.target.value;renderMaterialApplications()};
+    const hsearch=m$('materialHistorySearchInp');if(hsearch)hsearch.oninput=e=>{materialHistorySearchKeyword=e.target.value;renderMaterialApplications()};
     const add=m$('materialAddItemBtn');if(add)add.onclick=materialAddItem;
+    const copy=m$('copyMaterialFormLinkBtn');if(copy)copy.onclick=materialCopyFormLink;
+    const copy2=m$('copyMaterialFormLinkInlineBtn');if(copy2)copy2.onclick=materialCopyFormLink;
+    const open=m$('openMaterialManageBtn');if(open)open.onclick=openMaterialManageModal;
+    const close=m$('closeMaterialManageBtn');if(close)close.onclick=closeMaterialManageModal;
+    const layer=m$('materialManageLayer');if(layer&&!layer.dataset.bound){layer.dataset.bound='1';layer.addEventListener('click',e=>{if(e.target===layer)closeMaterialManageModal()})}
   }
   function materialSetupRealtime(){
     if(materialRealtimeReady)return;materialRealtimeReady=true;
@@ -5809,6 +5883,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   }
   if(state?.tab===TAB)renderMaterialModule();
 })();
+
 
 </script>
 </body>
