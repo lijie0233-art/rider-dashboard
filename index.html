@@ -5491,6 +5491,325 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   setTimeout(()=>{try{ensureDiagnosisVehicleFilter();if(typeof renderReturnPotentialPool==='function')renderReturnPotentialPool();if(typeof renderDiagnosis==='function')renderDiagnosis();}catch(e){console.warn('二次修复初始化失败',e?.message||e)}},0);
 })();
 
+
+/* === 申领物料处理 + 外链骑手物料申请表 v1 === */
+(function(){
+  const TAB='materialApplications';
+  const MATERIAL_ITEMS_TABLE='material_equipment_items';
+  const MATERIAL_APPLICATIONS_TABLE='material_applications';
+  const DEFAULT_MATERIAL_ITEMS=[
+    {equipment_name:'雨衣',specs:['S','M','L','XL','2XL','3XL']},
+    {equipment_name:'马甲',specs:['S','M','L','XL','2XL','3XL']},
+    {equipment_name:'外卖箱',specs:['标准','大号']},
+    {equipment_name:'外卖包',specs:['标准','大号']}
+  ];
+  let materialItems=[];
+  let materialApplications=[];
+  let materialExpandedId='';
+  let materialFilterStatus='all';
+  let materialSearchKeyword='';
+  let materialRealtimeReady=false;
+  function m$(id){return document.getElementById(id)}
+  function mEsc(v){return String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]))}
+  function mDate(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(_){return String(v)}}
+  function mSpecsArray(v){
+    if(Array.isArray(v))return v.map(x=>String(x||'').trim()).filter(Boolean);
+    if(v==null)return [];
+    if(typeof v==='string'){
+      try{const x=JSON.parse(v);if(Array.isArray(x))return x.map(s=>String(s||'').trim()).filter(Boolean)}catch(_){ }
+      return v.split(/[，,\n/|]+/).map(s=>s.trim()).filter(Boolean);
+    }
+    return [];
+  }
+  function mItemsArray(v){
+    if(Array.isArray(v))return v;
+    if(!v)return [];
+    if(typeof v==='string'){try{const x=JSON.parse(v);return Array.isArray(x)?x:[]}catch(_){return []}}
+    return [];
+  }
+  function mStatusText(s){return {pending:'待审核',approved:'审核通过',rejected:'审核拒绝'}[s]||'待审核'}
+  function mPickupText(s){return s==='received'?'已领取':'未领取'}
+  function mStatusClass(s){return s==='approved'?'ok':s==='rejected'?'bad':'warn'}
+  function mPickupClass(s){return s==='received'?'ok':'warn'}
+  function mTotalQty(app){
+    const n=Number(app.total_qty);
+    if(Number.isFinite(n)&&n>0)return Math.floor(n);
+    return mItemsArray(app.items).reduce((sum,it)=>sum+(Number(it.qty)||1),0);
+  }
+  function materialEnsureStyle(){
+    if(m$('materialApplicationsStyle'))return;
+    const st=document.createElement('style');
+    st.id='materialApplicationsStyle';
+    st.textContent=`
+      .materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-top:10px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}}`;
+    document.head.appendChild(st);
+  }
+  function materialEnsureMenu(){
+    try{
+      if(typeof MODULE_META!=='undefined'&&!MODULE_META.some(m=>m.tab===TAB)){
+        const i=MODULE_META.findIndex(m=>m.tab==='riderEquipment');
+        const item={tab:TAB,label:'申领物料处理',desc:'统一审核骑手物料申请、维护外链申请表装备选项'};
+        if(i>=0)MODULE_META.splice(i+1,0,item);else MODULE_META.push(item);
+      }
+      if(typeof DEFAULT_MENU_ORDER!=='undefined'&&!DEFAULT_MENU_ORDER.includes(TAB)){
+        const i=DEFAULT_MENU_ORDER.indexOf('riderEquipment');
+        if(i>=0)DEFAULT_MENU_ORDER.splice(i+1,0,TAB);else DEFAULT_MENU_ORDER.push(TAB);
+      }
+      if(typeof moduleOrderConfig!=='undefined'){
+        if(!moduleOrderConfig.includes(TAB)){
+          const i=moduleOrderConfig.indexOf('riderEquipment');
+          if(i>=0)moduleOrderConfig.splice(i+1,0,TAB);else moduleOrderConfig.push(TAB);
+        }else{
+          const i=moduleOrderConfig.indexOf(TAB),j=moduleOrderConfig.indexOf('riderEquipment');
+          if(j>=0&&i!==j+1){moduleOrderConfig.splice(i,1);moduleOrderConfig.splice(moduleOrderConfig.indexOf('riderEquipment')+1,0,TAB)}
+        }
+      }
+      if(typeof moduleSwitchConfig!=='undefined'&&moduleSwitchConfig[TAB]===undefined)moduleSwitchConfig[TAB]=true;
+      if(typeof modulePermissionConfig!=='undefined'&&modulePermissionConfig[TAB]===undefined)modulePermissionConfig[TAB]=0;
+      if(typeof accountVisibilityConfig!=='undefined'&&accountVisibilityConfig?.accounts){
+        Object.values(accountVisibilityConfig.accounts).forEach(rule=>{if(rule?.tabs&&rule.tabs[TAB]===undefined)rule.tabs[TAB]=true});
+      }
+    }catch(e){console.warn('申领物料菜单元数据初始化失败',e?.message||e)}
+    const nav=document.querySelector('.sideNav');
+    if(nav&&!nav.querySelector(`button[data-tab="${TAB}"]`)){
+      const btn=document.createElement('button');
+      btn.dataset.tab=TAB;
+      btn.innerHTML='<span class="menuIcon">📦</span><span class="menuLabel">申领物料处理</span><span class="menuTestTag">新上线</span>';
+      const ref=nav.querySelector('button[data-tab="riderEquipment"]');
+      if(ref&&ref.nextSibling)nav.insertBefore(btn,ref.nextSibling);else nav.appendChild(btn);
+      btn.onclick=()=>selectTab(TAB);
+    }
+  }
+  function materialEnsureSection(){
+    if(m$(TAB))return;
+    const sec=document.createElement('section');
+    sec.id=TAB;
+    sec.className='tab';
+    sec.innerHTML=`
+      <div class="panel">
+        <div class="panelHead">
+          <div><h2>申领物料处理</h2><div class="sub">统一管理外部“骑手物料申请表”提交的物料申请记录。点击卡片可展开申领明细与处理流程。</div></div>
+          <div class="inlineActions"><button class="btn small" id="refreshMaterialApplicationsBtn">刷新记录</button></div>
+        </div>
+        <div class="compareControlGrid">
+          <label class="field"><span>状态筛选</span><select id="materialStatusFilter"><option value="all">全部状态</option><option value="pending">待审核</option><option value="approved">审核通过</option><option value="rejected">审核拒绝</option><option value="not_received">审核通过未领取</option><option value="received">已领取</option></select></label>
+          <label class="field"><span>搜索</span><input id="materialSearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域" /></label>
+          <div class="field"><span>当前记录数</span><b id="materialApplicationCount">-</b></div>
+          <div class="field"><span>外链页面</span><b>material_application_form.html</b></div>
+        </div>
+        <div class="snapshotGrid" id="materialApplicationSummary"></div>
+        <div class="materialCards" id="materialApplicationCards"></div>
+      </div>
+      <div class="panel">
+        <div class="panelHead"><div><h2>骑手物料申请表 - 物料维护</h2><div class="sub">维护外链申请表可选择的装备名称与尺码/规格。保存后外部申请页会自动读取最新选项。</div></div></div>
+        <div class="materialExternalBox"><b>部署说明：</b><span>请将部署包中的 <b>material_application_form.html</b> 放到线上同目录，可单独分享给骑手填写。</span></div>
+        <div class="materialManageGrid" style="margin-top:12px">
+          <label class="field"><span>装备名称</span><input id="materialNewNameInp" placeholder="例如：头盔" /></label>
+          <label class="field"><span>尺码 / 规格</span><input id="materialNewSpecsInp" placeholder="多个规格用逗号分隔，例如 S,M,L,XL" /></label>
+          <button class="btn primary" id="materialAddItemBtn">新增装备</button>
+        </div>
+        <div class="tableWrap"><table class="materialManageTable" id="materialItemsTable"></table></div>
+      </div>`;
+    const main=document.querySelector('main');
+    const ref=m$('followup')||m$('riderEquipment')?.nextElementSibling;
+    if(main&&ref)main.insertBefore(sec,ref);else if(main)main.appendChild(sec);else document.body.appendChild(sec);
+  }
+  async function materialLoadItems(){
+    try{
+      const {data,error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+      if(error)throw error;
+      materialItems=(data||[]).map((x,i)=>({id:x.id,equipment_name:x.equipment_name||x.name||'',specs:mSpecsArray(x.specs||x.size_specs),sort_order:x.sort_order??i,is_active:x.is_active!==false})).filter(x=>x.equipment_name);
+      if(!materialItems.length){
+        try{await seedDefaultMaterialItems();}catch(_){ }
+      }
+    }catch(e){
+      console.warn('物料维护读取失败：',e?.message||e);
+      if(!materialItems.length)materialItems=DEFAULT_MATERIAL_ITEMS.map((x,i)=>({id:'local_'+i,equipment_name:x.equipment_name,specs:x.specs,sort_order:i,is_active:true}));
+      toast('物料维护云端读取失败，请确认已执行申领物料 SQL');
+    }
+  }
+  async function seedDefaultMaterialItems(){
+    const payload=DEFAULT_MATERIAL_ITEMS.map((x,i)=>({equipment_name:x.equipment_name,specs:x.specs,sort_order:i,is_active:true,updated_at:new Date().toISOString()}));
+    const {data,error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).upsert(payload,{onConflict:'equipment_name'}).select('*');
+    if(error)throw error;
+    materialItems=(data||payload).map((x,i)=>({id:x.id,equipment_name:x.equipment_name,specs:mSpecsArray(x.specs),sort_order:x.sort_order??i,is_active:x.is_active!==false}));
+  }
+  async function materialLoadApplications(){
+    try{
+      const {data,error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).select('*').order('created_at',{ascending:false}).limit(300);
+      if(error)throw error;
+      materialApplications=(data||[]).map(x=>({...x,items:mItemsArray(x.items)}));
+    }catch(e){
+      console.warn('物料申领记录读取失败：',e?.message||e);
+      materialApplications=[];
+      toast('物料申领记录读取失败，请确认已执行申领物料 SQL');
+    }
+  }
+  function materialFilteredApplications(){
+    const q=String(materialSearchKeyword||'').trim().toLowerCase();
+    return (materialApplications||[]).filter(x=>{
+      if(materialFilterStatus==='pending'&&x.review_status!=='pending')return false;
+      if(materialFilterStatus==='approved'&&x.review_status!=='approved')return false;
+      if(materialFilterStatus==='rejected'&&x.review_status!=='rejected')return false;
+      if(materialFilterStatus==='not_received'&&!(x.review_status==='approved'&&x.pickup_status!=='received'))return false;
+      if(materialFilterStatus==='received'&&x.pickup_status!=='received')return false;
+      if(q){
+        const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone,x.region,x.remark].map(v=>String(v||'').toLowerCase()).join(' ');
+        if(!hay.includes(q))return false;
+      }
+      return true;
+    });
+  }
+  function renderMaterialSummary(items){
+    const box=m$('materialApplicationSummary');if(!box)return;
+    const total=materialApplications.length;
+    const pending=materialApplications.filter(x=>x.review_status==='pending').length;
+    const approved=materialApplications.filter(x=>x.review_status==='approved').length;
+    const received=materialApplications.filter(x=>x.pickup_status==='received').length;
+    box.innerHTML=[
+      ['全部申请',total],['待审核',pending],['审核通过',approved],['已领取',received]
+    ].map(([k,v])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">当前筛选显示 ${items.length} 条</div></div>`).join('');
+  }
+  function materialTimelineHTML(x){
+    const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at]];
+    return `<div class="materialTimeline">${rows.filter(r=>r[1]).map(r=>`<div><b>${mEsc(r[0])}</b><span>${mEsc(mDate(r[1]))}</span></div>`).join('')||'<div><b>暂无流程时间</b><span>-</span></div>'}</div>`;
+  }
+  function renderMaterialApplications(){
+    const cards=m$('materialApplicationCards');if(!cards)return;
+    const items=materialFilteredApplications();
+    if(m$('materialApplicationCount'))m$('materialApplicationCount').textContent=String(items.length);
+    renderMaterialSummary(items);
+    if(!items.length){cards.innerHTML='<div class="materialEmpty">暂无符合条件的物料申请记录</div>';return;}
+    cards.innerHTML=items.map(x=>{
+      const rows=mItemsArray(x.items);
+      const open=String(materialExpandedId)===String(x.id||x.case_no);
+      const name=x.rider_name||x.name||'-';
+      const phone=x.rider_phone||x.phone||'-';
+      const appId=x.id||x.case_no;
+      return `<article class="materialCard ${open?'open':''}" data-material-card="${mEsc(appId)}">
+        <div class="materialCardTop"><div><div class="materialCase">${mEsc(x.case_no||'-')}</div><div class="mini">${mEsc(mDate(x.created_at))}</div></div><span class="materialPill ${mStatusClass(x.review_status)}">${mEsc(mStatusText(x.review_status))}</span></div>
+        <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
+        <div class="materialPills"><span class="materialPill ${mPickupClass(x.pickup_status)}">${mEsc(mPickupText(x.pickup_status))}</span><span class="materialPill">${rows.length} 个明细</span></div>
+        <div class="materialDetail">
+          <div class="sub"><b>申领明细</b></div>
+          <div class="materialDetailList">${rows.map(it=>`<div class="materialDetailItem"><span>${mEsc(it.equipment_name||it.name||'-')} · ${mEsc(it.spec||it.size||it.size_spec||'标准')}</span><b>x ${mEsc(Number(it.qty)||1)}</b></div>`).join('')||'<div class="empty">暂无明细</div>'}</div>
+          ${x.remark?`<div class="sub"><b>备注：</b>${mEsc(x.remark)}</div>`:''}
+          <div class="sub" style="margin-top:8px"><b>处理流程</b></div>${materialTimelineHTML(x)}
+          <div class="materialActions">
+            <button class="btn primary small" data-material-approve="${mEsc(appId)}" ${x.review_status==='approved'?'disabled':''}>审核通过</button>
+            <button class="btn danger small" data-material-reject="${mEsc(appId)}" ${x.review_status==='rejected'?'disabled':''}>审核拒绝</button>
+            <button class="btn small" data-material-pickup="${mEsc(appId)}" ${x.review_status==='approved'&&x.pickup_status!=='received'?'':'disabled'}>已领取</button>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+    cards.querySelectorAll('[data-material-card]').forEach(card=>card.onclick=e=>{if(e.target.closest('button'))return;const id=card.dataset.materialCard;materialExpandedId=materialExpandedId===id?'':id;renderMaterialApplications()});
+    cards.querySelectorAll('[data-material-approve]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialApprove,'approve')});
+    cards.querySelectorAll('[data-material-reject]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialReject,'reject')});
+    cards.querySelectorAll('[data-material-pickup]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialPickup,'pickup')});
+  }
+  function renderMaterialItems(){
+    const tbl=m$('materialItemsTable');if(!tbl)return;
+    const rows=(materialItems||[]).filter(x=>x.is_active!==false);
+    tbl.innerHTML=`<thead><tr><th>装备名称</th><th>尺码 / 规格</th><th>操作</th></tr></thead><tbody>${rows.map(x=>`<tr data-material-item-row="${mEsc(x.id)}"><td><input data-material-item-name="${mEsc(x.id)}" value="${mEsc(x.equipment_name)}" /></td><td><textarea data-material-item-specs="${mEsc(x.id)}" placeholder="多个规格用逗号、换行分隔">${mEsc((x.specs||[]).join('，'))}</textarea></td><td><div class="inlineActions"><button class="btn small primary" data-material-item-save="${mEsc(x.id)}">保存修改</button><button class="btn small danger" data-material-item-delete="${mEsc(x.id)}">删除</button></div></td></tr>`).join('')||'<tr><td colspan="3" class="empty">暂无物料选项</td></tr>'}</tbody>`;
+    tbl.querySelectorAll('[data-material-item-save]').forEach(btn=>btn.onclick=()=>materialSaveItem(btn.dataset.materialItemSave));
+    tbl.querySelectorAll('[data-material-item-delete]').forEach(btn=>btn.onclick=()=>materialDeleteItem(btn.dataset.materialItemDelete));
+  }
+  async function materialRefreshAll({silent=false}={}){
+    await materialLoadItems();
+    await materialLoadApplications();
+    renderMaterialItems();
+    renderMaterialApplications();
+    if(!silent)toast('申领物料处理已刷新');
+  }
+  async function materialAddItem(){
+    const name=String(m$('materialNewNameInp')?.value||'').trim();
+    const specs=mSpecsArray(m$('materialNewSpecsInp')?.value||'标准');
+    if(!name){toast('请填写装备名称');m$('materialNewNameInp')?.focus();return}
+    if(!specs.length){toast('请填写至少一个尺码 / 规格');m$('materialNewSpecsInp')?.focus();return}
+    try{
+      const payload={equipment_name:name,specs,sort_order:(materialItems||[]).length,is_active:true,updated_at:new Date().toISOString()};
+      const {error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).upsert(payload,{onConflict:'equipment_name'});
+      if(error)throw error;
+      if(m$('materialNewNameInp'))m$('materialNewNameInp').value='';
+      if(m$('materialNewSpecsInp'))m$('materialNewSpecsInp').value='';
+      await materialLoadItems();renderMaterialItems();toast('装备选项已新增并同步到外链申请表');
+    }catch(e){console.warn(e);toast('新增装备失败，请确认已执行 SQL')}
+  }
+  async function materialSaveItem(id){
+    const row=document.querySelector(`[data-material-item-row="${CSS.escape(String(id))}"]`);
+    const name=String(row?.querySelector('[data-material-item-name]')?.value||'').trim();
+    const specs=mSpecsArray(row?.querySelector('[data-material-item-specs]')?.value||'');
+    if(!name||!specs.length){toast('请填写装备名称和尺码规格');return}
+    try{
+      const {error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).update({equipment_name:name,specs,updated_at:new Date().toISOString()}).eq('id',id);
+      if(error)throw error;
+      await materialLoadItems();renderMaterialItems();toast('装备选项已修改并同步');
+    }catch(e){console.warn(e);toast('修改装备失败，请确认已执行 SQL')}
+  }
+  async function materialDeleteItem(id){
+    const item=materialItems.find(x=>String(x.id)===String(id));
+    if(!confirm(`确认删除装备选项「${item?.equipment_name||''}」？外链申请表将不再显示。`))return;
+    try{
+      const {error}=await getCloudClient().from(MATERIAL_ITEMS_TABLE).update({is_active:false,updated_at:new Date().toISOString()}).eq('id',id);
+      if(error)throw error;
+      await materialLoadItems();renderMaterialItems();toast('装备选项已删除并同步');
+    }catch(e){console.warn(e);toast('删除装备失败，请确认已执行 SQL')}
+  }
+  async function materialUpdateApplication(id,action){
+    const app=materialApplications.find(x=>String(x.id)===String(id)||String(x.case_no)===String(id));
+    if(!app)return;
+    const now=new Date().toISOString();
+    const by=cloudUser?.email||currentAuthEmail?.()||'';
+    let patch={updated_at:now};
+    if(action==='approve')patch={...patch,review_status:'approved',approved_at:now,approved_by:by,rejected_at:null,rejected_by:null,pickup_status:app.pickup_status||'not_received'};
+    if(action==='reject')patch={...patch,review_status:'rejected',rejected_at:now,rejected_by:by};
+    if(action==='pickup')patch={...patch,pickup_status:'received',picked_up_at:now,picked_up_by:by};
+    try{
+      const {error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).update(patch).eq('id',app.id);
+      if(error)throw error;
+      Object.assign(app,patch);
+      renderMaterialApplications();
+      toast(action==='approve'?'已审核通过':action==='reject'?'已审核拒绝':'已标记为已领取');
+    }catch(e){console.warn(e);toast('操作失败，请确认当前账号有处理权限')}
+  }
+  function bindMaterialControls(){
+    const refresh=m$('refreshMaterialApplicationsBtn');if(refresh)refresh.onclick=()=>materialRefreshAll();
+    const st=m$('materialStatusFilter');if(st)st.onchange=e=>{materialFilterStatus=e.target.value;renderMaterialApplications()};
+    const search=m$('materialSearchInp');if(search)search.oninput=e=>{materialSearchKeyword=e.target.value;renderMaterialApplications()};
+    const add=m$('materialAddItemBtn');if(add)add.onclick=materialAddItem;
+  }
+  function materialSetupRealtime(){
+    if(materialRealtimeReady)return;materialRealtimeReady=true;
+    try{
+      const c=getCloudClient();
+      c.channel('material-application-admin-sync')
+        .on('postgres_changes',{event:'*',schema:'public',table:MATERIAL_ITEMS_TABLE},()=>materialLoadItems().then(renderMaterialItems).catch(()=>{}))
+        .on('postgres_changes',{event:'*',schema:'public',table:MATERIAL_APPLICATIONS_TABLE},()=>materialLoadApplications().then(renderMaterialApplications).catch(()=>{}))
+        .subscribe();
+    }catch(e){console.warn('物料申领实时同步未启用：',e?.message||e)}
+  }
+  async function renderMaterialModule(){
+    materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();materialSetupRealtime();await materialRefreshAll({silent:true});
+  }
+  function materialBootstrap(){
+    materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();
+    try{if(typeof applyModuleSwitches==='function')applyModuleSwitches()}catch(_){ }
+  }
+  materialBootstrap();
+  const oldSelect=typeof selectTab==='function'?selectTab:null;
+  if(oldSelect&&!window.__materialSelectTabPatched){
+    window.__materialSelectTabPatched=true;
+    selectTab=function(tab){const r=oldSelect.apply(this,arguments);if(state.tab===TAB)renderMaterialModule();return r};
+  }
+  const oldApply=typeof applyModuleSwitches==='function'?applyModuleSwitches:null;
+  if(oldApply&&!window.__materialApplySwitchPatched){
+    window.__materialApplySwitchPatched=true;
+    applyModuleSwitches=function(){materialEnsureMenu();return oldApply.apply(this,arguments)};
+  }
+  if(state?.tab===TAB)renderMaterialModule();
+})();
+
 </script>
 </body>
 </html>
