@@ -5512,6 +5512,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let materialHistoryFilterStatus='all';
   let materialSearchKeyword='';
   let materialHistorySearchKeyword='';
+  let materialHistoryDateStart='';
+  let materialHistoryDateEnd='';
   let materialRealtimeReady=false;
 
   function m$(id){return document.getElementById(id)}
@@ -5553,12 +5555,32 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone,x.region,x.remark,rows].map(v=>String(v||'').toLowerCase()).join(' ');
     return hay.includes(q);
   }
+  function materialHistoryHasQuery(){
+    return !!(String(materialHistorySearchKeyword||'').trim()||materialHistoryDateStart||materialHistoryDateEnd);
+  }
+  function materialMatchHistorySearch(x,q){
+    q=String(q||'').trim().toLowerCase();
+    if(!q)return true;
+    const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone].map(v=>String(v||'').toLowerCase()).join(' ');
+    return hay.includes(q);
+  }
+  function materialMatchHistoryDate(x){
+    if(!materialHistoryDateStart&&!materialHistoryDateEnd)return true;
+    const raw=x.created_at||x.submitted_at||x.createdAt;
+    if(!raw)return false;
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime()))return false;
+    const day=d.toISOString().slice(0,10);
+    if(materialHistoryDateStart&&day<materialHistoryDateStart)return false;
+    if(materialHistoryDateEnd&&day>materialHistoryDateEnd)return false;
+    return true;
+  }
   function materialEnsureStyle(){
     if(m$('materialApplicationsStyle'))return;
     const st=document.createElement('style');
     st.id='materialApplicationsStyle';
     st.textContent=`
-      .materialTopActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.materialFormUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:16px;padding:10px 12px;margin:10px 0 0;font-size:13px;font-weight:850}.materialFormUrl code{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 8px;color:#1e3a8a;word-break:break-all}.materialSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.materialSectionTitle h3{margin:0;font-size:16px;letter-spacing:-.02em}.materialSectionTitle .sub{margin:2px 0 0}.materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard.history{background:linear-gradient(135deg,#fff,#f8fafc)}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialPill.info{background:#eff6ff;color:#1d4ed8}.materialPill.muted{background:#f2f4f7;color:#667085}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialManageLayer{display:none;position:fixed;inset:0;z-index:1350;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}.materialManageLayer.show{display:flex}.materialManagePanel{width:min(960px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}.materialManageHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.materialManageHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.materialManageBody{padding:16px 18px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-bottom:12px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}.materialHistoryPanel{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}.materialTopActions{justify-content:flex-start}}`;
+      .materialTopActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.materialFormUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:16px;padding:10px 12px;margin:10px 0 0;font-size:13px;font-weight:850}.materialFormUrl code{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 8px;color:#1e3a8a;word-break:break-all}.materialSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.materialSectionTitle h3{margin:0;font-size:16px;letter-spacing:-.02em}.materialSectionTitle .sub{margin:2px 0 0}.materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard.history{background:linear-gradient(135deg,#fff,#f8fafc)}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialPill.info{background:#eff6ff;color:#1d4ed8}.materialPill.muted{background:#f2f4f7;color:#667085}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialManageLayer{display:none;position:fixed;inset:0;z-index:1350;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}.materialManageLayer.show{display:flex}.materialManagePanel{width:min(960px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}.materialManageHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.materialManageHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.materialManageBody{padding:16px 18px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-bottom:12px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}.materialHistoryPanel{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}.materialHistorySearchGrid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}.materialTopActions{justify-content:flex-start}}`;
     document.head.appendChild(st);
   }
   function materialEnsureMenu(){
@@ -5576,9 +5598,6 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
         if(!moduleOrderConfig.includes(TAB)){
           const i=moduleOrderConfig.indexOf('riderEquipment');
           if(i>=0)moduleOrderConfig.splice(i+1,0,TAB);else moduleOrderConfig.push(TAB);
-        }else{
-          const i=moduleOrderConfig.indexOf(TAB),j=moduleOrderConfig.indexOf('riderEquipment');
-          if(j>=0&&i!==j+1){moduleOrderConfig.splice(i,1);moduleOrderConfig.splice(moduleOrderConfig.indexOf('riderEquipment')+1,0,TAB)}
         }
       }
       if(typeof moduleSwitchConfig!=='undefined'&&moduleSwitchConfig[TAB]===undefined)moduleSwitchConfig[TAB]=true;
@@ -5619,11 +5638,11 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
         <div class="materialSectionTitle"><div><h3>当前待处理申请</h3><div class="sub">待审核、审核通过但未领取的记录会停留在这里。</div></div></div>
         <div class="materialCards" id="materialApplicationCards"></div>
         <div class="materialHistoryPanel">
-          <div class="materialSectionTitle"><div><h3>过往申请记录</h3><div class="sub">审核拒绝、审核通过且已领取、或手动忽略的记录会自动归集到这里，可继续检索并查看明细。</div></div></div>
-          <div class="compareControlGrid">
-            <label class="field"><span>过往记录状态</span><select id="materialHistoryStatusFilter"><option value="all">全部过往</option><option value="rejected">审核拒绝</option><option value="received">已领取</option><option value="ignored">已忽略</option></select></label>
-            <label class="field"><span>过往记录搜索</span><input id="materialHistorySearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域 / 装备" /></label>
-            <div class="field"><span>归集规则</span><b>拒绝 / 已领取 / 忽略</b></div>
+          <div class="materialSectionTitle"><div><h3>过往申请记录</h3><div class="sub">审核拒绝、审核通过且已领取、或手动忽略的记录会自动归集到这里；默认不加载历史数据，请按提交日期或案例编号 / 姓名 / 骑手手机号检索。</div></div></div>
+          <div class="compareControlGrid materialHistorySearchGrid">
+            <label class="field"><span>提交日期起</span><input id="materialHistoryDateStart" type="date" /></label>
+            <label class="field"><span>提交日期止</span><input id="materialHistoryDateEnd" type="date" /></label>
+            <label class="field"><span>过往记录检索</span><input id="materialHistorySearchInp" placeholder="案例编号 / 姓名 / 骑手手机号" /></label>
           </div>
           <div class="materialCards" id="materialHistoryCards"></div>
         </div>
@@ -5682,24 +5701,22 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     });
   }
   function materialFilteredHistoryApplications(){
+    if(!materialHistoryHasQuery())return [];
     return (materialApplications||[]).filter(x=>{
       if(!materialIsPast(x))return false;
-      if(materialHistoryFilterStatus==='rejected'&&x.review_status!=='rejected')return false;
-      if(materialHistoryFilterStatus==='received'&&!(x.review_status==='approved'&&x.pickup_status==='received'))return false;
-      if(materialHistoryFilterStatus==='ignored'&&!materialIsArchived(x))return false;
-      return materialMatchSearch(x,materialHistorySearchKeyword);
+      if(!materialMatchHistoryDate(x))return false;
+      return materialMatchHistorySearch(x,materialHistorySearchKeyword);
     });
   }
   function renderMaterialSummary(currentItems,historyItems){
     const box=m$('materialApplicationSummary');if(!box)return;
     const all=materialApplications||[];
     const pending=all.filter(x=>!materialIsPast(x)&&x.review_status==='pending').length;
-    const approvedNotReceived=all.filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received').length;
-    const rejected=all.filter(x=>x.review_status==='rejected').length;
+    const waitPickup=all.filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received').length;
     const received=all.filter(x=>x.review_status==='approved'&&x.pickup_status==='received').length;
     box.innerHTML=[
-      ['当前待处理',currentItems.length],['待审核',pending],['通过未领取',approvedNotReceived],['过往申请',historyItems.length],['已领取',received],['审核拒绝',rejected]
-    ].map(([k,v])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">物料申请记录</div></div>`).join('');
+      ['待处理',pending,'待审核申请'],['待领取',waitPickup,'审核通过未领取'],['已领取',received,'已完成领取']
+    ].map(([k,v,sub])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">${mEsc(sub)}</div></div>`).join('');
   }
   function materialTimelineHTML(x){
     const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at],[x.archive_reason==='ignored'?'手动忽略':'归集过往',x.archived_at]];
@@ -5759,7 +5776,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       bindMaterialCardEvents(currentCards);
     }
     if(historyCards){
-      historyCards.innerHTML=historyItems.length?historyItems.map(x=>materialCardHTML(x,{history:true})).join(''):'<div class="materialEmpty">暂无符合条件的过往申请记录</div>';
+      const historyEmpty=materialHistoryHasQuery()?'暂无符合条件的过往申请记录':'过往申请记录默认不加载展示，请选择提交日期或输入案例编号 / 姓名 / 骑手手机号检索。';
+      historyCards.innerHTML=historyItems.length?historyItems.map(x=>materialCardHTML(x,{history:true})).join(''):`<div class="materialEmpty">${mEsc(historyEmpty)}</div>`;
       bindMaterialCardEvents(historyCards);
     }
   }
@@ -5846,6 +5864,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const search=m$('materialSearchInp');if(search)search.oninput=e=>{materialSearchKeyword=e.target.value;renderMaterialApplications()};
     const hst=m$('materialHistoryStatusFilter');if(hst)hst.onchange=e=>{materialHistoryFilterStatus=e.target.value;renderMaterialApplications()};
     const hsearch=m$('materialHistorySearchInp');if(hsearch)hsearch.oninput=e=>{materialHistorySearchKeyword=e.target.value;renderMaterialApplications()};
+    const hStart=m$('materialHistoryDateStart');if(hStart)hStart.onchange=e=>{materialHistoryDateStart=e.target.value;renderMaterialApplications()};
+    const hEnd=m$('materialHistoryDateEnd');if(hEnd)hEnd.onchange=e=>{materialHistoryDateEnd=e.target.value;renderMaterialApplications()};
     const add=m$('materialAddItemBtn');if(add)add.onclick=materialAddItem;
     const copy=m$('copyMaterialFormLinkBtn');if(copy)copy.onclick=materialCopyFormLink;
     const copy2=m$('copyMaterialFormLinkInlineBtn');if(copy2)copy2.onclick=materialCopyFormLink;
@@ -5866,8 +5886,17 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   async function renderMaterialModule(){
     materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();materialSetupRealtime();await materialRefreshAll({silent:true});
   }
+  function materialReloadSavedOrderOnce(){
+    if(window.__materialSavedOrderReloaded)return;
+    window.__materialSavedOrderReloaded=true;
+    try{
+      if(typeof loadModuleOrderConfig==='function'){
+        setTimeout(()=>{loadModuleOrderConfig().then(()=>{try{if(typeof renderMenuOrderGrid==='function')renderMenuOrderGrid()}catch(_){ }}).catch(()=>{})},0);
+      }
+    }catch(_){ }
+  }
   function materialBootstrap(){
-    materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();
+    materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();materialReloadSavedOrderOnce();
     try{if(typeof applyModuleSwitches==='function')applyModuleSwitches()}catch(_){ }
   }
   materialBootstrap();
