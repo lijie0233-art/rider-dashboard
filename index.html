@@ -5548,6 +5548,26 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function materialIsTerminal(x){return x?.review_status==='rejected'||(x?.review_status==='approved'&&x?.pickup_status==='received')}
   function materialIsArchived(x){return x?.is_archived===true||x?.archived===true||String(x?.archive_reason||'').trim()==='ignored'}
   function materialIsPast(x){return materialIsArchived(x)||materialIsTerminal(x)}
+  function materialPendingReviewCount(){
+    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&(x?.review_status||'pending')==='pending').length;
+  }
+  function materialUpdateMenuBadge(count){
+    const n=Number.isFinite(Number(count))?Number(count):materialPendingReviewCount();
+    try{
+      const btn=document.querySelector(`.sideNav button[data-tab="${TAB}"]`);
+      if(!btn)return;
+      let badge=btn.querySelector('[data-material-pending-badge]');
+      const oldTag=btn.querySelector('.menuTestTag');
+      if(!badge){
+        badge=oldTag||document.createElement('span');
+        badge.className='menuTestTag';
+        badge.setAttribute('data-material-pending-badge','');
+        if(!oldTag)btn.appendChild(badge);
+      }
+      badge.textContent=`待审核 ${n}`;
+      badge.title=`待审核物料申请：${n}`;
+    }catch(_){ }
+  }
   function materialMatchSearch(x,q){
     q=String(q||'').trim().toLowerCase();
     if(!q)return true;
@@ -5610,7 +5630,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(nav&&!nav.querySelector(`button[data-tab="${TAB}"]`)){
       const btn=document.createElement('button');
       btn.dataset.tab=TAB;
-      btn.innerHTML='<span class="menuIcon">📦</span><span class="menuLabel">申领物料处理</span><span class="menuTestTag">新上线</span>';
+      btn.innerHTML='<span class="menuIcon">📦</span><span class="menuLabel">申领物料处理</span><span class="menuTestTag" data-material-pending-badge>待审核 0</span>';
       const ref=nav.querySelector('button[data-tab="riderEquipment"]');
       if(ref&&ref.nextSibling)nav.insertBefore(btn,ref.nextSibling);else nav.appendChild(btn);
       btn.onclick=()=>selectTab(TAB);
@@ -5629,14 +5649,16 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
         </div>
         <div class="materialFormUrl"><b>外链表单：</b><code>${mEsc(MATERIAL_FORM_URL)}</code><button class="btn small" id="copyMaterialFormLinkInlineBtn">复制链接</button></div>
         <div class="compareControlGrid" style="margin-top:12px">
-          <label class="field"><span>当前记录状态</span><select id="materialStatusFilter"><option value="all">全部待处理</option><option value="pending">待审核</option><option value="approved_not_received">审核通过未领取</option></select></label>
           <label class="field"><span>当前记录搜索</span><input id="materialSearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域 / 装备" /></label>
-          <div class="field"><span>当前记录数</span><b id="materialApplicationCount">-</b></div>
-          <div class="field"><span>过往记录数</span><b id="materialHistoryCount">-</b></div>
+          <div class="field"><span>待审核数量</span><b id="materialPendingCount">-</b></div>
+          <div class="field"><span>待领取数量</span><b id="materialPickupCount">-</b></div>
+          <div class="field"><span>过往检索结果数</span><b id="materialHistoryCount">-</b></div>
         </div>
         <div class="snapshotGrid" id="materialApplicationSummary"></div>
-        <div class="materialSectionTitle"><div><h3>当前待处理申请</h3><div class="sub">待审核、审核通过但未领取的记录会停留在这里。</div></div></div>
-        <div class="materialCards" id="materialApplicationCards"></div>
+        <div class="materialSectionTitle"><div><h3>待审核申请</h3><div class="sub">外链表单新提交且尚未审核的物料申请记录。</div></div></div>
+        <div class="materialCards" id="materialPendingCards"></div>
+        <div class="materialSectionTitle"><div><h3>待领取申请</h3><div class="sub">已审核通过但还没有标记“已领取”的申请记录。</div></div></div>
+        <div class="materialCards" id="materialPickupCards"></div>
         <div class="materialHistoryPanel">
           <div class="materialSectionTitle"><div><h3>过往申请记录</h3><div class="sub">审核拒绝、审核通过且已领取、或手动忽略的记录会自动归集到这里；默认不加载历史数据，请按提交日期或案例编号 / 姓名 / 骑手手机号检索。</div></div></div>
           <div class="compareControlGrid materialHistorySearchGrid">
@@ -5692,13 +5714,14 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       materialApplications=[];
     }
   }
+  function materialFilteredPendingApplications(){
+    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&(x.review_status||'pending')==='pending'&&materialMatchSearch(x,materialSearchKeyword));
+  }
+  function materialFilteredPickupApplications(){
+    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received'&&materialMatchSearch(x,materialSearchKeyword));
+  }
   function materialFilteredCurrentApplications(){
-    return (materialApplications||[]).filter(x=>{
-      if(materialIsPast(x))return false;
-      if(materialFilterStatus==='pending'&&x.review_status!=='pending')return false;
-      if(materialFilterStatus==='approved_not_received'&&!(x.review_status==='approved'&&x.pickup_status!=='received'))return false;
-      return materialMatchSearch(x,materialSearchKeyword);
-    });
+    return materialFilteredPendingApplications().concat(materialFilteredPickupApplications());
   }
   function materialFilteredHistoryApplications(){
     if(!materialHistoryHasQuery())return [];
@@ -5709,11 +5732,13 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     });
   }
   function renderMaterialSummary(currentItems,historyItems){
-    const box=m$('materialApplicationSummary');if(!box)return;
+    const box=m$('materialApplicationSummary');
     const all=materialApplications||[];
-    const pending=all.filter(x=>!materialIsPast(x)&&x.review_status==='pending').length;
+    const pending=all.filter(x=>!materialIsPast(x)&&(x.review_status||'pending')==='pending').length;
     const waitPickup=all.filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received').length;
     const received=all.filter(x=>x.review_status==='approved'&&x.pickup_status==='received').length;
+    materialUpdateMenuBadge(pending);
+    if(!box)return;
     box.innerHTML=[
       ['待处理',pending,'待审核申请'],['待领取',waitPickup,'审核通过未领取'],['已领取',received,'已完成领取']
     ].map(([k,v,sub])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">${mEsc(sub)}</div></div>`).join('');
@@ -5764,16 +5789,30 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     root.querySelectorAll('[data-material-ignore]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();materialUpdateApplication(btn.dataset.materialIgnore,'ignore')});
   }
   function renderMaterialApplications(){
-    const currentCards=m$('materialApplicationCards');
+    const pendingCards=m$('materialPendingCards');
+    const pickupCards=m$('materialPickupCards');
+    const legacyCurrentCards=m$('materialApplicationCards');
     const historyCards=m$('materialHistoryCards');
-    const currentItems=materialFilteredCurrentApplications();
+    const pendingItems=materialFilteredPendingApplications();
+    const pickupItems=materialFilteredPickupApplications();
+    const currentItems=pendingItems.concat(pickupItems);
     const historyItems=materialFilteredHistoryApplications();
+    if(m$('materialPendingCount'))m$('materialPendingCount').textContent=String(pendingItems.length);
+    if(m$('materialPickupCount'))m$('materialPickupCount').textContent=String(pickupItems.length);
     if(m$('materialApplicationCount'))m$('materialApplicationCount').textContent=String(currentItems.length);
     if(m$('materialHistoryCount'))m$('materialHistoryCount').textContent=String(historyItems.length);
     renderMaterialSummary(currentItems,historyItems);
-    if(currentCards){
-      currentCards.innerHTML=currentItems.length?currentItems.map(x=>materialCardHTML(x,{history:false})).join(''):'<div class="materialEmpty">暂无当前待处理物料申请记录</div>';
-      bindMaterialCardEvents(currentCards);
+    if(pendingCards){
+      pendingCards.innerHTML=pendingItems.length?pendingItems.map(x=>materialCardHTML(x,{history:false,group:'pending'})).join(''):'<div class="materialEmpty">暂无待审核物料申请记录</div>';
+      bindMaterialCardEvents(pendingCards);
+    }
+    if(pickupCards){
+      pickupCards.innerHTML=pickupItems.length?pickupItems.map(x=>materialCardHTML(x,{history:false,group:'pickup'})).join(''):'<div class="materialEmpty">暂无待领取物料申请记录</div>';
+      bindMaterialCardEvents(pickupCards);
+    }
+    if(legacyCurrentCards){
+      legacyCurrentCards.innerHTML=currentItems.length?currentItems.map(x=>materialCardHTML(x,{history:false})).join(''):'<div class="materialEmpty">暂无当前待处理物料申请记录</div>';
+      bindMaterialCardEvents(legacyCurrentCards);
     }
     if(historyCards){
       const historyEmpty=materialHistoryHasQuery()?'暂无符合条件的过往申请记录':'过往申请记录默认不加载展示，请选择提交日期或输入案例编号 / 姓名 / 骑手手机号检索。';
@@ -5897,6 +5936,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   }
   function materialBootstrap(){
     materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();materialReloadSavedOrderOnce();
+    materialUpdateMenuBadge(0);
+    setTimeout(()=>{try{materialLoadApplications().then(()=>renderMaterialApplications()).catch(()=>materialUpdateMenuBadge(0))}catch(_){ }},0);
     try{if(typeof applyModuleSwitches==='function')applyModuleSwitches()}catch(_){ }
   }
   materialBootstrap();
