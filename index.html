@@ -5514,6 +5514,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let materialHistorySearchKeyword='';
   let materialHistoryDateStart='';
   let materialHistoryDateEnd='';
+  let materialPickupDateFilter='';
   let materialRealtimeReady=false;
 
   function m$(id){return document.getElementById(id)}
@@ -5574,6 +5575,32 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const rows=mItemsArray(x.items).map(it=>[it.equipment_name,it.name,it.spec,it.size,it.size_spec].join(' ')).join(' ');
     const hay=[x.case_no,x.rider_name,x.name,x.phone,x.rider_phone,x.region,x.remark,rows].map(v=>String(v||'').toLowerCase()).join(' ');
     return hay.includes(q);
+  }
+  function materialRequestedPickupDate(x){
+    const raw=x?.requested_pickup_date||x?.pickup_date||x?.pickupDate||'';
+    return String(raw||'').trim().slice(0,10);
+  }
+  function materialRequestedPickupSlot(x){
+    return String(x?.requested_pickup_time_slot||x?.pickup_time_slot||x?.pickupSlot||'').trim();
+  }
+  function materialMatchPickupDate(x){
+    if(!materialPickupDateFilter)return true;
+    return materialRequestedPickupDate(x)===materialPickupDateFilter;
+  }
+  function materialLocalDateKey(d=new Date()){
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function materialTodayPickupCounts(){
+    const today=materialLocalDateKey();
+    const list=(materialApplications||[]).filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received'&&materialRequestedPickupDate(x)===today);
+    return {
+      morning:list.filter(x=>materialRequestedPickupSlot(x)==='morning_1130_1245').length,
+      afternoon:list.filter(x=>materialRequestedPickupSlot(x)==='afternoon_1430_1745').length,
+      total:list.length
+    };
   }
   function materialHistoryHasQuery(){
     return !!(String(materialHistorySearchKeyword||'').trim()||materialHistoryDateStart||materialHistoryDateEnd);
@@ -5650,8 +5677,11 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
         <div class="materialFormUrl"><b>外链表单：</b><code>${mEsc(MATERIAL_FORM_URL)}</code><button class="btn small" id="copyMaterialFormLinkInlineBtn">复制链接</button></div>
         <div class="compareControlGrid" style="margin-top:12px">
           <label class="field"><span>当前记录搜索</span><input id="materialSearchInp" placeholder="案例编号 / 姓名 / 手机号 / 区域 / 装备" /></label>
+          <label class="field"><span>预约领取日期筛选</span><input id="materialPickupDateFilter" type="date" /></label>
           <div class="field"><span>待审核数量</span><b id="materialPendingCount">-</b></div>
           <div class="field"><span>待领取数量</span><b id="materialPickupCount">-</b></div>
+          <div class="field"><span>今日上午待领取人数</span><b id="materialTodayMorningPickupCount">-</b></div>
+          <div class="field"><span>今日下午待领取人数</span><b id="materialTodayAfternoonPickupCount">-</b></div>
           <div class="field"><span>过往检索结果数</span><b id="materialHistoryCount">-</b></div>
         </div>
         <div class="snapshotGrid" id="materialApplicationSummary"></div>
@@ -5715,10 +5745,10 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     }
   }
   function materialFilteredPendingApplications(){
-    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&(x.review_status||'pending')==='pending'&&materialMatchSearch(x,materialSearchKeyword));
+    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&(x.review_status||'pending')==='pending'&&materialMatchSearch(x,materialSearchKeyword)&&materialMatchPickupDate(x));
   }
   function materialFilteredPickupApplications(){
-    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received'&&materialMatchSearch(x,materialSearchKeyword));
+    return (materialApplications||[]).filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received'&&materialMatchSearch(x,materialSearchKeyword)&&materialMatchPickupDate(x));
   }
   function materialFilteredCurrentApplications(){
     return materialFilteredPendingApplications().concat(materialFilteredPickupApplications());
@@ -5737,10 +5767,14 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const pending=all.filter(x=>!materialIsPast(x)&&(x.review_status||'pending')==='pending').length;
     const waitPickup=all.filter(x=>!materialIsPast(x)&&x.review_status==='approved'&&x.pickup_status!=='received').length;
     const received=all.filter(x=>x.review_status==='approved'&&x.pickup_status==='received').length;
+    const todayCounts=materialTodayPickupCounts();
     materialUpdateMenuBadge(pending);
+    if(m$('materialTodayMorningPickupCount'))m$('materialTodayMorningPickupCount').textContent=String(todayCounts.morning);
+    if(m$('materialTodayAfternoonPickupCount'))m$('materialTodayAfternoonPickupCount').textContent=String(todayCounts.afternoon);
     if(!box)return;
     box.innerHTML=[
-      ['待处理',pending,'待审核申请'],['待领取',waitPickup,'审核通过未领取'],['已领取',received,'已完成领取']
+      ['待处理',pending,'待审核申请'],['待领取',waitPickup,'审核通过未领取'],['已领取',received,'已完成领取'],
+      ['今日上午待领取',todayCounts.morning,'11:30-12:45'],['今日下午待领取',todayCounts.afternoon,'14:30-17:45']
     ].map(([k,v,sub])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">${mEsc(sub)}</div></div>`).join('');
   }
   function materialTimelineHTML(x){
@@ -5844,6 +5878,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(m$('materialPickupCount'))m$('materialPickupCount').textContent=String(pickupItems.length);
     if(m$('materialApplicationCount'))m$('materialApplicationCount').textContent=String(currentItems.length);
     if(m$('materialHistoryCount'))m$('materialHistoryCount').textContent=String(historyItems.length);
+    if(m$('materialPickupDateFilter')&&m$('materialPickupDateFilter').value!==materialPickupDateFilter)m$('materialPickupDateFilter').value=materialPickupDateFilter;
     renderMaterialSummary(currentItems,historyItems);
     if(pendingCards){
       pendingCards.innerHTML=pendingItems.length?pendingItems.map(x=>materialCardHTML(x,{history:false,group:'pending'})).join(''):'<div class="materialEmpty">暂无待审核物料申请记录</div>';
@@ -5944,6 +5979,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const refresh=m$('refreshMaterialApplicationsBtn');if(refresh)refresh.onclick=()=>materialRefreshAll();
     const st=m$('materialStatusFilter');if(st)st.onchange=e=>{materialFilterStatus=e.target.value;renderMaterialApplications()};
     const search=m$('materialSearchInp');if(search)search.oninput=e=>{materialSearchKeyword=e.target.value;renderMaterialApplications()};
+    const pickupDate=m$('materialPickupDateFilter');if(pickupDate)pickupDate.onchange=e=>{materialPickupDateFilter=e.target.value;renderMaterialApplications()};
     const hst=m$('materialHistoryStatusFilter');if(hst)hst.onchange=e=>{materialHistoryFilterStatus=e.target.value;renderMaterialApplications()};
     const hsearch=m$('materialHistorySearchInp');if(hsearch)hsearch.oninput=e=>{materialHistorySearchKeyword=e.target.value;renderMaterialApplications()};
     const hStart=m$('materialHistoryDateStart');if(hStart)hStart.onchange=e=>{materialHistoryDateStart=e.target.value;renderMaterialApplications()};
