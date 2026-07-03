@@ -5747,6 +5747,15 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at],[x.archive_reason==='ignored'?'手动忽略':'归集过往',x.archived_at]];
     return `<div class="materialTimeline">${rows.filter(r=>r[1]).map(r=>`<div><b>${mEsc(r[0])}</b><span>${mEsc(mDate(r[1]))}</span></div>`).join('')||'<div><b>暂无流程时间</b><span>-</span></div>'}</div>`;
   }
+  function materialPickupSlotText(v){
+    return {morning_1130_1245:'上午 11:30-12:45',afternoon_1430_1745:'下午 14:30-17:45'}[v]||v||'-';
+  }
+  function materialPickupScheduleText(x){
+    const d=x?.requested_pickup_date||x?.pickup_date||x?.pickupDate||'';
+    const s=x?.requested_pickup_time_slot||x?.pickup_time_slot||x?.pickupSlot||'';
+    if(!d&&!s)return '-';
+    return `${d||'-'} ${materialPickupSlotText(s)}`;
+  }
   function materialDetailCopyText(x){
     const rows=mItemsArray(x?.items);
     const lines=[];
@@ -5789,12 +5798,13 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const archivePill=archived?`<span class="materialPill info">${mEsc(mArchiveText(x))}</span>`:(terminal?'<span class="materialPill muted">自动归集</span>':'');
     return `<article class="materialCard ${history?'history':''} ${open?'open':''}" data-material-card="${mEsc(appId)}" data-material-history="${history?'1':'0'}">
       <div class="materialCardTop"><div><div class="materialCase">${mEsc(x.case_no||'-')}</div><div class="mini">${mEsc(mDate(x.created_at))}</div></div><span class="materialPill ${mStatusClass(x.review_status)}">${mEsc(mStatusText(x.review_status))}</span></div>
-      <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
+      <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>预约领取：</b>${mEsc(materialPickupScheduleText(x))}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
       <div class="materialCopyActions"><button class="btn small" data-material-copy-phone="${mEsc(appId)}">复制手机号</button><button class="btn small" data-material-copy-detail="${mEsc(appId)}">复制申领明细</button></div>
       <div class="materialPills"><span class="materialPill ${mPickupClass(x.pickup_status)}">${mEsc(mPickupText(x.pickup_status))}</span><span class="materialPill">${rows.length} 个明细</span>${archivePill}</div>
       <div class="materialDetail">
         <div class="sub"><b>申领明细</b></div>
         <div class="materialDetailList">${rows.map(it=>`<div class="materialDetailItem"><span>${mEsc(it.equipment_name||it.name||'-')} · ${mEsc(it.spec||it.size||it.size_spec||'标准')}</span><b>x ${mEsc(Number(it.qty)||1)}</b></div>`).join('')||'<div class="empty">暂无明细</div>'}</div>
+        <div class="sub"><b>预约领取：</b>${mEsc(materialPickupScheduleText(x))}</div>
         ${x.remark?`<div class="sub"><b>备注：</b>${mEsc(x.remark)}</div>`:''}
         <div class="sub" style="margin-top:8px"><b>处理流程</b></div>${materialTimelineHTML(x)}
         ${history?'<div class="sub" style="margin-top:10px">该记录已进入过往申请记录列表，可继续检索并查看完整明细。</div>':`<div class="materialActions">
