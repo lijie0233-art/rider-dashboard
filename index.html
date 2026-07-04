@@ -5540,7 +5540,14 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function mPickupText(s){return s==='received'?'已领取':'未领取'}
   function mStatusClass(s){return s==='approved'?'ok':s==='rejected'?'bad':'warn'}
   function mPickupClass(s){return s==='received'?'ok':'warn'}
-  function mArchiveText(x){return x?.archive_reason==='ignored'?'已忽略':'已归集'}
+  function mArchiveText(x){
+    const r=String(x?.archive_reason||'').trim();
+    if(r==='ignored')return '已忽略';
+    if(r==='pickup_overdue')return '超时未领取';
+    if(r==='received')return '已领取归集';
+    if(r==='rejected')return '审核拒绝';
+    return '已归集';
+  }
   function mTotalQty(app){
     const n=Number(app.total_qty);
     if(Number.isFinite(n)&&n>0)return Math.floor(n);
@@ -5603,6 +5610,108 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       total:list.length
     };
   }
+  function materialSydneyDateTimeKey(d=new Date()){
+    try{
+      const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d).reduce((m,p)=>{m[p.type]=p.value;return m},{});
+      let hour=String(parts.hour||'00').padStart(2,'0');
+      if(hour==='24')hour='00';
+      return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}`;
+    }catch(_){
+      const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'),h=String(d.getHours()).padStart(2,'0'),mi=String(d.getMinutes()).padStart(2,'0');
+      return `${y}-${m}-${day}T${h}:${mi}`;
+    }
+  }
+  function materialPickupDeadlineKey(x){
+    const day=materialRequestedPickupDate(x);
+    if(!day)return '';
+    const slot=materialRequestedPickupSlot(x);
+    const end=slot==='morning_1130_1245'?'12:45':(slot==='afternoon_1430_1745'?'17:45':'23:59');
+    return `${day}T${end}`;
+  }
+  function materialIsPickupOverdue(x){
+    if(!x||materialIsPast(x))return false;
+    if(x.review_status!=='approved'||x.pickup_status==='received')return false;
+    const deadline=materialPickupDeadlineKey(x);
+    if(!deadline)return false;
+    return deadline < materialSydneyDateTimeKey(new Date());
+  }
+  let materialAutoArchiving=false;
+  async function materialAutoArchiveOverdueApplications(){
+    if(materialAutoArchiving)return;
+    const overdue=(materialApplications||[]).filter(materialIsPickupOverdue).filter(x=>x&&x.id);
+    if(!overdue.length)return;
+    materialAutoArchiving=true;
+    const now=new Date().toISOString();
+    const by=cloudUser?.email||currentAuthEmail?.()||'auto_system';
+    const patch={is_archived:true,archived_at:now,archived_by:by,archive_reason:'pickup_overdue',updated_at:now};
+    try{
+      const {error}=await getCloudClient().from(MATERIAL_APPLICATIONS_TABLE).update(patch).in('id',overdue.map(x=>x.id));
+      if(error)throw error;
+      overdue.forEach(x=>Object.assign(x,patch));
+      toast(`已自动归档 ${overdue.length} 条超时未领取申请`);
+    }catch(e){
+      console.warn('自动归档超时未领取申请失败：',e?.message||e);
+    }finally{
+      materialAutoArchiving=false;
+    }
+  }
+  function materialDigits(v){return String(v??'').replace(/\D+/g,'')}
+  function materialFuzzyPhoneMatch(a,b){
+    const da=materialDigits(a),db=materialDigits(b);
+    if(!da||!db)return false;
+    if(da===db||da.includes(db)||db.includes(da))return true;
+    const min=Math.min(8,da.length,db.length);
+    return min>=6&&da.slice(-min)===db.slice(-min);
+  }
+  function materialRecentCycles(){
+    try{
+      const list=Array.isArray(cycles)?cycles.slice():[];
+      if(!list.length)return [];
+      const cur=state?.cycle&&list.includes(state.cycle)?state.cycle:list[list.length-1];
+      const idx=list.indexOf(cur);
+      return list.slice(Math.max(0,idx-2),idx+1);
+    }catch(_){return []}
+  }
+  function materialCandidateRiderIdsByPhone(phone){
+    const ids=new Set();
+    const p=materialDigits(phone);
+    if(!p)return [];
+    try{
+      if(typeof riderContacts!=='undefined'&&riderContacts){
+        Object.entries(riderContacts||{}).forEach(([id,c])=>{if(materialFuzzyPhoneMatch(p,c?.phone||c?.mobile||c?.rider_phone||''))ids.add(String(id))});
+      }
+    }catch(_){ }
+    try{
+      if(typeof riderMap!=='undefined'&&riderMap&&typeof riderMap.keys==='function'){
+        for(const id of riderMap.keys()){if(materialFuzzyPhoneMatch(p,id))ids.add(String(id))}
+      }
+    }catch(_){ }
+    try{
+      if(Array.isArray(rows))rows.forEach(r=>{if(materialFuzzyPhoneMatch(p,r?.id))ids.add(String(r.id))});
+    }catch(_){ }
+    return [...ids];
+  }
+  function materialOrdersForRider(id,cycleList){
+    let total=0,has=false;
+    (cycleList||[]).forEach(c=>{
+      let r=null;
+      try{if(typeof rec==='function')r=rec(c,id)}catch(_){ }
+      if(!r&&Array.isArray(rows))r=rows.find(x=>String(x.id)===String(id)&&String(x.cycle)===String(c));
+      if(r){has=true;const n=(typeof val==='function'?val(r,'orders'):Number(r.orders));if(Number.isFinite(n))total+=n;}
+    });
+    return {total,has};
+  }
+  function materialEvaluateSendByPhone(phone){
+    const ids=materialCandidateRiderIdsByPhone(phone);
+    const cycleList=materialRecentCycles();
+    if(!materialDigits(phone))return {text:'待确认',cls:'muted',tip:'缺少骑手注册手机号'};
+    if(!ids.length)return {text:'待确认',cls:'muted',tip:'未模糊匹配到骑手 ID'};
+    if(!cycleList.length)return {text:'待确认',cls:'muted',tip:'暂无近三周跑单周期数据'};
+    const ranked=ids.map(id=>({id,...materialOrdersForRider(id,cycleList)})).sort((a,b)=>b.total-a.total);
+    const best=ranked[0]||{id:ids[0],total:0,has:false};
+    const detail=`匹配骑手ID ${best.id}；近三周(${cycleList.join(' / ')})跑单量 ${Math.round(best.total*100)/100}`;
+    return best.total>0?{text:'可发',cls:'ok',tip:detail}:{text:'不发',cls:'bad',tip:detail};
+  }
   function materialHistoryHasQuery(){
     return !!(String(materialHistorySearchKeyword||'').trim()||materialHistoryDateStart||materialHistoryDateEnd);
   }
@@ -5628,7 +5737,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const st=document.createElement('style');
     st.id='materialApplicationsStyle';
     st.textContent=`
-      .materialTopActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.materialFormUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:16px;padding:10px 12px;margin:10px 0 0;font-size:13px;font-weight:850}.materialFormUrl code{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 8px;color:#1e3a8a;word-break:break-all}.materialSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.materialSectionTitle h3{margin:0;font-size:16px;letter-spacing:-.02em}.materialSectionTitle .sub{margin:2px 0 0}.materialSectionTitle.toggle{cursor:pointer;border:1px solid #e5e7eb;background:#fff;border-radius:16px;padding:12px 14px;transition:.15s}.materialSectionTitle.toggle:hover{background:#f8fafc;border-color:#d0d5dd}.materialSectionTitleLeft{display:flex;align-items:flex-start;gap:10px}.materialCountBadge{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:#fffaeb;color:#b54708;font-size:12px;font-weight:950;margin-left:8px}.materialToggleHint{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#f2f4f7;color:#475467;font-size:12px;font-weight:900;padding:5px 10px;white-space:nowrap}.materialToggleArrow{font-size:13px}.materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard.history{background:linear-gradient(135deg,#fff,#f8fafc)}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialPill.info{background:#eff6ff;color:#1d4ed8}.materialPill.muted{background:#f2f4f7;color:#667085}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialCopyActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.materialCopyActions .btn{border-radius:999px}.materialManageLayer{display:none;position:fixed;inset:0;z-index:1350;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}.materialManageLayer.show{display:flex}.materialManagePanel{width:min(960px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}.materialManageHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.materialManageHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.materialManageBody{padding:16px 18px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-bottom:12px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}.materialHistoryPanel{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}.materialHistorySearchGrid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}.materialTopActions{justify-content:flex-start}}`;
+      .materialTopActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}.materialFormUrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:16px;padding:10px 12px;margin:10px 0 0;font-size:13px;font-weight:850}.materialFormUrl code{background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 8px;color:#1e3a8a;word-break:break-all}.materialSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.materialSectionTitle h3{margin:0;font-size:16px;letter-spacing:-.02em}.materialSectionTitle .sub{margin:2px 0 0}.materialSectionTitle.toggle{cursor:pointer;border:1px solid #e5e7eb;background:#fff;border-radius:16px;padding:12px 14px;transition:.15s}.materialSectionTitle.toggle:hover{background:#f8fafc;border-color:#d0d5dd}.materialSectionTitleLeft{display:flex;align-items:flex-start;gap:10px}.materialCountBadge{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:#fffaeb;color:#b54708;font-size:12px;font-weight:950;margin-left:8px}.materialToggleHint{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#f2f4f7;color:#475467;font-size:12px;font-weight:900;padding:5px 10px;white-space:nowrap}.materialToggleArrow{font-size:13px}.materialCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}.materialCard{border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.05);padding:14px;cursor:pointer;transition:.15s}.materialCard.history{background:linear-gradient(135deg,#fff,#f8fafc)}.materialCard:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.materialCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.materialCase{font-weight:950;color:#111827}.materialMeta{display:grid;gap:5px;margin-top:9px;color:#475467;font-size:13px;line-height:1.45}.materialMeta b{color:#111827}.materialPills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.materialEvalLine{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.materialEvalLine .materialPill{vertical-align:middle}.materialPill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;background:#f2f4f7;color:#475467}.materialPill.ok{background:#ecfdf3;color:#027a48}.materialPill.bad{background:#fee4e2;color:#b42318}.materialPill.warn{background:#fffaeb;color:#b54708}.materialPill.info{background:#eff6ff;color:#1d4ed8}.materialPill.muted{background:#f2f4f7;color:#667085}.materialDetail{display:none;border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:12px}.materialCard.open .materialDetail{display:block}.materialDetailList{display:grid;gap:7px;margin:8px 0}.materialDetailItem{display:flex;justify-content:space-between;gap:10px;border:1px solid #eef2f7;background:#f8fafc;border-radius:12px;padding:9px 10px;font-size:13px}.materialTimeline{display:grid;gap:6px;margin-top:10px}.materialTimeline div{display:flex;justify-content:space-between;gap:10px;border-left:3px solid #e5e7eb;padding-left:9px;color:#475467;font-size:12px}.materialTimeline b{color:#111827}.materialActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.materialCopyActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.materialCopyActions .btn{border-radius:999px}.materialManageLayer{display:none;position:fixed;inset:0;z-index:1350;background:rgba(15,23,42,.56);align-items:center;justify-content:center;padding:18px}.materialManageLayer.show{display:flex}.materialManagePanel{width:min(960px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 90px rgba(16,24,40,.28)}.materialManageHead{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0;padding:16px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.materialManageHead h2{margin:0;font-size:19px;letter-spacing:-.02em}.materialManageBody{padding:16px 18px}.materialManageGrid{display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end}.materialManageTable input,.materialManageTable textarea{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:9px 10px;font-weight:750;background:#fff;color:#111827}.materialManageTable textarea{min-height:44px;resize:vertical}.materialExternalBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #e5e7eb;background:#f8fafc;border-radius:16px;padding:12px;margin-bottom:12px}.materialEmpty{border:1px dashed #d0d5dd;background:#f8fafc;border-radius:18px;padding:22px;color:#667085;text-align:center;font-weight:800}.materialHistoryPanel{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}.materialHistorySearchGrid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}@media(max-width:900px){.materialManageGrid{grid-template-columns:1fr}.materialCards{grid-template-columns:1fr}.materialTopActions{justify-content:flex-start}}`;
     document.head.appendChild(st);
   }
   function materialEnsureMenu(){
@@ -5777,7 +5886,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     ].map(([k,v,sub])=>`<div class="snap"><div class="k">${mEsc(k)}</div><div class="n">${v}</div><div class="s">${mEsc(sub)}</div></div>`).join('');
   }
   function materialTimelineHTML(x){
-    const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at],[x.archive_reason==='ignored'?'手动忽略':'归集过往',x.archived_at]];
+    const archiveLabel=x.archive_reason==='ignored'?'手动忽略':(x.archive_reason==='pickup_overdue'?'超时未领取归档':'归集过往');
+    const rows=[['提交申请',x.created_at],['审核通过',x.approved_at],['审核拒绝',x.rejected_at],['完成领取',x.picked_up_at],[archiveLabel,x.archived_at]];
     return `<div class="materialTimeline">${rows.filter(r=>r[1]).map(r=>`<div><b>${mEsc(r[0])}</b><span>${mEsc(mDate(r[1]))}</span></div>`).join('')||'<div><b>暂无流程时间</b><span>-</span></div>'}</div>`;
   }
   function materialPickupSlotText(v){
@@ -5828,10 +5938,11 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const past=materialIsPast(x);
     const archived=materialIsArchived(x);
     const terminal=materialIsTerminal(x);
+    const evalSend=materialEvaluateSendByPhone(phone);
     const archivePill=archived?`<span class="materialPill info">${mEsc(mArchiveText(x))}</span>`:(terminal?'<span class="materialPill muted">自动归集</span>':'');
     return `<article class="materialCard ${history?'history':''} ${open?'open':''}" data-material-card="${mEsc(appId)}" data-material-history="${history?'1':'0'}">
       <div class="materialCardTop"><div><div class="materialCase">${mEsc(x.case_no||'-')}</div><div class="mini">${mEsc(mDate(x.created_at))}</div></div><span class="materialPill ${mStatusClass(x.review_status)}">${mEsc(mStatusText(x.review_status))}</span></div>
-      <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>预约领取：</b>${mEsc(materialPickupScheduleText(x))}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div></div>
+      <div class="materialMeta"><div><b>姓名：</b>${mEsc(name)}</div><div><b>骑手注册手机号：</b>${mEsc(phone)}</div><div><b>所属区域：</b>${mEsc(x.region||'-')}</div><div><b>预约领取：</b>${mEsc(materialPickupScheduleText(x))}</div><div><b>申领总数量：</b>${mEsc(mTotalQty(x))}</div><div class="materialEvalLine"><b>评估可发：</b><span class="materialPill ${mEsc(evalSend.cls)}" title="${mEsc(evalSend.tip)}">${mEsc(evalSend.text)}</span><span class="mini">${mEsc(evalSend.tip)}</span></div></div>
       <div class="materialCopyActions"><button class="btn small" data-material-copy-phone="${mEsc(appId)}">复制手机号</button><button class="btn small" data-material-copy-detail="${mEsc(appId)}">复制申领明细</button></div>
       <div class="materialPills"><span class="materialPill ${mPickupClass(x.pickup_status)}">${mEsc(mPickupText(x.pickup_status))}</span><span class="materialPill">${rows.length} 个明细</span>${archivePill}</div>
       <div class="materialDetail">
@@ -5916,6 +6027,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   async function materialRefreshAll({silent=false}={}){
     await materialLoadItems();
     await materialLoadApplications();
+    try{if(typeof loadRiderContacts==='function')await loadRiderContacts()}catch(e){console.warn('加载骑手通讯录用于评估可发失败：',e?.message||e)}
+    await materialAutoArchiveOverdueApplications();
     renderMaterialItems();
     renderMaterialApplications();
     if(!silent)toast('申领物料处理已刷新');
@@ -6006,7 +6119,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       const c=getCloudClient();
       c.channel('material-application-admin-sync')
         .on('postgres_changes',{event:'*',schema:'public',table:MATERIAL_ITEMS_TABLE},()=>materialLoadItems().then(renderMaterialItems).catch(()=>{}))
-        .on('postgres_changes',{event:'*',schema:'public',table:MATERIAL_APPLICATIONS_TABLE},()=>materialLoadApplications().then(renderMaterialApplications).catch(()=>{}))
+        .on('postgres_changes',{event:'*',schema:'public',table:MATERIAL_APPLICATIONS_TABLE},()=>materialLoadApplications().then(()=>materialAutoArchiveOverdueApplications()).then(renderMaterialApplications).catch(()=>{}))
         .subscribe();
     }catch(e){console.warn('物料申领实时同步未启用：',e?.message||e)}
   }
@@ -6025,7 +6138,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function materialBootstrap(){
     materialEnsureStyle();materialEnsureMenu();materialEnsureSection();bindMaterialControls();materialReloadSavedOrderOnce();
     materialUpdateMenuBadge(0);
-    setTimeout(()=>{try{materialLoadApplications().then(()=>renderMaterialApplications()).catch(()=>materialUpdateMenuBadge(0))}catch(_){ }},0);
+    setTimeout(()=>{try{materialLoadApplications().then(async()=>{try{if(typeof loadRiderContacts==='function')await loadRiderContacts()}catch(_){ }await materialAutoArchiveOverdueApplications();renderMaterialApplications()}).catch(()=>materialUpdateMenuBadge(0))}catch(_){ }},0);
     try{if(typeof applyModuleSwitches==='function')applyModuleSwitches()}catch(_){ }
   }
   materialBootstrap();
