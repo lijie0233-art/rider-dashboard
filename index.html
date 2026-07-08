@@ -6274,6 +6274,141 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+
+
+<script>
+/* === 数据趋势诊断导出：按当前页面筛选结果导出 === */
+(function(){
+  const FLAG='__diagnosisExportFilteredRowsFixV1';
+  if(window[FLAG]) return;
+  window[FLAG]=true;
+
+  function csvCell(v){
+    try{ if(typeof csvEscape==='function') return csvEscape(v); }catch(_){ }
+    return '"'+String(v??'').replace(/"/g,'""')+'"';
+  }
+  function downloadCsv(text, filename){
+    try{ if(typeof downloadBlob==='function'){ downloadBlob(text, filename); return; } }catch(_){ }
+    const blob=new Blob([text],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function metricKey(){
+    try{return document.getElementById('diagnosisMetricSel')?.value || state.diagnosisMetric || state.metric || 'orders'}catch(_){return 'orders'}
+  }
+  function metricLabel(k){
+    try{return (mMap&&mMap[k]&&mMap[k].label)||k}catch(_){return k}
+  }
+  function plainValue(v,k){
+    try{ if(typeof plain==='function') return plain(v,k); }catch(_){ }
+    if(v==null||v==='') return '';
+    const n=Number(v);
+    if(!Number.isFinite(n)) return String(v??'');
+    if(k==='acceptanceRate'||k==='tailRate') return n.toFixed(2)+'%';
+    if(k==='income'||k==='hourly'||k==='periodAvg') return n.toFixed(2);
+    if(k==='attendanceDays'||k==='duration') return n.toFixed(1);
+    return String(Math.round(n));
+  }
+  function noteText(id){
+    try{ if(typeof safeNotePlain==='function') return safeNotePlain(id); }catch(_){ }
+    return '';
+  }
+  function currentVehicle(id){
+    try{
+      const r=(typeof rec==='function'?(rec(state.cycle,id)||{}):{});
+      let v='';
+      try{ if(typeof fmtField==='function') v=fmtField(r,'vehicle'); }catch(_){ }
+      return String(v||r.vehicle||r.transport||r.transport_type||r['交通工具']||r['交通方式']||r['工具']||'').trim();
+    }catch(_){return ''}
+  }
+  function visibleDiagnosisItems(){
+    const all=(typeof diagnosisItems==='function'?diagnosisItems():[])||[];
+    const table=document.getElementById('diagnosisTable');
+    if(!table) return all;
+    const ids=[];
+    table.querySelectorAll('tbody [data-track]').forEach(el=>{
+      const id=String(el.getAttribute('data-track')||'').trim();
+      if(id && !ids.includes(id)) ids.push(id);
+    });
+    if(!ids.length) return [];
+    return ids.map(id=>all.find(x=>String(x.id)===id)).filter(Boolean);
+  }
+  function filteredExportDiagnosis(){
+    try{
+      const metric=metricKey();
+      const items=visibleDiagnosisItems();
+      if(!items.length){
+        try{toast('当前筛选条件下暂无诊断数据可导出')}catch(_){alert('当前筛选条件下暂无诊断数据可导出')}
+        return;
+      }
+      const windowText=(typeof trendWindow==='function'?trendWindow():[]).join('|');
+      const header=['观察窗口','指标','ID','骑手姓名','交通工具','接单率','骑手责尾单率','周出勤天数','趋势状态','首值','末值','变化率%','异常/下滑次数','建议动作','窗口序列','备注历史'];
+      const lines=[header];
+      items.forEach(x=>{
+        let cur={};
+        try{cur=(typeof rec==='function'?(rec(state.cycle,x.id)||{}):{})}catch(_){cur={}}
+        let acceptance='',tail='',attendance='';
+        try{acceptance=typeof val==='function'?plainValue(val(cur,'acceptanceRate'),'acceptanceRate'):''}catch(_){ }
+        try{tail=typeof val==='function'?plainValue(val(cur,'tailRate'),'tailRate'):''}catch(_){ }
+        try{attendance=typeof val==='function'?plainValue(val(cur,'attendanceDays'),'attendanceDays'):''}catch(_){ }
+        lines.push([
+          windowText,
+          metricLabel(metric),
+          x.id,
+          x.name,
+          currentVehicle(x.id),
+          acceptance,
+          tail,
+          attendance,
+          x.tag,
+          plainValue(x.first,metric),
+          plainValue(x.last,metric),
+          x.pctChange==null?'':Number(x.pctChange).toFixed(1),
+          x.badMoves??x.drops??0,
+          x.action,
+          (x.values||[]).map(v=>plainValue(v,metric)).join('|'),
+          noteText(x.id)
+        ]);
+      });
+      const csv='\ufeff'+lines.map(r=>r.map(csvCell).join(',')).join('\n');
+      const q=(document.getElementById('diagnosisSearchInp')?.value||'').trim();
+      const vehicle=(document.getElementById('diagnosisVehicleSel')?.value||state.diagnosisVehicleFilter||'all');
+      const suffix=[q?('搜索-'+q):'',vehicle&&vehicle!=='all'?('交通工具-'+vehicle):''].filter(Boolean).join('_')||'当前筛选';
+      downloadCsv(csv,`骑手多周期数据趋势诊断_${metric}_${(state&&state.cycle)||'未选择'}_${suffix}.csv`);
+      try{toast(`已导出当前筛选结果 ${items.length} 条`)}catch(_){ }
+    }catch(e){
+      console.error('按筛选条件导出诊断表失败：',e);
+      try{toast('导出失败：'+(e?.message||e))}catch(_){alert('导出失败：'+(e?.message||e))}
+    }
+  }
+  window.exportDiagnosis=filteredExportDiagnosis;
+  try{exportDiagnosis=filteredExportDiagnosis}catch(_){ }
+  function bind(){
+    const btn=document.getElementById('exportDiagnosisBtn');
+    if(!btn) return;
+    btn.onclick=function(e){
+      if(e){e.preventDefault();e.stopPropagation();}
+      filteredExportDiagnosis();
+      return false;
+    };
+    btn.dataset.exportFiltered='1';
+  }
+  bind();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind);
+  setTimeout(bind,0);
+  setTimeout(bind,500);
+  setTimeout(bind,1200);
+  try{
+    if(typeof renderDiagnosis==='function'&&!window.__diagnosisExportFilteredRenderBindV1){
+      window.__diagnosisExportFilteredRenderBindV1=true;
+      const oldRender=renderDiagnosis;
+      renderDiagnosis=function(){const r=oldRender.apply(this,arguments);setTimeout(bind,0);return r;};
+    }
+  }catch(_){ }
+})();
+</script>
+
 </body>
 </html>
 
