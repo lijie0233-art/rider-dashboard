@@ -6157,6 +6157,123 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 
 
 </script>
+
+
+<script>
+/* === 数据趋势诊断导出按钮最终修复：重新绑定导出事件 + 兼容 plain 缺失 === */
+(function(){
+  const FLAG='__diagnosisExportFinalFixV1';
+  if(window[FLAG]) return;
+  window[FLAG]=true;
+
+  if(typeof plain !== 'function'){
+    window.plain=function(v,k){
+      if(v==null || v==='') return '';
+      const n=Number(v);
+      if(!Number.isFinite(n)) return String(v??'');
+      if(k==='acceptanceRate' || k==='tailRate') return n.toFixed(2)+'%';
+      if(k==='income' || k==='hourly') return n.toFixed(2);
+      if(k==='attendanceDays') return n.toFixed(1);
+      if(k==='duration') return n.toFixed(1);
+      if(k==='periodAvg') return n.toFixed(2);
+      return String(Math.round(n));
+    };
+  }
+  function _csv(v){try{return csvEscape(v)}catch(_){return '"'+String(v??'').replace(/"/g,'""')+'"'}}
+  function _download(text,filename){
+    try{if(typeof downloadBlob==='function'){downloadBlob(text,filename);return;}}catch(e){console.warn('downloadBlob 调用失败，使用备用下载',e)}
+    const blob=new Blob([text],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  }
+  function _metric(){
+    try{return state.diagnosisMetric || document.getElementById('diagnosisMetricSel')?.value || state.metric || 'orders'}catch(_){return 'orders'}
+  }
+  function _metricLabel(metric){
+    try{return (mMap&&mMap[metric]&&mMap[metric].label)||metric}catch(_){return metric}
+  }
+  function _trendWindowText(){
+    try{return (typeof trendWindow==='function'?trendWindow():[]).join('|')}catch(_){return ''}
+  }
+  function _safePlain(v,k){
+    try{return plain(v,k)}catch(_){
+      if(v==null||v==='') return '';
+      const n=Number(v);return Number.isFinite(n)?String(n):String(v??'');
+    }
+  }
+  function _note(id){
+    try{if(typeof safeNotePlain==='function') return safeNotePlain(id)}catch(_){ }
+    return '';
+  }
+  function robustExportDiagnosis(){
+    try{
+      const items=(typeof diagnosisItems==='function'?diagnosisItems():[])||[];
+      if(!items.length){try{toast('暂无诊断数据可导出')}catch(_){alert('暂无诊断数据可导出')}return;}
+      const metric=_metric();
+      const header=['观察窗口','指标','ID','骑手姓名','交通工具','接单率','骑手责尾单率','周出勤天数','趋势状态','首值','末值','变化率%','异常/下滑次数','建议动作','窗口序列','备注历史'];
+      const lines=[header];
+      items.forEach(x=>{
+        let cur={};
+        try{cur=(typeof rec==='function'?(rec(state.cycle,x.id)||{}):{})}catch(_){cur={}}
+        let vehicle='',acceptance='',tail='',attendance='';
+        try{vehicle=typeof fmtField==='function'?fmtField(cur,'vehicle'):(cur.vehicle||cur.transport||cur.transport_type||cur['交通工具']||'')}catch(_){vehicle=cur.vehicle||''}
+        try{acceptance=typeof val==='function'?_safePlain(val(cur,'acceptanceRate'),'acceptanceRate'):''}catch(_){acceptance=''}
+        try{tail=typeof val==='function'?_safePlain(val(cur,'tailRate'),'tailRate'):''}catch(_){tail=''}
+        try{attendance=typeof val==='function'?_safePlain(val(cur,'attendanceDays'),'attendanceDays'):''}catch(_){attendance=''}
+        lines.push([
+          _trendWindowText(),
+          _metricLabel(metric),
+          x.id,
+          x.name,
+          vehicle,
+          acceptance,
+          tail,
+          attendance,
+          x.tag,
+          _safePlain(x.first,metric),
+          _safePlain(x.last,metric),
+          x.pctChange==null?'':Number(x.pctChange).toFixed(1),
+          x.badMoves??x.drops??0,
+          x.action,
+          (x.values||[]).map(v=>_safePlain(v,metric)).join('|'),
+          _note(x.id)
+        ]);
+      });
+      const csv='\ufeff'+lines.map(r=>r.map(_csv).join(',')).join('\n');
+      _download(csv,`骑手多周期数据趋势诊断_${metric}_${(state&&state.cycle)||'未选择'}.csv`);
+      try{toast('诊断表已导出')}catch(_){ }
+    }catch(e){
+      console.error('导出诊断表失败：',e);
+      try{toast('导出失败：'+(e&&e.message?e.message:e))}catch(_){alert('导出失败：'+(e&&e.message?e.message:e))}
+    }
+  }
+  window.exportDiagnosis=robustExportDiagnosis;
+  try{exportDiagnosis=robustExportDiagnosis}catch(_){ }
+  function bindDiagnosisExport(){
+    const btn=document.getElementById('exportDiagnosisBtn');
+    if(!btn)return;
+    btn.onclick=function(e){
+      if(e){e.preventDefault();e.stopPropagation();}
+      robustExportDiagnosis();
+      return false;
+    };
+    btn.dataset.exportFixed='1';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindDiagnosisExport);
+  bindDiagnosisExport();
+  setTimeout(bindDiagnosisExport,0);
+  setTimeout(bindDiagnosisExport,500);
+  try{
+    if(typeof renderDiagnosis==='function'&&!window.__diagnosisExportBindAfterRenderFix){
+      window.__diagnosisExportBindAfterRenderFix=true;
+      const oldRenderDiagnosis=renderDiagnosis;
+      renderDiagnosis=function(){const r=oldRenderDiagnosis.apply(this,arguments);setTimeout(bindDiagnosisExport,0);return r;};
+    }
+  }catch(e){console.warn('诊断导出绑定渲染钩子失败',e)}
+})();
+</script>
+
 </body>
 </html>
 
