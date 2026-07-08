@@ -6409,6 +6409,137 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+
+
+<script>
+/* === 数据趋势诊断导出最终修复：严格导出当前页面表格实际展示结果 === */
+(function(){
+  const FLAG='__diagnosisExportDomExactMatchFixV1';
+  if(window[FLAG]) return;
+  window[FLAG]=true;
+
+  function csvCell(v){
+    try{ if(typeof csvEscape==='function') return csvEscape(v); }catch(_){ }
+    return '"'+String(v??'').replace(/"/g,'""')+'"';
+  }
+  function downloadCsv(text, filename){
+    try{ if(typeof downloadBlob==='function'){ downloadBlob(text, filename); return; } }catch(_){ }
+    const blob=new Blob([text],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  function cleanText(v){
+    return String(v??'')
+      .replace(/\u00a0/g,' ')
+      .replace(/[ \t]+\n/g,'\n')
+      .replace(/\n[ \t]+/g,'\n')
+      .replace(/\n{3,}/g,'\n\n')
+      .trim();
+  }
+  function isVisible(el){
+    if(!el) return false;
+    const st=window.getComputedStyle?getComputedStyle(el):null;
+    return !(st && (st.display==='none'||st.visibility==='hidden'));
+  }
+  function cellText(td){
+    if(!td) return '';
+    const clone=td.cloneNode(true);
+    clone.querySelectorAll('textarea').forEach(t=>{
+      const span=document.createElement('span');
+      span.textContent=t.value||t.textContent||'';
+      t.replaceWith(span);
+    });
+    clone.querySelectorAll('input,select').forEach(el=>{
+      const span=document.createElement('span');
+      if(el.tagName==='SELECT') span.textContent=el.selectedOptions&&el.selectedOptions[0]?el.selectedOptions[0].textContent:el.value;
+      else if(el.type==='checkbox'||el.type==='radio') span.textContent=el.checked?'已选':'未选';
+      else span.textContent=el.value||'';
+      el.replaceWith(span);
+    });
+    clone.querySelectorAll('[data-shared-note-save],.sharedNoteSaveHint').forEach(el=>el.remove());
+    return cleanText(clone.innerText||clone.textContent||'').replace(/\n+/g,' | ');
+  }
+  function tableHeader(table){
+    const heads=[...table.querySelectorAll('thead th')].map(th=>cleanText(th.innerText||th.textContent||''));
+    if(heads.length) return heads;
+    const first=[...table.querySelectorAll('tr:first-child th, tr:first-child td')].map(th=>cleanText(th.innerText||th.textContent||''));
+    return first.length?first:[];
+  }
+  function tableRows(table){
+    return [...table.querySelectorAll('tbody tr')]
+      .filter(tr=>isVisible(tr))
+      .filter(tr=>!tr.querySelector('.empty'))
+      .map(tr=>[...tr.children].filter(td=>td.tagName==='TD'||td.tagName==='TH').map(cellText))
+      .filter(row=>row.some(v=>String(v||'').trim()));
+  }
+  function metricKey(){
+    try{return document.getElementById('diagnosisMetricSel')?.value || state.diagnosisMetric || state.metric || 'orders'}catch(_){return 'orders'}
+  }
+  function bindDiagnosisExportDomExact(){
+    const btn=document.getElementById('exportDiagnosisBtn');
+    if(!btn) return;
+    btn.onclick=function(e){
+      if(e){e.preventDefault();e.stopPropagation();}
+      try{
+        const table=document.getElementById('diagnosisTable');
+        if(!table){try{toast('未找到诊断表，无法导出')}catch(_){alert('未找到诊断表，无法导出')}return false;}
+        let header=tableHeader(table);
+        const rows=tableRows(table);
+        if(!rows.length){try{toast('当前页面表格暂无可导出数据')}catch(_){alert('当前页面表格暂无可导出数据')}return false;}
+        const maxCols=Math.max(header.length,...rows.map(r=>r.length));
+        if(!header.length) header=Array.from({length:maxCols},(_,i)=>`字段${i+1}`);
+        while(header.length<maxCols) header.push(`字段${header.length+1}`);
+        const fixedRows=rows.map(r=>{const row=r.slice(0,maxCols);while(row.length<maxCols)row.push('');return row;});
+        const meta=[];
+        try{
+          const metricLabel=document.getElementById('diagnosisMetricSel')?.selectedOptions?.[0]?.textContent||metricKey();
+          const lookbackLabel=document.getElementById('diagnosisLookbackSel')?.selectedOptions?.[0]?.textContent||'';
+          const vehicleLabel=document.getElementById('diagnosisVehicleSel')?.selectedOptions?.[0]?.textContent||'全部交通工具';
+          const q=(document.getElementById('diagnosisSearchInp')?.value||'').trim()||'全部骑手';
+          meta.push(['导出范围','当前页面表格实际展示结果']);
+          meta.push(['诊断指标',metricLabel]);
+          meta.push(['观察周期',lookbackLabel]);
+          meta.push(['交通工具筛选',vehicleLabel]);
+          meta.push(['搜索条件',q]);
+          meta.push(['导出记录数',fixedRows.length]);
+          meta.push([]);
+        }catch(_){ }
+        const csv='\ufeff'+meta.concat([header],fixedRows).map(r=>r.map(csvCell).join(',')).join('\n');
+        const suffix=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+        downloadCsv(csv,`骑手数据趋势诊断表_当前页面展示_${metricKey()}_${suffix}.csv`);
+        try{toast(`已按当前页面表格导出 ${fixedRows.length} 条`)}catch(_){ }
+      }catch(err){
+        console.error('按当前表格导出诊断表失败：',err);
+        try{toast('导出失败：'+(err?.message||err))}catch(_){alert('导出失败：'+(err?.message||err))}
+      }
+      return false;
+    };
+    btn.dataset.exportDomExact='1';
+  }
+  bindDiagnosisExportDomExact();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindDiagnosisExportDomExact);
+  setTimeout(bindDiagnosisExportDomExact,0);
+  setTimeout(bindDiagnosisExportDomExact,500);
+  setTimeout(bindDiagnosisExportDomExact,1500);
+  try{
+    if(typeof renderDiagnosis==='function'&&!window.__diagnosisExportDomExactAfterRenderV1){
+      window.__diagnosisExportDomExactAfterRenderV1=true;
+      const oldRender=renderDiagnosis;
+      renderDiagnosis=function(){
+        const r=oldRender.apply(this,arguments);
+        setTimeout(bindDiagnosisExportDomExact,0);
+        return r;
+      };
+    }
+  }catch(_){ }
+})();
+</script>
 </body>
 </html>
 
