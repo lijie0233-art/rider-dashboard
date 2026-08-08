@@ -6543,7 +6543,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 
 
 <script>
-/* === 骑手标签核算参数配置 + 自动标签核算 === */
+/* === 时薪法案骑手分层 + 自动标签核算 === */
 (function(){
   const TAB='riderTagCalc';
   const SETTINGS_TABLE='rider_tag_calc_settings';
@@ -6561,6 +6561,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let tagCalcLogs=readLocal(LOG_LOCAL_KEY,[]);
   let tagCalcLoaded=false;
   let tagCalcLoading=false;
+  let tagCalcHourlyExpanded=false;
 
   function h(v){try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}catch(_){return String(v??'')}}
   function n(v){const x=Number(String(v??'').replace(/[%$,，\s]/g,''));return Number.isFinite(x)?x:null}
@@ -6657,7 +6658,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(document.getElementById('riderTagCalcStyle'))return;
     const style=document.createElement('style');style.id='riderTagCalcStyle';
     style.textContent=`
-      .tagCalcGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}.tagCalcCard{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.05)}.tagCalcCard b{font-size:13px;color:#334155}.tagCalcCard .n{font-size:26px;font-weight:900;margin-top:6px;color:#0f172a}.tagCalcCard .t{font-size:12px;color:#64748b;margin-top:4px}.tagCalcConfigTable input{width:110px}.tagLabel{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}.tagLabel.pass{background:#ecfdf5;color:#047857;border-color:#bbf7d0}.tagLabel.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.tagLabel.low{background:#f8fafc;color:#475569;border-color:#e2e8f0}.tagLabel.none{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.tagLabel.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.tagCalcLogBox{max-height:280px;overflow:auto}.tagCalcHint{font-size:12px;color:#64748b;line-height:1.6}.tagCalcActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tagCalcFormula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px;font-size:12px;color:#475569;line-height:1.7;margin-top:10px}@media(max-width:1000px){.tagCalcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.tagCalcGrid{grid-template-columns:1fr}}`;
+      .tagCalcGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}.tagCalcCard{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.05)}.tagCalcCard b{font-size:13px;color:#334155}.tagCalcCard .n{font-size:26px;font-weight:900;margin-top:6px;color:#0f172a}.tagCalcCard .t{font-size:12px;color:#64748b;margin-top:4px}.tagCalcConfigTable input{width:110px}.tagLabel{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}.tagLabel.pass{background:#ecfdf5;color:#047857;border-color:#bbf7d0}.tagLabel.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.tagLabel.low{background:#f8fafc;color:#475569;border-color:#e2e8f0}.tagLabel.none{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.tagLabel.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.tagCalcLogBox{max-height:280px;overflow:auto}.tagCalcHint{font-size:12px;color:#64748b;line-height:1.6}.tagCalcActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tagCalcFormula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px;font-size:12px;color:#475569;line-height:1.7;margin-top:10px}.tagCalcHourlyBody{display:none}.tagCalcHourlyBody.show{display:block}.tagCalcPanelHeadActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}@media(max-width:1000px){.tagCalcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.tagCalcGrid{grid-template-columns:1fr}}`;
     document.head.appendChild(style);
   }
   function installSection(){
@@ -6666,7 +6667,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const sec=document.createElement('section');sec.id=TAB;sec.className='tab';
     sec.innerHTML=`
       <div class="panel">
-        <div class="toolbar"><div><h2>骑手标签核算参数配置</h2><div class="sub">依据补贴档位、TPH 小时接单密度、配送效率三项维度自动生成骑手标签；参数保存后即时生效。</div></div><div class="tagCalcActions"><button class="btn small" id="tagCalcRefreshBtn" type="button">刷新配置</button><button class="btn small" id="tagCalcExportBtn" type="button">导出标签结果</button></div></div>
+        <div class="toolbar"><div><h2>时薪法案骑手分层</h2><div class="sub">依据补贴档位、TPH 小时接单密度、配送效率三项维度自动生成骑手标签；参数保存后即时生效。</div></div><div class="tagCalcActions"><button class="btn small" id="tagCalcRefreshBtn" type="button">刷新配置</button><button class="btn small" id="tagCalcExportBtn" type="button">导出标签结果</button></div></div>
         <div class="tagCalcFormula">计算规则：法定最低收入 = 背单时长 × 对应车型标准时薪；需补差额 = max(0, 法定最低收入 − 骑手总收入)；均单补贴 = 需补差额 ÷ 跑单量。均单补贴 = 0 判定为「达标骑手」；空白跑单、背单时长为 0 或有订单但无有效时长统一展示「暂无跑单数据」。</div>
         <div class="compareControlGrid" style="margin-top:12px">
           <label class="field"><span>核算周期</span><select id="tagCalcCycleSel"></select></label>
@@ -6677,10 +6678,10 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
         <div class="tagCalcGrid" id="tagCalcSummaryGrid"></div>
       </div>
       <div class="grid2">
-        <div class="panel"><div class="panelHead"><div><h2>各车型标准时薪配置</h2><div class="sub">非法字符或空值会自动沿用默认参数兜底。</div></div></div><div class="tableWrap"><table id="tagCalcHourlyTable" class="tagCalcConfigTable"></table></div></div>
+        <div class="panel"><div class="panelHead"><div><h2>各车型标准时薪配置</h2><div class="sub">点击展开后查看或编辑车型标准时薪；非法字符或空值会自动沿用系统兜底参数。</div></div><div class="tagCalcPanelHeadActions"><button class="btn small" id="tagCalcHourlyToggleBtn" type="button">展开时薪配置</button></div></div><div class="tableWrap tagCalcHourlyBody" id="tagCalcHourlyBody"><table id="tagCalcHourlyTable" class="tagCalcConfigTable"></table></div></div>
         <div class="panel"><div class="panelHead"><div><h2>骑手责任尾单率效率阈值配置</h2><div class="sub">骑手责任尾单率 &gt; 阈值判定为低效率；≤ 阈值判定为高效率。</div></div></div><div class="tableWrap"><table id="tagCalcTailTable" class="tagCalcConfigTable"></table></div></div>
       </div>
-      <div class="panel"><div class="panelHead"><div><h2>保存配置</h2><div class="sub">保存后写入 Supabase，并完整记录操作账号、修改时间、车型、修改前数值、修改后数值。</div></div><div class="tagCalcActions"><button class="btn primary" id="tagCalcSaveBtn" type="button">保存参数配置</button><button class="btn" id="tagCalcResetBtn" type="button">恢复默认参数</button></div></div><div class="tagCalcHint" id="tagCalcSaveHint">等待加载配置。</div></div>
+      <div class="panel"><div class="panelHead"><div><h2>保存配置</h2><div class="sub">保存后写入 Supabase，并完整记录操作账号、修改时间、车型、修改前数值、修改后数值。</div></div><div class="tagCalcActions"><button class="btn primary" id="tagCalcSaveBtn" type="button">保存参数配置</button><button class="btn" id="tagCalcResetBtn" type="button">恢复系统兜底参数</button></div></div><div class="tagCalcHint" id="tagCalcSaveHint">等待加载配置。</div></div>
       <div class="panel"><div class="panelHead"><div><h2>骑手标签核算结果</h2><div class="sub">正常跑单骑手按三项维度匹配标签；暂无跑单数据不进入达标判定。</div></div></div><div class="tableWrap"><table id="tagCalcResultTable"></table></div></div>
       <div class="panel"><div class="panelHead"><div><h2>参数修改日志</h2><div class="sub">展示最近 100 条云端或本机修改记录。</div></div></div><div class="tableWrap tagCalcLogBox"><table id="tagCalcLogTable"></table></div></div>`;
     main.appendChild(sec);
@@ -6688,7 +6689,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function installMenu(){
     try{
       if(Array.isArray(MODULE_META)&&!MODULE_META.some(m=>m.tab===TAB)){
-        const item={tab:TAB,label:'骑手标签核算参数配置',desc:'配置时薪阈值并自动生成骑手标签'};
+        const item={tab:TAB,label:'时薪法案骑手分层',desc:'时薪法案下的补贴与效率分层'};
         const idx=MODULE_META.findIndex(m=>m.tab==='diagnosis');
         if(idx>=0)MODULE_META.splice(idx+1,0,item);else MODULE_META.push(item);
       }
@@ -6696,7 +6697,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const nav=document.querySelector('.sideNav');if(!nav)return;
     let btn=nav.querySelector(`button[data-tab="${TAB}"]`);
     if(!btn){
-      btn=document.createElement('button');btn.dataset.tab=TAB;btn.innerHTML='<span class="menuIcon">🏷️</span><span class="menuLabel">骑手标签核算参数配置</span>';
+      btn=document.createElement('button');btn.dataset.tab=TAB;btn.innerHTML='<span class="menuIcon">🏷️</span><span class="menuLabel">时薪法案骑手分层</span>';
       const diagnosis=nav.querySelector('button[data-tab="diagnosis"]');
       if(diagnosis&&diagnosis.nextSibling)nav.insertBefore(btn,diagnosis.nextSibling);else nav.appendChild(btn);
     }
@@ -6707,12 +6708,16 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function renderConfigTables(){
     const hourly=document.getElementById('tagCalcHourlyTable');
     if(hourly){
-      hourly.innerHTML='<thead><tr><th>车型</th><th>当前标准时薪</th><th>默认值</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-hourly="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveHourly(v))}"></td><td>${h(DEFAULT_CONFIG.standard_hourly[v])}</td></tr>`).join('')+'</tbody>';
+      hourly.innerHTML='<thead><tr><th>车型</th><th>当前标准时薪</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-hourly="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveHourly(v))}"></td></tr>`).join('')+'</tbody>';
     }
     const tail=document.getElementById('tagCalcTailTable');
     if(tail){
-      tail.innerHTML='<thead><tr><th>车型</th><th>当前效率阈值</th><th>默认值</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-tail="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveTailThreshold(v))}"> %</td><td>${h(DEFAULT_CONFIG.tail_thresholds[v])}%</td></tr>`).join('')+'</tbody>';
+      tail.innerHTML='<thead><tr><th>车型</th><th>当前效率阈值</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-tail="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveTailThreshold(v))}"> %</td></tr>`).join('')+'</tbody>';
     }
+    const body=document.getElementById('tagCalcHourlyBody');
+    if(body)body.classList.toggle('show',!!tagCalcHourlyExpanded);
+    const toggle=document.getElementById('tagCalcHourlyToggleBtn');
+    if(toggle)toggle.textContent=tagCalcHourlyExpanded?'收起时薪配置':'展开时薪配置';
   }
   function renderFilters(){
     const cs=document.getElementById('tagCalcCycleSel');
@@ -6726,7 +6731,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function renderSummary(){
     const grid=document.getElementById('tagCalcSummaryGrid');if(!grid)return;
     const items=allResultItems();const visible=resultItems();const counts={};items.forEach(x=>counts[x.label]=(counts[x.label]||0)+1);
-    const cards=[['当前周期骑手',items.length,'参与本周期标签核算'],['当前筛选结果',visible.length,'受搜索/标签/车型筛选影响'],['达标骑手',counts['达标骑手']||0,'均单补贴 = 0'],['暂无跑单数据',counts['暂无跑单数据']||0,'不判定为达标骑手']];
+    const subsidyTotal=items.reduce((s,x)=>s+(Number(x.avgSubsidy)||0),0);
+    const cards=[['当前周期骑手',items.length,'参与本周期标签核算'],['当前筛选结果',visible.length,'受搜索/标签/车型筛选影响'],['本周补贴总计',fmtMoney(subsidyTotal),'全体骑手均单补贴合计'],['达标骑手',counts['达标骑手']||0,'均单补贴 = 0'],['暂无跑单数据',counts['暂无跑单数据']||0,'不判定为达标骑手']];
     grid.innerHTML=cards.map(c=>`<div class="tagCalcCard"><b>${h(c[0])}</b><div class="n">${h(c[1])}</div><div class="t">${h(c[2])}</div></div>`).join('');
   }
   function renderResults(){
@@ -6734,7 +6740,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const items=resultItems();
     if(!allCycles().length){table.innerHTML='<tr><td class="empty">暂无云数据，请先刷新 rider_weekly_data。</td></tr>';return}
     if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无骑手标签核算结果。</td></tr>';return}
-    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>跑单量</th><th>背单时长</th><th>总收入</th><th>标准时薪</th><th>均单补贴</th><th>TPH</th><th>责尾单率</th><th>效率阈值</th><th>骑手标签</th><th>说明</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td><td><span class="mini">${h(x.reason||'')}</span></td></tr>`).join('')+'</tbody>';
+    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>跑单量</th><th>背单时长</th><th>总收入</th><th>标准时薪</th><th>均单补贴</th><th>TPH</th><th>责尾单率</th><th>效率阈值</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
     table.querySelectorAll('[data-track]').forEach(btn=>btn.onclick=()=>{try{openProfile(btn.dataset.track)}catch(_){}});
   }
   function renderLogs(){
@@ -6743,7 +6749,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(!logs.length){table.innerHTML='<tr><td class="empty">暂无参数修改日志。</td></tr>';return}
     table.innerHTML='<thead><tr><th>修改时间</th><th>操作账号</th><th>车型</th><th>参数类型</th><th>修改前</th><th>修改后</th></tr></thead><tbody>'+logs.map(x=>`<tr><td>${h(displayTime(x.changed_at||x.created_at))}</td><td>${h(x.changed_by_email||x.changed_by||'-')}</td><td>${h(x.vehicle_type||'-')}</td><td>${h(x.value_type==='standard_hourly'?'标准时薪':'尾单率阈值')}</td><td>${h(x.old_value??'-')}${x.value_type==='tail_threshold'?'%':''}</td><td><b>${h(x.new_value??'-')}${x.value_type==='tail_threshold'?'%':''}</b></td></tr>`).join('')+'</tbody>';
   }
-  function renderTagCalc(){ensureUI();renderFilters();renderConfigTables();renderSummary();renderResults();renderLogs();const hint=document.getElementById('tagCalcSaveHint');if(hint)hint.textContent=tagCalcLoaded?'已读取参数配置；保存后将即时重新核算当前页面标签。':'使用默认参数兜底。若尚未执行 SQL，保存会失败但不影响默认核算。';}
+  function renderTagCalc(){ensureUI();renderFilters();renderConfigTables();renderSummary();renderResults();renderLogs();const hint=document.getElementById('tagCalcSaveHint');if(hint)hint.textContent=tagCalcLoaded?'已读取参数配置；保存后将即时重新核算当前页面标签。':'使用系统兜底参数。若尚未执行 SQL，保存会失败但不影响当前核算。';}
   window.renderTagCalc=renderTagCalc;
   window.getRiderTagCalcResult=function(id,cycle){return calcTag(rawRec(cycle||curCycle(),id));};
 
@@ -6798,16 +6804,16 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     }
     renderTagCalc();
   }
-  function resetDefaults(){tagCalcConfig=normalizeConfig(DEFAULT_CONFIG);writeLocal(LOCAL_KEY,tagCalcConfig);renderTagCalc();toastMsg('已恢复默认参数，点击保存后写入云端')}
+  function resetDefaults(){tagCalcConfig=normalizeConfig(DEFAULT_CONFIG);writeLocal(LOCAL_KEY,tagCalcConfig);renderTagCalc();toastMsg('已恢复系统兜底参数，点击保存后写入云端')}
   function exportResults(){
     const items=resultItems();if(!items.length){toastMsg('当前筛选下暂无标签结果可导出');return}
-    const header=['周期','ID','骑手姓名','交通工具','跑单量','背单时长','总收入','标准时薪','法定最低收入','需补差额','均单补贴','TPH','TPH阈值','骑手责尾单率','效率阈值','补贴档位','TPH档位','效率档位','骑手标签','说明'];
-    const lines=[header,...items.map(x=>[curCycle(),x.id,x.name,x.vehicle,x.orders??'',x.duration??'',x.income??'',x.hourly??'',x.legalMin??'',x.needSubsidy??'',x.avgSubsidy??'',x.tph??'',x.tphThreshold??'',x.tailRatePct??'',x.tailThreshold??'',x.subsidyLevel||'',x.tphLevel||'',x.effLevel||'',x.label,x.reason||''])];
+    const header=['周期','ID','骑手姓名','交通工具','跑单量','背单时长','总收入','标准时薪','法定最低收入','需补差额','均单补贴','TPH','TPH阈值','骑手责尾单率','效率阈值','补贴档位','TPH档位','效率档位','骑手标签'];
+    const lines=[header,...items.map(x=>[curCycle(),x.id,x.name,x.vehicle,x.orders??'',x.duration??'',x.income??'',x.hourly??'',x.legalMin??'',x.needSubsidy??'',x.avgSubsidy??'',x.tph??'',x.tphThreshold??'',x.tailRatePct??'',x.tailThreshold??'',x.subsidyLevel||'',x.tphLevel||'',x.effLevel||'',x.label])];
     const csv='\ufeff'+lines.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
     try{if(typeof downloadBlob==='function')downloadBlob(csv,`骑手标签核算结果_${curCycle()||'未选择'}.csv`);else{const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`骑手标签核算结果_${curCycle()||'未选择'}.csv`;a.click();URL.revokeObjectURL(url);}}catch(e){console.warn(e)}
   }
   function bindControls(){
-    const map={tagCalcRefreshBtn:()=>loadTagCalcConfig(),tagCalcSaveBtn:()=>saveTagCalcConfig(),tagCalcResetBtn:()=>resetDefaults(),tagCalcExportBtn:()=>exportResults()};
+    const map={tagCalcRefreshBtn:()=>loadTagCalcConfig(),tagCalcSaveBtn:()=>saveTagCalcConfig(),tagCalcResetBtn:()=>resetDefaults(),tagCalcExportBtn:()=>exportResults(),tagCalcHourlyToggleBtn:()=>{tagCalcHourlyExpanded=!tagCalcHourlyExpanded;renderConfigTables();}};
     Object.entries(map).forEach(([id,fn])=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onclick=fn;}});
     ['tagCalcCycleSel','tagCalcLabelFilterSel','tagCalcVehicleFilterSel'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onchange=()=>renderTagCalc();}});
     const s=document.getElementById('tagCalcSearchInp');if(s&&!s.dataset.bound){s.dataset.bound='1';s.oninput=()=>renderTagCalc();}
