@@ -477,7 +477,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <button data-tab="todoList"><span class="menuIcon">📝</span><span class="menuLabel">待办事项管理</span><span class="todoMenuBadge" id="todoMenuBadge" aria-label="未完成待办数量"></span></button>
       <button data-tab="problems"><span class="menuIcon">⚠️</span><span class="menuLabel">问题骑手管理</span></button>
       <button data-tab="returnPotential"><span class="menuIcon">🔁</span><span class="menuLabel">潜力骑手运营</span><span class="menuHotTag">必看！</span></button>
-      <button data-tab="tailOrderCenter"><span class="menuIcon">🎯</span><span class="menuLabel">尾单骑手管控</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="tailOrderCenter"><span class="menuIcon">🎯</span><span class="menuLabel">尾单骑手管控</span></button>
       <button data-tab="riderEquipment"><span class="menuIcon">🎒</span><span class="menuLabel">骑手装备管理</span></button>
       <button data-tab="followup"><span class="menuIcon">✅</span><span class="menuLabel">问题跟进闭环</span></button>
       <button data-tab="ownerFollowup"><span class="menuIcon">👥</span><span class="menuLabel">重点专人跟进</span></button>
@@ -6885,6 +6885,182 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function init(){ensureUI();wrapFunctions();renderTagCalc();setTimeout(()=>loadTagCalcConfig(),800);try{applyModuleSwitches()}catch(_){}scheduleTierDecorate();if(!window.__riderTierObserver){window.__riderTierObserver=new MutationObserver(()=>scheduleTierDecorate());const target=document.querySelector('main')||document.body;window.__riderTierObserver.observe(target,{childList:true,subtree:true});}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
   setTimeout(init,1200);
+})();
+</script>
+
+
+<script>
+/* === 2026-08 fix: 时薪法案权限配置接入 + 站长周报补贴Top5 + 尾单标签清理 === */
+(function(){
+  const TAG_TAB='riderTagCalc';
+  const TAG_LABEL='时薪法案骑手分层';
+  const TAG_DESC='时薪法案下的补贴与效率分层';
+  function insertAfter(arr,item,afterTab){
+    if(!Array.isArray(arr)||arr.includes(item))return;
+    const i=arr.indexOf(afterTab);
+    if(i>=0)arr.splice(i+1,0,item);else arr.push(item);
+  }
+  function tagMenuBaseOrder(){
+    const base=[];
+    try{if(Array.isArray(DEFAULT_MENU_ORDER))base.push(...DEFAULT_MENU_ORDER);}catch(_){ }
+    if(!base.length){
+      try{document.querySelectorAll('.sideNav button[data-tab]').forEach(btn=>base.push(btn.dataset.tab));}catch(_){ }
+    }
+    if(!base.includes(TAG_TAB))insertAfter(base,TAG_TAB,'diagnosis');
+    return base.filter((x,i,a)=>x&&a.indexOf(x)===i);
+  }
+  function ensureHourlyLawModuleMeta(){
+    try{
+      if(Array.isArray(MODULE_META)&&!MODULE_META.some(m=>m.tab===TAG_TAB)){
+        const item={tab:TAG_TAB,label:TAG_LABEL,desc:TAG_DESC};
+        const i=MODULE_META.findIndex(m=>m.tab==='diagnosis');
+        if(i>=0)MODULE_META.splice(i+1,0,item);else MODULE_META.push(item);
+      }
+    }catch(_){ }
+    try{if(Array.isArray(DEFAULT_MENU_ORDER)&&!DEFAULT_MENU_ORDER.includes(TAG_TAB))insertAfter(DEFAULT_MENU_ORDER,TAG_TAB,'diagnosis');}catch(_){ }
+    try{if(Array.isArray(moduleOrderConfig)&&!moduleOrderConfig.includes(TAG_TAB))insertAfter(moduleOrderConfig,TAG_TAB,'diagnosis');}catch(_){ }
+    try{if(typeof moduleSwitchConfig!=='undefined'&&moduleSwitchConfig&&moduleSwitchConfig[TAG_TAB]===undefined)moduleSwitchConfig[TAG_TAB]=true;}catch(_){ }
+    try{if(typeof modulePermissionConfig!=='undefined'&&modulePermissionConfig&&modulePermissionConfig[TAG_TAB]===undefined)modulePermissionConfig[TAG_TAB]=0;}catch(_){ }
+    try{
+      if(typeof accountVisibilityConfig!=='undefined'&&accountVisibilityConfig?.accounts){
+        Object.values(accountVisibilityConfig.accounts).forEach(rule=>{if(rule?.tabs&&rule.tabs[TAG_TAB]===undefined)rule.tabs[TAG_TAB]=true;});
+      }
+    }catch(_){ }
+  }
+  function hourlyLawAllTabs(){
+    ensureHourlyLawModuleMeta();
+    const order=tagMenuBaseOrder();
+    try{if(Array.isArray(MODULE_META))MODULE_META.forEach(m=>{if(m?.tab&&!order.includes(m.tab))order.push(m.tab);});}catch(_){ }
+    if(!order.includes('systemManagement'))order.push('systemManagement');
+    return order.filter((x,i,a)=>x&&a.indexOf(x)===i);
+  }
+  try{
+    normalizeModuleOrderConfig=function(c){
+      ensureHourlyLawModuleMeta();
+      const base=hourlyLawAllTabs();
+      const known=new Set(base);
+      const src=Array.isArray(c)?c:base;
+      const out=[];
+      src.forEach(tab=>{if(known.has(tab)&&!out.includes(tab))out.push(tab);});
+      base.forEach(tab=>{if(!out.includes(tab))out.push(tab);});
+      return out;
+    };
+  }catch(e){console.warn('时薪法案菜单排序兼容失败：',e?.message||e)}
+  try{
+    accountVisibilityTabs=function(){return hourlyLawAllTabs().filter(tab=>tab!=='systemManagement');};
+  }catch(e){console.warn('时薪法案账号可视配置兼容失败：',e?.message||e)}
+  try{
+    normalizeModuleSwitchConfig=function(c={}){
+      ensureHourlyLawModuleMeta();
+      const out={};
+      (Array.isArray(MODULE_META)?MODULE_META:[]).forEach(m=>out[m.tab]=c[m.tab]!==false);
+      return out;
+    };
+  }catch(_){ }
+  try{
+    normalizeModulePermissionConfig=function(c={}){
+      ensureHourlyLawModuleMeta();
+      const out={};
+      (Array.isArray(MODULE_META)?MODULE_META:[]).forEach(m=>{let v=Number(c[m.tab]??0);if(!Number.isFinite(v))v=0;out[m.tab]=Math.max(0,Math.min(10,Math.floor(v)));});
+      return out;
+    };
+  }catch(_){ }
+  try{
+    normalizeAccountVisibilityConfig=function(c={}){
+      ensureHourlyLawModuleMeta();
+      const src=c?.accounts||c||{};
+      const out={accounts:{}};
+      const tabs=accountVisibilityTabs();
+      const valid=new Set(tabs);
+      Object.entries(src).forEach(([email,rule])=>{
+        const key=typeof normalizeLoginEmail==='function'?normalizeLoginEmail(email):String(email||'').trim().toLowerCase();
+        if(!key)return;
+        const raw=Array.isArray(rule)?Object.fromEntries(rule.map(t=>[t,true])):(rule?.tabs||rule||{});
+        const ruleTabs={};
+        valid.forEach(tab=>{ruleTabs[tab]=raw[tab]!==undefined?!!raw[tab]:true;});
+        out.accounts[key]={tabs:ruleTabs,updated_at:rule?.updated_at||'',updated_by:rule?.updated_by||''};
+      });
+      return out;
+    };
+  }catch(e){console.warn('时薪法案账号可视数据兼容失败：',e?.message||e)}
+  function removeTailOrderNewTag(){
+    try{document.querySelectorAll('.sideNav button[data-tab="tailOrderCenter"] .menuTestTag').forEach(el=>el.remove());}catch(_){ }
+  }
+  function h(v){try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}catch(_){return String(v??'')}}
+  function money(v){const n=Number(v);return Number.isFinite(n)?'$'+n.toFixed(2):'-'}
+  function num(v,d=0){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'-'}
+  function currentReportCycle(){try{return state?.cycle||((Array.isArray(cycles)&&cycles.length)?cycles[cycles.length-1]:'');}catch(_){return ''}}
+  function subsidyTop5(cycle){
+    const ids=[];
+    try{if(Array.isArray(riders))riders.forEach(r=>{if(r?.id&&!ids.includes(r.id))ids.push(r.id);});}catch(_){ }
+    try{if(Array.isArray(rows))rows.forEach(r=>{if(String(r?.cycle)===String(cycle)&&r?.id&&!ids.includes(r.id))ids.push(r.id);});}catch(_){ }
+    return ids.map(id=>{
+      let x=null;
+      try{if(typeof window.getRiderTagCalcResult==='function')x=window.getRiderTagCalcResult(id,cycle);}catch(_){ }
+      if(!x||x.noData)return null;
+      const avg=Number(x.avgSubsidy)||0;
+      if(avg<=0)return null;
+      let name=x.name||'';
+      try{name=name||(riderMap?.get(id)?.name)||id;}catch(_){name=name||id}
+      return {...x,id,name,avgSubsidy:avg};
+    }).filter(Boolean).sort((a,b)=>(Number(b.avgSubsidy)||0)-(Number(a.avgSubsidy)||0)).slice(0,5);
+  }
+  function subsidyTop5Text(cycle){
+    const list=subsidyTop5(cycle);
+    if(!list.length)return '暂无本周均单补贴大于 0 的骑手。';
+    return list.map((x,i)=>`${i+1}. ${x.name||x.id}（ID ${x.id}｜${x.vehicle||'-'}）：均单补贴 ${money(x.avgSubsidy)}，跑单量 ${num(x.orders,0)}，标签「${x.label||'-'}」`).join('\n');
+  }
+  function patchStationReport(){
+    try{
+      if(typeof window.generateStationReportText==='function'&&!window.__hourlyLawReportTop5Patched){
+        window.__hourlyLawReportTop5Patched=true;
+        const old=window.generateStationReportText;
+        window.generateStationReportText=function(){
+          let text=String(old.apply(this,arguments)||'');
+          if(text.includes('本周均单补贴Top5骑手'))return text;
+          const cycle=currentReportCycle();
+          const section=`## 七、本周均单补贴Top5骑手\n${subsidyTop5Text(cycle)}\n`;
+          if(text.includes('## 七、本周站长动作建议')){
+            text=text.replace('## 七、本周站长动作建议',section+'\n## 八、本周站长动作建议');
+          }else if(/##\s*七[、,，]\s*本周站长动作建议/.test(text)){
+            text=text.replace(/##\s*七[、,，]\s*本周站长动作建议/,section+'\n## 八、本周站长动作建议');
+          }else{
+            text += '\n\n'+section;
+          }
+          return text;
+        };
+      }
+    }catch(e){console.warn('站长周报补贴Top5补丁失败：',e?.message||e)}
+  }
+  function reapplyHourlyLawFixes(){
+    ensureHourlyLawModuleMeta();
+    try{moduleOrderConfig=normalizeModuleOrderConfig(moduleOrderConfig);}catch(_){ }
+    try{moduleSwitchConfig=normalizeModuleSwitchConfig(moduleSwitchConfig);}catch(_){ }
+    try{modulePermissionConfig=normalizeModulePermissionConfig(modulePermissionConfig);}catch(_){ }
+    try{accountVisibilityConfig=normalizeAccountVisibilityConfig(accountVisibilityConfig);}catch(_){ }
+    try{applyModuleSwitches();}catch(_){ }
+    removeTailOrderNewTag();
+    patchStationReport();
+    try{if(state?.tab==='systemManagement'&&typeof renderSystemManagement==='function')renderSystemManagement();}catch(_){ }
+    try{if(state?.tab==='weeklyReport'&&typeof renderStationWeeklyReport==='function')renderStationWeeklyReport();}catch(_){ }
+  }
+  try{
+    if(typeof renderSystemManagement==='function'&&!window.__hourlyLawRenderSystemWrapped){
+      window.__hourlyLawRenderSystemWrapped=true;
+      const old=renderSystemManagement;
+      renderSystemManagement=function(){ensureHourlyLawModuleMeta();const r=old.apply(this,arguments);setTimeout(()=>{ensureHourlyLawModuleMeta();try{renderMenuOrderGrid&&renderMenuOrderGrid();renderModulePermissionGrid&&renderModulePermissionGrid();renderAccountVisibilityPanel&&renderAccountVisibilityPanel();}catch(_){ }},0);return r;};
+    }
+  }catch(_){ }
+  try{
+    if(typeof renderStationWeeklyReport==='function'&&!window.__hourlyLawStationRenderWrapped){
+      window.__hourlyLawStationRenderWrapped=true;
+      const old=renderStationWeeklyReport;
+      renderStationWeeklyReport=function(){patchStationReport();return old.apply(this,arguments);};
+    }
+  }catch(_){ }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',reapplyHourlyLawFixes);else reapplyHourlyLawFixes();
+  setTimeout(reapplyHourlyLawFixes,600);
+  setTimeout(reapplyHourlyLawFixes,1600);
 })();
 </script>
 
