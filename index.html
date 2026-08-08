@@ -6561,6 +6561,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let tagCalcLogs=readLocal(LOG_LOCAL_KEY,[]);
   let tagCalcLoaded=false;
   let tagCalcLoading=false;
+  let tagCalcSort={key:'',dir:'desc'};
 
   function h(v){try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}catch(_){return String(v??'')}}
   function n(v){const x=Number(String(v??'').replace(/[%$,，\s]/g,''));return Number.isFinite(x)?x:null}
@@ -6635,21 +6636,48 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const inFixed=FIXED_LABELS.includes(label);
     return {id:r.id,name:r.name,vehicle:vehicleShown(r.vehicle),normalizedVehicle:vehicle,orders,income,duration,tph,tailRatePct:tail,hourly,legalMin,needSubsidy:need,avgSubsidy:subsidy,subsidyLevel,tphLevel,effLevel,tailThreshold:tailTh,tphThreshold:tphTh,label:inFixed?label:'未纳入标签清单',rawLabel:label,unlisted:!inFixed,reason:inFixed?'命中三维组合标签':`实际组合为「${label}」，但未在本次标签清单内`};
   }
+  function tagCalcDefaultCompare(a,b){
+    const ai=FIXED_LABELS.indexOf(a.label),bi=FIXED_LABELS.indexOf(b.label);
+    const ao=ai<0?99:ai,bo=bi<0?99:bi;
+    return ao-bo || (Number(b.avgSubsidy)||0)-(Number(a.avgSubsidy)||0) || String(a.name||'').localeCompare(String(b.name||''),'zh-CN');
+  }
+  function tagCalcSortValue(x,key){
+    const map={orders:x.orders,duration:x.duration,income:x.income,avgSubsidy:x.avgSubsidy,tailRatePct:x.tailRatePct};
+    const v=map[key];
+    const num=n(v);
+    return num==null?null:num;
+  }
+  function applyTagCalcSort(items){
+    const key=tagCalcSort&&tagCalcSort.key;
+    if(!key)return items.sort(tagCalcDefaultCompare);
+    const dir=tagCalcSort.dir==='asc'?1:-1;
+    return items.sort((a,b)=>{
+      const av=tagCalcSortValue(a,key),bv=tagCalcSortValue(b,key);
+      if(av==null&&bv==null)return tagCalcDefaultCompare(a,b);
+      if(av==null)return 1;
+      if(bv==null)return -1;
+      if(av!==bv)return (av-bv)*dir;
+      return tagCalcDefaultCompare(a,b);
+    });
+  }
+  function tagCalcSortTh(key,label){
+    const active=tagCalcSort&&tagCalcSort.key===key;
+    const icon=active?(tagCalcSort.dir==='asc'?'▲':'▼'):'↕';
+    const title=active?`${label}：当前${tagCalcSort.dir==='asc'?'升序':'降序'}，点击切换`:`按${label}排序`;
+    return `<button type="button" class="tagCalcSortBtn${active?' active':''}" data-tag-sort="${h(key)}" title="${h(title)}">${h(label)}<span class="sortIcon">${h(icon)}</span></button>`;
+  }
   function resultItems(){
     const cycle=curCycle();
     const q=(document.getElementById('tagCalcSearchInp')?.value||'').trim().toLowerCase();
     const tag=(document.getElementById('tagCalcLabelFilterSel')?.value||'all');
     const vehicle=(document.getElementById('tagCalcVehicleFilterSel')?.value||'all');
-    return rowsInCycle(cycle).map(calcTag).filter(x=>{
+    const items=rowsInCycle(cycle).map(calcTag).filter(x=>{
       if(tag!=='all'&&x.label!==tag)return false;
       if(vehicle!=='all'&&x.normalizedVehicle!==vehicle)return false;
       if(q){const hay=[x.id,x.name,x.vehicle,x.label,x.rawLabel||''].join(' ').toLowerCase();if(!hay.includes(q))return false;}
       return true;
-    }).sort((a,b)=>{
-      const ai=FIXED_LABELS.indexOf(a.label),bi=FIXED_LABELS.indexOf(b.label);
-      const ao=ai<0?99:ai,bo=bi<0?99:bi;
-      return ao-bo || (Number(b.avgSubsidy)||0)-(Number(a.avgSubsidy)||0) || String(a.name||'').localeCompare(String(b.name||''),'zh-CN');
     });
+    return applyTagCalcSort(items);
   }
   function allResultItems(){return rowsInCycle(curCycle()).map(calcTag)}
 
@@ -6657,7 +6685,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(document.getElementById('riderTagCalcStyle'))return;
     const style=document.createElement('style');style.id='riderTagCalcStyle';
     style.textContent=`
-      .tagCalcGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}.tagCalcCard{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.05)}.tagCalcCard b{font-size:13px;color:#334155}.tagCalcCard .n{font-size:26px;font-weight:900;margin-top:6px;color:#0f172a}.tagCalcCard .t{font-size:12px;color:#64748b;margin-top:4px}.tagCalcConfigTable input{width:110px}.tagLabel{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}.tagLabel.pass{background:#ecfdf5;color:#047857;border-color:#bbf7d0}.tagLabel.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.tagLabel.low{background:#f8fafc;color:#475569;border-color:#e2e8f0}.tagLabel.none{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.tagLabel.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.tagCalcLogBox{max-height:280px;overflow:auto}.tagCalcHint{font-size:12px;color:#64748b;line-height:1.6}.tagCalcActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tagCalcFormula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px;font-size:12px;color:#475569;line-height:1.7;margin-top:10px}.tagCalcPanelHeadActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tagCalcConfigModal{display:none;position:fixed;inset:0;z-index:1450;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:18px}.tagCalcConfigModal.show{display:flex}.tagCalcConfigPanel{width:min(1050px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:24px;box-shadow:0 30px 90px rgba(15,23,42,.28);padding:18px}.tagCalcConfigHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.tagCalcConfigHead h2{margin:0;font-size:19px}.tagCalcConfigClose{border:0;background:#f2f4f7;color:#475467;border-radius:999px;width:34px;height:34px;cursor:pointer;font-weight:950}.tagCalcConfigGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tagCalcConfigBlock{border:1px solid #e5e7eb;border-radius:18px;padding:13px;background:#fff}.tagCalcConfigBlock h3{margin:0 0 5px;font-size:15px}.tagCalcConfigFooter{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb}.riderTierInline{display:inline-flex;align-items:center;margin:5px 0 0;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;line-height:1.25;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;max-width:260px;white-space:normal}.riderTierInline.pass{background:#ecfdf3;color:#047857;border-color:#bbf7d0}.riderTierInline.none{background:#f2f4f7;color:#667085;border-color:#d0d5dd}.riderTierInline.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.riderTierInline.warn{background:#fef2f2;color:#b42318;border-color:#fecaca}.riderTierProfileBox{margin-top:10px;padding:11px 12px;border:1px solid #f4d03f;background:linear-gradient(135deg,#fff8cc,#fff);border-radius:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.riderTierProfileBox b{font-size:12px;color:#475467}.riderTierProfileBox .riderTierInline{margin:0;font-size:12px;padding:5px 10px}@media(max-width:1000px){.tagCalcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tagCalcConfigGrid{grid-template-columns:1fr}}@media(max-width:640px){.tagCalcGrid{grid-template-columns:1fr}.tagCalcConfigModal{padding:10px}.tagCalcConfigPanel{padding:14px;border-radius:18px}}`;
+      .tagCalcGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}.tagCalcCard{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.05)}.tagCalcCard b{font-size:13px;color:#334155}.tagCalcCard .n{font-size:26px;font-weight:900;margin-top:6px;color:#0f172a}.tagCalcCard .t{font-size:12px;color:#64748b;margin-top:4px}.tagCalcConfigTable input{width:110px}.tagLabel{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}.tagLabel.pass{background:#ecfdf5;color:#047857;border-color:#bbf7d0}.tagLabel.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.tagLabel.low{background:#f8fafc;color:#475569;border-color:#e2e8f0}.tagLabel.none{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.tagLabel.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.tagCalcLogBox{max-height:280px;overflow:auto}.tagCalcHint{font-size:12px;color:#64748b;line-height:1.6}.tagCalcActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tagCalcSortBtn{all:unset;display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-weight:900;line-height:1.25;color:inherit}.tagCalcSortBtn .sortIcon{font-size:10px;color:#94a3b8}.tagCalcSortBtn.active{color:#2563eb}.tagCalcSortBtn.active .sortIcon{color:#2563eb}.tagCalcFormula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px;font-size:12px;color:#475569;line-height:1.7;margin-top:10px}.tagCalcPanelHeadActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tagCalcConfigModal{display:none;position:fixed;inset:0;z-index:1450;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:18px}.tagCalcConfigModal.show{display:flex}.tagCalcConfigPanel{width:min(1050px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:24px;box-shadow:0 30px 90px rgba(15,23,42,.28);padding:18px}.tagCalcConfigHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.tagCalcConfigHead h2{margin:0;font-size:19px}.tagCalcConfigClose{border:0;background:#f2f4f7;color:#475467;border-radius:999px;width:34px;height:34px;cursor:pointer;font-weight:950}.tagCalcConfigGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tagCalcConfigBlock{border:1px solid #e5e7eb;border-radius:18px;padding:13px;background:#fff}.tagCalcConfigBlock h3{margin:0 0 5px;font-size:15px}.tagCalcConfigFooter{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb}.riderTierInline{display:inline-flex;align-items:center;margin:5px 0 0;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;line-height:1.25;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;max-width:260px;white-space:normal}.riderTierInline.pass{background:#ecfdf3;color:#047857;border-color:#bbf7d0}.riderTierInline.none{background:#f2f4f7;color:#667085;border-color:#d0d5dd}.riderTierInline.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.riderTierInline.warn{background:#fef2f2;color:#b42318;border-color:#fecaca}.riderTierProfileBox{margin-top:10px;padding:11px 12px;border:1px solid #f4d03f;background:linear-gradient(135deg,#fff8cc,#fff);border-radius:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.riderTierProfileBox b{font-size:12px;color:#475467}.riderTierProfileBox .riderTierInline{margin:0;font-size:12px;padding:5px 10px}@media(max-width:1000px){.tagCalcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tagCalcConfigGrid{grid-template-columns:1fr}}@media(max-width:640px){.tagCalcGrid{grid-template-columns:1fr}.tagCalcConfigModal{padding:10px}.tagCalcConfigPanel{padding:14px;border-radius:18px}}`;
     document.head.appendChild(style);
   }
   function installSection(){
@@ -6744,7 +6772,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const items=resultItems();
     if(!allCycles().length){table.innerHTML='<tr><td class="empty">暂无云数据，请先刷新 rider_weekly_data。</td></tr>';return}
     if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无骑手标签核算结果。</td></tr>';return}
-    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>跑单量</th><th>背单时长</th><th>总收入</th><th>标准时薪</th><th>均单补贴</th><th>TPH</th><th>责尾单率</th><th>效率阈值</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
+    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>'+tagCalcSortTh('orders','跑单量')+'</th><th>'+tagCalcSortTh('duration','背单时长')+'</th><th>'+tagCalcSortTh('income','总收入')+'</th><th>标准时薪</th><th>'+tagCalcSortTh('avgSubsidy','均单补贴')+'</th><th>TPH</th><th>'+tagCalcSortTh('tailRatePct','责尾单率')+'</th><th>效率阈值</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
+    table.querySelectorAll('[data-tag-sort]').forEach(btn=>btn.onclick=(ev)=>{try{ev.preventDefault();ev.stopPropagation();const key=btn.dataset.tagSort;if(tagCalcSort.key===key){tagCalcSort.dir=tagCalcSort.dir==='asc'?'desc':'asc';}else{tagCalcSort={key,dir:'desc'};}renderResults();}catch(e){console.warn(e)}});
     table.querySelectorAll('[data-track]').forEach(btn=>btn.onclick=()=>{try{openProfile(btn.dataset.track)}catch(_){}});
   }
   function renderLogs(){
