@@ -6540,6 +6540,291 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   }catch(_){ }
 })();
 </script>
+
+
+<script>
+/* === 骑手标签核算参数配置 + 自动标签核算 === */
+(function(){
+  const TAB='riderTagCalc';
+  const SETTINGS_TABLE='rider_tag_calc_settings';
+  const LOG_TABLE='rider_tag_calc_setting_logs';
+  const SETTING_ID='default';
+  const LOCAL_KEY='rider_tag_calc_settings_v1';
+  const LOG_LOCAL_KEY='rider_tag_calc_setting_logs_v1';
+  const VEHICLES=['步行','自行车','电动自行车','摩托车','汽车'];
+  const DEFAULT_CONFIG={
+    standard_hourly:{'步行':31.3,'自行车':31.3,'电动自行车':31.3,'摩托车':31.5,'汽车':32.0},
+    tail_thresholds:{'自行车':5,'电动自行车':5,'摩托车':10,'步行':10,'汽车':12}
+  };
+  const FIXED_LABELS=['高补贴 + 低 TPH + 低效率','高补贴 + 低 TPH + 高效率','高补贴 + 高 TPH + 低效率','高补贴 + 高 TPH + 高效率','低补贴 + 高 TPH + 高效率','低补贴 + 低 TPH + 低效率','低补贴 + 低 TPH + 高效率','达标骑手'];
+  let tagCalcConfig=normalizeConfig(readLocal(LOCAL_KEY,DEFAULT_CONFIG));
+  let tagCalcLogs=readLocal(LOG_LOCAL_KEY,[]);
+  let tagCalcLoaded=false;
+  let tagCalcLoading=false;
+
+  function h(v){try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}catch(_){return String(v??'')}}
+  function n(v){const x=Number(String(v??'').replace(/[%$,，\s]/g,''));return Number.isFinite(x)?x:null}
+  function readLocal(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch(_){return f}}
+  function writeLocal(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}
+  function clone(o){return JSON.parse(JSON.stringify(o||{}))}
+  function nowIso(){return new Date().toISOString()}
+  function displayTime(v){if(!v)return '-';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(_){return String(v).slice(0,19).replace('T',' ')}}
+  function toastMsg(msg){try{toast(msg)}catch(_){alert(msg)}}
+  function configDefaultValue(group,vehicle){return Number(DEFAULT_CONFIG[group]?.[vehicle]||0)}
+  function legalConfigNumber(v,def){const x=n(v);return x!=null&&x>0?x:def}
+  function normalizeConfig(cfg){
+    cfg=cfg&&typeof cfg==='object'?cfg:{};
+    const out={standard_hourly:{},tail_thresholds:{}};
+    VEHICLES.forEach(v=>{
+      out.standard_hourly[v]=legalConfigNumber(cfg.standard_hourly?.[v],DEFAULT_CONFIG.standard_hourly[v]);
+      out.tail_thresholds[v]=legalConfigNumber(cfg.tail_thresholds?.[v],DEFAULT_CONFIG.tail_thresholds[v]);
+    });
+    return out;
+  }
+  function normVehicle(v){
+    const s=String(v||'').trim();
+    if(!s)return '自行车';
+    if(/步行|walk|walking/i.test(s))return '步行';
+    if(/电动自行车|电动车|e-?bike|ebike|electric/i.test(s))return '电动自行车';
+    if(/摩托车|摩托|motorcycle|motorbike|scooter/i.test(s))return '摩托车';
+    if(/汽车|car|auto/i.test(s))return '汽车';
+    if(/自行车|单车|bike|bicycle/i.test(s))return '自行车';
+    return VEHICLES.includes(s)?s:'自行车';
+  }
+  function vehicleShown(v){return String(v||'').trim()||'空白（按自行车参数兜底）'}
+  function ratePct(v){const x=n(v);if(x==null)return null;return Math.abs(x)<=1?x*100:x}
+  function fmtNum(v,d=1){const x=n(v);return x==null?'-':x.toFixed(d)}
+  function fmtMoney(v){const x=n(v);return x==null?'-':'$'+x.toFixed(2)}
+  function fmtPct(v,d=1){const x=n(v);return x==null?'-':x.toFixed(d)+'%'}
+  function curCycle(){return document.getElementById('tagCalcCycleSel')?.value || (typeof state!=='undefined'&&state.cycle) || (Array.isArray(cycles)&&cycles.length?cycles[cycles.length-1]:'')}
+  function allCycles(){try{return Array.isArray(cycles)?cycles:[]}catch(_){return []}}
+  function cycleOrder(a,b){try{return cycleNo(a)-cycleNo(b)||String(a).localeCompare(String(b),'zh-CN')}catch(_){return String(a).localeCompare(String(b),'zh-CN')}}
+  function cycleWindow(cycle,count){
+    const cs=allCycles().slice().sort(cycleOrder);
+    const idx=cs.indexOf(cycle);
+    if(idx<0)return cycle?[cycle]:[];
+    return cs.slice(Math.max(0,idx-count+1),idx+1);
+  }
+  function rowsInCycle(cycle){try{return (rows||[]).filter(r=>String(r.cycle)===String(cycle))}catch(_){return []}}
+  function effectiveHourly(vehicle){const v=normVehicle(vehicle);return legalConfigNumber(tagCalcConfig.standard_hourly?.[v],DEFAULT_CONFIG.standard_hourly[v])}
+  function effectiveTailThreshold(vehicle){const v=normVehicle(vehicle);return legalConfigNumber(tagCalcConfig.tail_thresholds?.[v],DEFAULT_CONFIG.tail_thresholds[v])}
+  function tphThreshold(vehicle){const v=normVehicle(vehicle);return (v==='自行车'||v==='电动自行车')?4.7:3.5}
+  function rawRec(cycle,id){try{return typeof rec==='function'?(rec(cycle,id)||null):(rows||[]).find(r=>String(r.cycle)===String(cycle)&&String(r.id)===String(id))||null}catch(_){return null}}
+  function calcTag(r){
+    if(!r)return {label:'暂无跑单数据',noData:true,reason:'暂无跑单数据'};
+    const orders=n(r.orders), income=n(r.income), duration=n(r.duration), tph=n(r.periodAvg), tail=ratePct(r.tailRate), vehicle=normVehicle(r.vehicle);
+    if(orders==null||orders<=0||duration==null||duration<=0||income==null||tph==null||tail==null){
+      return {id:r.id,name:r.name,vehicle:vehicleShown(r.vehicle),normalizedVehicle:vehicle,orders,income,duration,tph,tailRatePct:tail,label:'暂无跑单数据',noData:true,reason:'背单时长为 0、无跑单量或缺少必要指标，剔除达标判定'};
+    }
+    const hourly=effectiveHourly(vehicle);
+    const legalMin=duration*hourly;
+    const need=Math.max(0,legalMin-income);
+    const subsidy=orders>0?need/orders:null;
+    let subsidyLevel='达标';
+    if(subsidy!=null&&subsidy<=0.000001) subsidyLevel='达标';
+    else if(subsidy>0&&subsidy<=0.5) subsidyLevel='低补贴';
+    else subsidyLevel='高补贴';
+    if(subsidyLevel==='达标'){
+      return {id:r.id,name:r.name,vehicle:vehicleShown(r.vehicle),normalizedVehicle:vehicle,orders,income,duration,tph,tailRatePct:tail,hourly,legalMin,needSubsidy:need,avgSubsidy:0,subsidyLevel,tphLevel:'-',effLevel:'-',tailThreshold:effectiveTailThreshold(vehicle),label:'达标骑手',reason:'均单补贴 = 0'};
+    }
+    const tphTh=tphThreshold(vehicle);
+    const tphLevel=tph>=tphTh?'高 TPH':'低 TPH';
+    const tailTh=effectiveTailThreshold(vehicle);
+    const effLevel=tail>tailTh?'低效率':'高效率';
+    const label=`${subsidyLevel} + ${tphLevel} + ${effLevel}`;
+    const inFixed=FIXED_LABELS.includes(label);
+    return {id:r.id,name:r.name,vehicle:vehicleShown(r.vehicle),normalizedVehicle:vehicle,orders,income,duration,tph,tailRatePct:tail,hourly,legalMin,needSubsidy:need,avgSubsidy:subsidy,subsidyLevel,tphLevel,effLevel,tailThreshold:tailTh,tphThreshold:tphTh,label:inFixed?label:'未纳入标签清单',rawLabel:label,unlisted:!inFixed,reason:inFixed?'命中三维组合标签':`实际组合为「${label}」，但未在本次标签清单内`};
+  }
+  function resultItems(){
+    const cycle=curCycle();
+    const q=(document.getElementById('tagCalcSearchInp')?.value||'').trim().toLowerCase();
+    const tag=(document.getElementById('tagCalcLabelFilterSel')?.value||'all');
+    const vehicle=(document.getElementById('tagCalcVehicleFilterSel')?.value||'all');
+    return rowsInCycle(cycle).map(calcTag).filter(x=>{
+      if(tag!=='all'&&x.label!==tag)return false;
+      if(vehicle!=='all'&&x.normalizedVehicle!==vehicle)return false;
+      if(q){const hay=[x.id,x.name,x.vehicle,x.label,x.rawLabel||''].join(' ').toLowerCase();if(!hay.includes(q))return false;}
+      return true;
+    }).sort((a,b)=>{
+      const ai=FIXED_LABELS.indexOf(a.label),bi=FIXED_LABELS.indexOf(b.label);
+      const ao=ai<0?99:ai,bo=bi<0?99:bi;
+      return ao-bo || (Number(b.avgSubsidy)||0)-(Number(a.avgSubsidy)||0) || String(a.name||'').localeCompare(String(b.name||''),'zh-CN');
+    });
+  }
+  function allResultItems(){return rowsInCycle(curCycle()).map(calcTag)}
+
+  function installStyle(){
+    if(document.getElementById('riderTagCalcStyle'))return;
+    const style=document.createElement('style');style.id='riderTagCalcStyle';
+    style.textContent=`
+      .tagCalcGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}.tagCalcCard{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.05)}.tagCalcCard b{font-size:13px;color:#334155}.tagCalcCard .n{font-size:26px;font-weight:900;margin-top:6px;color:#0f172a}.tagCalcCard .t{font-size:12px;color:#64748b;margin-top:4px}.tagCalcConfigTable input{width:110px}.tagLabel{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:800;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}.tagLabel.pass{background:#ecfdf5;color:#047857;border-color:#bbf7d0}.tagLabel.high{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.tagLabel.low{background:#f8fafc;color:#475569;border-color:#e2e8f0}.tagLabel.none{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.tagLabel.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.tagCalcLogBox{max-height:280px;overflow:auto}.tagCalcHint{font-size:12px;color:#64748b;line-height:1.6}.tagCalcActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tagCalcFormula{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:12px;font-size:12px;color:#475569;line-height:1.7;margin-top:10px}@media(max-width:1000px){.tagCalcGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.tagCalcGrid{grid-template-columns:1fr}}`;
+    document.head.appendChild(style);
+  }
+  function installSection(){
+    if(document.getElementById(TAB))return;
+    const main=document.querySelector('main')||document.body;
+    const sec=document.createElement('section');sec.id=TAB;sec.className='tab';
+    sec.innerHTML=`
+      <div class="panel">
+        <div class="toolbar"><div><h2>骑手标签核算参数配置</h2><div class="sub">依据补贴档位、TPH 小时接单密度、配送效率三项维度自动生成骑手标签；参数保存后即时生效。</div></div><div class="tagCalcActions"><button class="btn small" id="tagCalcRefreshBtn" type="button">刷新配置</button><button class="btn small" id="tagCalcExportBtn" type="button">导出标签结果</button></div></div>
+        <div class="tagCalcFormula">计算规则：法定最低收入 = 背单时长 × 对应车型标准时薪；需补差额 = max(0, 法定最低收入 − 骑手总收入)；均单补贴 = 需补差额 ÷ 跑单量。均单补贴 = 0 判定为「达标骑手」；空白跑单、背单时长为 0 或有订单但无有效时长统一展示「暂无跑单数据」。</div>
+        <div class="compareControlGrid" style="margin-top:12px">
+          <label class="field"><span>核算周期</span><select id="tagCalcCycleSel"></select></label>
+          <label class="field"><span>标签筛选</span><select id="tagCalcLabelFilterSel"><option value="all">全部标签</option></select></label>
+          <label class="field"><span>交通工具筛选</span><select id="tagCalcVehicleFilterSel"><option value="all">全部车型</option></select></label>
+          <label class="field"><span>搜索骑手 / ID</span><input id="tagCalcSearchInp" placeholder="输入姓名或 ID" /></label>
+        </div>
+        <div class="tagCalcGrid" id="tagCalcSummaryGrid"></div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><div class="panelHead"><div><h2>各车型标准时薪配置</h2><div class="sub">非法字符或空值会自动沿用默认参数兜底。</div></div></div><div class="tableWrap"><table id="tagCalcHourlyTable" class="tagCalcConfigTable"></table></div></div>
+        <div class="panel"><div class="panelHead"><div><h2>骑手责任尾单率效率阈值配置</h2><div class="sub">骑手责任尾单率 &gt; 阈值判定为低效率；≤ 阈值判定为高效率。</div></div></div><div class="tableWrap"><table id="tagCalcTailTable" class="tagCalcConfigTable"></table></div></div>
+      </div>
+      <div class="panel"><div class="panelHead"><div><h2>保存配置</h2><div class="sub">保存后写入 Supabase，并完整记录操作账号、修改时间、车型、修改前数值、修改后数值。</div></div><div class="tagCalcActions"><button class="btn primary" id="tagCalcSaveBtn" type="button">保存参数配置</button><button class="btn" id="tagCalcResetBtn" type="button">恢复默认参数</button></div></div><div class="tagCalcHint" id="tagCalcSaveHint">等待加载配置。</div></div>
+      <div class="panel"><div class="panelHead"><div><h2>骑手标签核算结果</h2><div class="sub">正常跑单骑手按三项维度匹配标签；暂无跑单数据不进入达标判定。</div></div></div><div class="tableWrap"><table id="tagCalcResultTable"></table></div></div>
+      <div class="panel"><div class="panelHead"><div><h2>参数修改日志</h2><div class="sub">展示最近 100 条云端或本机修改记录。</div></div></div><div class="tableWrap tagCalcLogBox"><table id="tagCalcLogTable"></table></div></div>`;
+    main.appendChild(sec);
+  }
+  function installMenu(){
+    try{
+      if(Array.isArray(MODULE_META)&&!MODULE_META.some(m=>m.tab===TAB)){
+        const item={tab:TAB,label:'骑手标签核算参数配置',desc:'配置时薪阈值并自动生成骑手标签'};
+        const idx=MODULE_META.findIndex(m=>m.tab==='diagnosis');
+        if(idx>=0)MODULE_META.splice(idx+1,0,item);else MODULE_META.push(item);
+      }
+    }catch(_){ }
+    const nav=document.querySelector('.sideNav');if(!nav)return;
+    let btn=nav.querySelector(`button[data-tab="${TAB}"]`);
+    if(!btn){
+      btn=document.createElement('button');btn.dataset.tab=TAB;btn.innerHTML='<span class="menuIcon">🏷️</span><span class="menuLabel">骑手标签核算参数配置</span>';
+      const diagnosis=nav.querySelector('button[data-tab="diagnosis"]');
+      if(diagnosis&&diagnosis.nextSibling)nav.insertBefore(btn,diagnosis.nextSibling);else nav.appendChild(btn);
+    }
+    btn.onclick=()=>{try{selectTab(TAB)}catch(_){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===TAB));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===TAB));renderTagCalc();}};
+  }
+  function ensureUI(){installStyle();installSection();installMenu();bindControls();}
+
+  function renderConfigTables(){
+    const hourly=document.getElementById('tagCalcHourlyTable');
+    if(hourly){
+      hourly.innerHTML='<thead><tr><th>车型</th><th>当前标准时薪</th><th>默认值</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-hourly="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveHourly(v))}"></td><td>${h(DEFAULT_CONFIG.standard_hourly[v])}</td></tr>`).join('')+'</tbody>';
+    }
+    const tail=document.getElementById('tagCalcTailTable');
+    if(tail){
+      tail.innerHTML='<thead><tr><th>车型</th><th>当前效率阈值</th><th>默认值</th></tr></thead><tbody>'+VEHICLES.map(v=>`<tr><td><b>${h(v)}</b></td><td><input data-tag-tail="${h(v)}" type="number" min="0" step="0.1" value="${h(effectiveTailThreshold(v))}"> %</td><td>${h(DEFAULT_CONFIG.tail_thresholds[v])}%</td></tr>`).join('')+'</tbody>';
+    }
+  }
+  function renderFilters(){
+    const cs=document.getElementById('tagCalcCycleSel');
+    if(cs){const current=cs.value||curCycle();cs.innerHTML=allCycles().map(c=>`<option value="${h(c)}" ${String(c)===String(current)?'selected':''}>${h(c)}</option>`).join('')||'<option value="">暂无周期</option>';if(current&&[...cs.options].some(o=>o.value===current))cs.value=current;}
+    const lf=document.getElementById('tagCalcLabelFilterSel');
+    if(lf&&!lf.dataset.filled){lf.innerHTML='<option value="all">全部标签</option>'+FIXED_LABELS.map(l=>`<option value="${h(l)}">${h(l)}</option>`).join('')+'<option value="暂无跑单数据">暂无跑单数据</option><option value="未纳入标签清单">未纳入标签清单</option>';lf.dataset.filled='1';}
+    const vf=document.getElementById('tagCalcVehicleFilterSel');
+    if(vf&&!vf.dataset.filled){vf.innerHTML='<option value="all">全部车型</option>'+VEHICLES.map(v=>`<option value="${h(v)}">${h(v)}</option>`).join('');vf.dataset.filled='1';}
+  }
+  function labelClass(label){if(label==='达标骑手')return 'pass';if(label==='暂无跑单数据')return 'none';if(label==='未纳入标签清单')return 'warn';if(String(label).startsWith('高补贴'))return 'high';return 'low'}
+  function renderSummary(){
+    const grid=document.getElementById('tagCalcSummaryGrid');if(!grid)return;
+    const items=allResultItems();const visible=resultItems();const counts={};items.forEach(x=>counts[x.label]=(counts[x.label]||0)+1);
+    const cards=[['当前周期骑手',items.length,'参与本周期标签核算'],['当前筛选结果',visible.length,'受搜索/标签/车型筛选影响'],['达标骑手',counts['达标骑手']||0,'均单补贴 = 0'],['暂无跑单数据',counts['暂无跑单数据']||0,'不判定为达标骑手']];
+    grid.innerHTML=cards.map(c=>`<div class="tagCalcCard"><b>${h(c[0])}</b><div class="n">${h(c[1])}</div><div class="t">${h(c[2])}</div></div>`).join('');
+  }
+  function renderResults(){
+    const table=document.getElementById('tagCalcResultTable');if(!table)return;
+    const items=resultItems();
+    if(!allCycles().length){table.innerHTML='<tr><td class="empty">暂无云数据，请先刷新 rider_weekly_data。</td></tr>';return}
+    if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无骑手标签核算结果。</td></tr>';return}
+    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>跑单量</th><th>背单时长</th><th>总收入</th><th>标准时薪</th><th>均单补贴</th><th>TPH</th><th>责尾单率</th><th>效率阈值</th><th>骑手标签</th><th>说明</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td><td><span class="mini">${h(x.reason||'')}</span></td></tr>`).join('')+'</tbody>';
+    table.querySelectorAll('[data-track]').forEach(btn=>btn.onclick=()=>{try{openProfile(btn.dataset.track)}catch(_){}});
+  }
+  function renderLogs(){
+    const table=document.getElementById('tagCalcLogTable');if(!table)return;
+    const logs=(tagCalcLogs||[]).slice(0,100);
+    if(!logs.length){table.innerHTML='<tr><td class="empty">暂无参数修改日志。</td></tr>';return}
+    table.innerHTML='<thead><tr><th>修改时间</th><th>操作账号</th><th>车型</th><th>参数类型</th><th>修改前</th><th>修改后</th></tr></thead><tbody>'+logs.map(x=>`<tr><td>${h(displayTime(x.changed_at||x.created_at))}</td><td>${h(x.changed_by_email||x.changed_by||'-')}</td><td>${h(x.vehicle_type||'-')}</td><td>${h(x.value_type==='standard_hourly'?'标准时薪':'尾单率阈值')}</td><td>${h(x.old_value??'-')}${x.value_type==='tail_threshold'?'%':''}</td><td><b>${h(x.new_value??'-')}${x.value_type==='tail_threshold'?'%':''}</b></td></tr>`).join('')+'</tbody>';
+  }
+  function renderTagCalc(){ensureUI();renderFilters();renderConfigTables();renderSummary();renderResults();renderLogs();const hint=document.getElementById('tagCalcSaveHint');if(hint)hint.textContent=tagCalcLoaded?'已读取参数配置；保存后将即时重新核算当前页面标签。':'使用默认参数兜底。若尚未执行 SQL，保存会失败但不影响默认核算。';}
+  window.renderTagCalc=renderTagCalc;
+  window.getRiderTagCalcResult=function(id,cycle){return calcTag(rawRec(cycle||curCycle(),id));};
+
+  async function loadTagCalcConfig(){
+    if(tagCalcLoading)return;tagCalcLoading=true;
+    try{
+      if(typeof cloudUser!=='undefined'&&cloudUser&&typeof getCloudClient==='function'){
+        const client=getCloudClient();
+        const {data,error}=await client.from(SETTINGS_TABLE).select('*').eq('id',SETTING_ID).maybeSingle();
+        if(error)throw error;
+        if(data){tagCalcConfig=normalizeConfig({standard_hourly:data.standard_hourly||{},tail_thresholds:data.tail_thresholds||{}});writeLocal(LOCAL_KEY,tagCalcConfig);}
+        const logRes=await client.from(LOG_TABLE).select('*').order('changed_at',{ascending:false}).limit(100);
+        if(!logRes.error&&Array.isArray(logRes.data)){tagCalcLogs=logRes.data;writeLocal(LOG_LOCAL_KEY,tagCalcLogs);}
+        tagCalcLoaded=true;
+      }
+    }catch(e){console.warn('骑手标签核算参数读取失败，使用默认/本机参数：',e?.message||e);tagCalcLoaded=false;}
+    finally{tagCalcLoading=false;renderTagCalc();}
+  }
+  window.loadRiderTagCalcConfig=loadTagCalcConfig;
+  function readInputsAsConfig(){
+    const cfg=clone(tagCalcConfig);
+    cfg.standard_hourly={};cfg.tail_thresholds={};
+    VEHICLES.forEach(v=>{
+      cfg.standard_hourly[v]=legalConfigNumber(document.querySelector(`[data-tag-hourly="${v}"]`)?.value,DEFAULT_CONFIG.standard_hourly[v]);
+      cfg.tail_thresholds[v]=legalConfigNumber(document.querySelector(`[data-tag-tail="${v}"]`)?.value,DEFAULT_CONFIG.tail_thresholds[v]);
+    });
+    return normalizeConfig(cfg);
+  }
+  function diffLogs(oldCfg,newCfg){
+    const by=(typeof cloudUser!=='undefined'&&cloudUser?.email)|| (typeof currentAuthEmail==='function'?currentAuthEmail():'') || 'unknown';
+    const at=nowIso();const logs=[];
+    VEHICLES.forEach(v=>{
+      const oldH=legalConfigNumber(oldCfg.standard_hourly?.[v],DEFAULT_CONFIG.standard_hourly[v]),newH=newCfg.standard_hourly[v];
+      if(Math.abs(oldH-newH)>0.0001)logs.push({setting_id:SETTING_ID,value_type:'standard_hourly',vehicle_type:v,old_value:oldH,new_value:newH,changed_by_email:by,changed_at:at});
+      const oldT=legalConfigNumber(oldCfg.tail_thresholds?.[v],DEFAULT_CONFIG.tail_thresholds[v]),newT=newCfg.tail_thresholds[v];
+      if(Math.abs(oldT-newT)>0.0001)logs.push({setting_id:SETTING_ID,value_type:'tail_threshold',vehicle_type:v,old_value:oldT,new_value:newT,changed_by_email:by,changed_at:at});
+    });
+    return logs;
+  }
+  async function saveTagCalcConfig(){
+    const oldCfg=clone(tagCalcConfig);const newCfg=readInputsAsConfig();const logs=diffLogs(oldCfg,newCfg);
+    tagCalcConfig=newCfg;writeLocal(LOCAL_KEY,tagCalcConfig);
+    try{
+      if(!(typeof cloudUser!=='undefined'&&cloudUser&&typeof getCloudClient==='function'))throw new Error('未登录云端');
+      const client=getCloudClient();
+      const payload={id:SETTING_ID,standard_hourly:newCfg.standard_hourly,tail_thresholds:newCfg.tail_thresholds,updated_by_email:cloudUser?.email||'',updated_by:cloudUser?.id||null,updated_at:nowIso()};
+      const {error}=await client.from(SETTINGS_TABLE).upsert(payload,{onConflict:'id'});if(error)throw error;
+      if(logs.length){const {error:logErr}=await client.from(LOG_TABLE).insert(logs);if(logErr)throw logErr;}
+      tagCalcLogs=[...logs,...tagCalcLogs].slice(0,100);writeLocal(LOG_LOCAL_KEY,tagCalcLogs);tagCalcLoaded=true;toastMsg(logs.length?`参数配置已保存，记录 ${logs.length} 条修改日志`:'参数配置已保存，数值无变化');
+    }catch(e){
+      tagCalcLogs=[...logs.map(x=>({...x,local_only:true})),...tagCalcLogs].slice(0,100);writeLocal(LOG_LOCAL_KEY,tagCalcLogs);console.warn('骑手标签核算参数云端保存失败：',e?.message||e);toastMsg('参数已在本机生效，但云端保存失败：请确认已执行 SQL');
+    }
+    renderTagCalc();
+  }
+  function resetDefaults(){tagCalcConfig=normalizeConfig(DEFAULT_CONFIG);writeLocal(LOCAL_KEY,tagCalcConfig);renderTagCalc();toastMsg('已恢复默认参数，点击保存后写入云端')}
+  function exportResults(){
+    const items=resultItems();if(!items.length){toastMsg('当前筛选下暂无标签结果可导出');return}
+    const header=['周期','ID','骑手姓名','交通工具','跑单量','背单时长','总收入','标准时薪','法定最低收入','需补差额','均单补贴','TPH','TPH阈值','骑手责尾单率','效率阈值','补贴档位','TPH档位','效率档位','骑手标签','说明'];
+    const lines=[header,...items.map(x=>[curCycle(),x.id,x.name,x.vehicle,x.orders??'',x.duration??'',x.income??'',x.hourly??'',x.legalMin??'',x.needSubsidy??'',x.avgSubsidy??'',x.tph??'',x.tphThreshold??'',x.tailRatePct??'',x.tailThreshold??'',x.subsidyLevel||'',x.tphLevel||'',x.effLevel||'',x.label,x.reason||''])];
+    const csv='\ufeff'+lines.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+    try{if(typeof downloadBlob==='function')downloadBlob(csv,`骑手标签核算结果_${curCycle()||'未选择'}.csv`);else{const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`骑手标签核算结果_${curCycle()||'未选择'}.csv`;a.click();URL.revokeObjectURL(url);}}catch(e){console.warn(e)}
+  }
+  function bindControls(){
+    const map={tagCalcRefreshBtn:()=>loadTagCalcConfig(),tagCalcSaveBtn:()=>saveTagCalcConfig(),tagCalcResetBtn:()=>resetDefaults(),tagCalcExportBtn:()=>exportResults()};
+    Object.entries(map).forEach(([id,fn])=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onclick=fn;}});
+    ['tagCalcCycleSel','tagCalcLabelFilterSel','tagCalcVehicleFilterSel'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onchange=()=>renderTagCalc();}});
+    const s=document.getElementById('tagCalcSearchInp');if(s&&!s.dataset.bound){s.dataset.bound='1';s.oninput=()=>renderTagCalc();}
+  }
+
+  function wrapFunctions(){
+    try{if(typeof renderAll==='function'&&!window.__tagCalcRenderAllWrapped){window.__tagCalcRenderAllWrapped=true;const old=renderAll;renderAll=function(){const r=old.apply(this,arguments);setTimeout(()=>{try{renderTagCalc()}catch(e){console.warn(e)}},0);return r;};}}catch(_){ }
+    try{if(typeof selectTab==='function'&&!window.__tagCalcSelectWrapped){window.__tagCalcSelectWrapped=true;const old=selectTab;selectTab=function(tab){const r=old.apply(this,arguments);if(tab===TAB)setTimeout(()=>{renderTagCalc();loadTagCalcConfig();},0);return r;};}}catch(_){ }
+    try{if(typeof showApp==='function'&&!window.__tagCalcShowAppWrapped){window.__tagCalcShowAppWrapped=true;const old=showApp;showApp=async function(){const r=await old.apply(this,arguments);try{ensureUI();await loadTagCalcConfig();}catch(e){console.warn(e)}return r;};}}catch(_){ }
+    try{if(typeof loadCloudData==='function'&&!window.__tagCalcCloudDataWrapped){window.__tagCalcCloudDataWrapped=true;const old=loadCloudData;loadCloudData=async function(){const r=await old.apply(this,arguments);setTimeout(()=>{try{renderTagCalc()}catch(_){ }},0);return r;};}}catch(_){ }
+  }
+  function init(){ensureUI();wrapFunctions();renderTagCalc();setTimeout(()=>loadTagCalcConfig(),800);try{applyModuleSwitches()}catch(_){}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  setTimeout(init,1200);
+})();
+</script>
+
 </body>
 </html>
 
