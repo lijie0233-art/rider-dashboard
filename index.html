@@ -6777,8 +6777,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function renderSummary(){
     const grid=document.getElementById('tagCalcSummaryGrid');if(!grid)return;
     const items=allResultItems();const visible=resultItems();const counts={};items.forEach(x=>counts[x.label]=(counts[x.label]||0)+1);
-    const subsidyTotal=items.reduce((s,x)=>s+(Number(x.avgSubsidy)||0),0);
-    const cards=[['当前周期骑手',items.length,'参与本周期标签核算'],['当前筛选结果',visible.length,'受搜索/标签/车型筛选影响'],['本周补贴总计',fmtMoney(subsidyTotal),'全体骑手均单补贴合计'],['达标骑手',counts['达标骑手']||0,'均单补贴 = 0'],['暂无跑单数据',counts['暂无跑单数据']||0,'不判定为达标骑手']];
+    const subsidyTotal=items.reduce((s,x)=>s+(Number(x.totalSubsidy)||0),0);
+    const cards=[['当前周期骑手',items.length,'参与本周期标签核算'],['当前筛选结果',visible.length,'受搜索/标签/车型筛选影响'],['本周补贴总计',fmtMoney(subsidyTotal),'全体骑手总计补贴合计'],['达标骑手',counts['达标骑手']||0,'均单补贴 = 0'],['暂无跑单数据',counts['暂无跑单数据']||0,'不判定为达标骑手']];
     grid.innerHTML=cards.map(c=>`<div class="tagCalcCard"><b>${h(c[0])}</b><div class="n">${h(c[1])}</div><div class="t">${h(c[2])}</div></div>`).join('');
   }
   function renderResults(){
