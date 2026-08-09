@@ -6647,7 +6647,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     return ao-bo || (Number(b.avgSubsidy)||0)-(Number(a.avgSubsidy)||0) || String(a.name||'').localeCompare(String(b.name||''),'zh-CN');
   }
   function tagCalcSortValue(x,key){
-    const map={orders:x.orders,duration:x.duration,income:x.income,acceptanceRatePct:x.acceptanceRatePct,avgSubsidy:x.avgSubsidy,periodSubsidy:x.periodSubsidy,totalSubsidy:x.totalSubsidy,tailRatePct:x.tailRatePct};
+    const map={orders:x.orders,duration:x.duration,income:x.income,acceptanceRatePct:x.acceptanceRatePct,avgSubsidy:x.avgSubsidy,periodSubsidy:x.periodSubsidy,totalSubsidy:x.totalSubsidy,subsidyRevenueRatioPct:x.subsidyRevenueRatioPct,tailRatePct:x.tailRatePct};
     const v=map[key];
     const num=n(v);
     return num==null?null:num;
@@ -6660,6 +6660,50 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function tagCalcTotalSubsidyText(x){
     if(!x||x.totalSubsidy==null)return '暂无数据';
     return '$'+fmtNum(x.totalSubsidy,2);
+  }
+  function allRowsForRider(id){
+    try{return (rows||[]).filter(r=>String(r.id||'')===String(id||''));}catch(_){return []}
+  }
+  function calcSubsidyRevenueRatio(id){
+    const rs=allRowsForRider(id);
+    let incomeSum=0, subsidySum=0, hasIncome=false;
+    rs.forEach(r=>{
+      const income=n(r.income);
+      if(income!=null){incomeSum+=income;hasIncome=true;}
+      const t=calcTag(r);
+      const sub=n(t&&t.totalSubsidy);
+      if(sub!=null)subsidySum+=sub;
+    });
+    if(!hasIncome||incomeSum<=0)return {pct:null,label:'暂无数据',text:'暂无数据'};
+    const pct=subsidySum/incomeSum*100;
+    let label='正常';
+    if(pct>=50&&pct<=100)label='轻度依赖';
+    else if(pct>100)label='薅补贴';
+    return {pct,label,text:fmtPct(pct,1)+' '+label,subsidySum,incomeSum};
+  }
+  function ratioLabelClass(label){
+    if(label==='正常')return 'pass';
+    if(label==='轻度依赖')return 'high';
+    if(label==='薅补贴')return 'warn';
+    return 'none';
+  }
+  function attachRevenueRatio(x){
+    const ratio=calcSubsidyRevenueRatio(x&&x.id);
+    return Object.assign(x||{}, {
+      subsidyRevenueRatioPct: ratio.pct,
+      subsidyRevenueRatioLabel: ratio.label,
+      subsidyRevenueRatioText: ratio.text,
+      subsidyRevenueRatioSubsidySum: ratio.subsidySum,
+      subsidyRevenueRatioIncomeSum: ratio.incomeSum
+    });
+  }
+  function subsidyRevenueRatioHTML(x){
+    if(!x||x.subsidyRevenueRatioPct==null)return '<span class="tagLabel none">暂无数据</span>';
+    return '<span class="mini"><b>'+h(fmtPct(x.subsidyRevenueRatioPct,1))+'</b></span><br><span class="tagLabel '+ratioLabelClass(x.subsidyRevenueRatioLabel)+'">'+h(x.subsidyRevenueRatioLabel)+'</span>';
+  }
+  function subsidyRevenueRatioExportText(x){
+    if(!x||x.subsidyRevenueRatioPct==null)return '暂无数据';
+    return fmtPct(x.subsidyRevenueRatioPct,1)+' '+(x.subsidyRevenueRatioLabel||'');
   }
   function applyTagCalcSort(items){
     const key=tagCalcSort&&tagCalcSort.key;
@@ -6685,7 +6729,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const q=(document.getElementById('tagCalcSearchInp')?.value||'').trim().toLowerCase();
     const tag=(document.getElementById('tagCalcLabelFilterSel')?.value||'all');
     const vehicle=(document.getElementById('tagCalcVehicleFilterSel')?.value||'all');
-    const items=rowsInCycle(cycle).map(calcTag).filter(x=>{
+    const items=rowsInCycle(cycle).map(calcTag).map(attachRevenueRatio).filter(x=>{
       if(tag!=='all'&&x.label!==tag)return false;
       if(vehicle!=='all'&&x.normalizedVehicle!==vehicle)return false;
       if(q){const hay=[x.id,x.name,x.vehicle,x.label,x.rawLabel||''].join(' ').toLowerCase();if(!hay.includes(q))return false;}
@@ -6693,7 +6737,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     });
     return applyTagCalcSort(items);
   }
-  function allResultItems(){return rowsInCycle(curCycle()).map(calcTag)}
+  function allResultItems(){return rowsInCycle(curCycle()).map(calcTag).map(attachRevenueRatio)}
 
   function installStyle(){
     if(document.getElementById('riderTagCalcStyle'))return;
@@ -6709,7 +6753,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     sec.innerHTML=`
       <div class="panel">
         <div class="toolbar"><div><h2>时薪法案骑手分层</h2><div class="sub">依据补贴档位、TPH 小时接单密度、配送效率三项维度自动生成骑手标签；参数保存后即时生效。</div></div><div class="tagCalcActions"><button class="btn primary" id="tagCalcConfigBtn" type="button">参数配置</button><button class="btn small" id="tagCalcRefreshBtn" type="button">刷新配置</button><button class="btn small" id="tagCalcExportBtn" type="button">导出标签结果</button></div></div>
-        <div class="tagCalcFormula">计算规则：法定最低收入 = 背单时长 × 对应车型标准时薪；需补差额 = max(0, 法定最低收入 − 骑手总收入)；均单补贴 = 需补差额 ÷ 跑单量。均单补贴 = 0 判定为「达标骑手」；空白跑单、背单时长为 0 或有订单但无有效时长统一展示「暂无跑单数据」。</div>
+        <div class="tagCalcFormula">计算规则：法定最低收入 = 背单时长 × 对应车型标准时薪；需补差额 = max(0, 法定最低收入 − 骑手总收入)；均单补贴 = 需补差额 ÷ 跑单量。补贴营收比 = 骑手全周期总计补贴合计 ÷ 骑手全周期总收入合计 × 100%。均单补贴 = 0 判定为「达标骑手」；空白跑单、背单时长为 0 或有订单但无有效时长统一展示「暂无跑单数据」。</div>
         <div class="compareControlGrid" style="margin-top:12px">
           <label class="field"><span>核算周期</span><select id="tagCalcCycleSel"></select></label>
           <label class="field"><span>标签筛选</span><select id="tagCalcLabelFilterSel"><option value="all">全部标签</option></select></label>
@@ -6786,7 +6830,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const items=resultItems();
     if(!allCycles().length){table.innerHTML='<tr><td class="empty">暂无云数据，请先刷新 rider_weekly_data。</td></tr>';return}
     if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无骑手标签核算结果。</td></tr>';return}
-    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>'+tagCalcSortTh('orders','跑单量')+'</th><th>'+tagCalcSortTh('duration','背单时长')+'</th><th>'+tagCalcSortTh('income','总收入')+'</th><th>'+tagCalcSortTh('acceptanceRatePct','接单率')+'</th><th>标准时薪</th><th>'+tagCalcSortTh('periodSubsidy','时段补贴')+'</th><th>'+tagCalcSortTh('totalSubsidy','总计补贴')+'</th><th>'+tagCalcSortTh('avgSubsidy','均单补贴')+'</th><th>TPH</th><th>'+tagCalcSortTh('tailRatePct','责尾单率')+'</th><th>效率阈值</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.acceptanceRatePct==null?'-':h(fmtPct(x.acceptanceRatePct,1))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${h(tagCalcPeriodSubsidyText(x))}</td><td>${h(tagCalcTotalSubsidyText(x))}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td>${x.tailThreshold==null?'-':h(fmtPct(x.tailThreshold,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
+    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>'+tagCalcSortTh('orders','跑单量')+'</th><th>'+tagCalcSortTh('duration','背单时长')+'</th><th>'+tagCalcSortTh('income','总收入')+'</th><th>'+tagCalcSortTh('acceptanceRatePct','接单率')+'</th><th>标准时薪</th><th>'+tagCalcSortTh('periodSubsidy','时段补贴')+'</th><th>'+tagCalcSortTh('totalSubsidy','总计补贴')+'</th><th>'+tagCalcSortTh('subsidyRevenueRatioPct','补贴营收比')+'</th><th>'+tagCalcSortTh('avgSubsidy','均单补贴')+'</th><th>TPH</th><th>'+tagCalcSortTh('tailRatePct','责尾单率')+'</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.acceptanceRatePct==null?'-':h(fmtPct(x.acceptanceRatePct,1))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${h(tagCalcPeriodSubsidyText(x))}</td><td>${h(tagCalcTotalSubsidyText(x))}</td><td>${subsidyRevenueRatioHTML(x)}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
     table.querySelectorAll('[data-tag-sort]').forEach(btn=>btn.onclick=(ev)=>{try{ev.preventDefault();ev.stopPropagation();const key=btn.dataset.tagSort;if(tagCalcSort.key===key){tagCalcSort.dir=tagCalcSort.dir==='asc'?'desc':'asc';}else{tagCalcSort={key,dir:'desc'};}renderResults();}catch(e){console.warn(e)}});
     table.querySelectorAll('[data-track]').forEach(btn=>btn.onclick=()=>{try{openProfile(btn.dataset.track)}catch(_){}});
   }
@@ -6798,7 +6842,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   }
   function renderTagCalc(){ensureUI();renderFilters();renderConfigTables();renderSummary();renderResults();renderLogs();const hint=document.getElementById('tagCalcSaveHint');if(hint)hint.textContent=tagCalcLoaded?'已读取参数配置；保存后将即时重新核算全平台骑手标签。':'使用系统兜底参数。若尚未执行 SQL，保存会失败但不影响当前核算。';scheduleTierDecorate();}
   window.renderTagCalc=renderTagCalc;
-  window.getRiderTagCalcResult=function(id,cycle){return calcTag(rawRec(cycle||curCycle(),id));};
+  window.getRiderTagCalcResult=function(id,cycle){return attachRevenueRatio(calcTag(rawRec(cycle||curCycle(),id)));};
 
   async function loadTagCalcConfig(){
     if(tagCalcLoading)return;tagCalcLoading=true;
@@ -6854,8 +6898,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function resetDefaults(){tagCalcConfig=normalizeConfig(DEFAULT_CONFIG);writeLocal(LOCAL_KEY,tagCalcConfig);renderTagCalc();toastMsg('已恢复系统兜底参数，点击保存后写入云端')}
   function exportResults(){
     const items=resultItems();if(!items.length){toastMsg('当前筛选下暂无标签结果可导出');return}
-    const header=['周期','ID','骑手姓名','交通工具','跑单量','背单时长','总收入','接单率','标准时薪','时段补贴','总计补贴','法定最低收入','需补差额','均单补贴','TPH','TPH阈值','骑手责尾单率','效率阈值','补贴档位','TPH档位','效率档位','骑手标签'];
-    const lines=[header,...items.map(x=>[curCycle(),x.id,x.name,x.vehicle,x.orders??'',x.duration??'',x.income??'',x.acceptanceRatePct??'',x.hourly??'',x.periodSubsidyRaw==null?'暂无数据':(Number(x.periodSubsidyRaw)<=0?'无需补贴':x.periodSubsidyRaw),x.totalSubsidy??'',x.legalMin??'',x.needSubsidy??'',x.avgSubsidy??'',x.tph??'',x.tphThreshold??'',x.tailRatePct??'',x.tailThreshold??'',x.subsidyLevel||'',x.tphLevel||'',x.effLevel||'',x.label])];
+    const header=['周期','ID','骑手姓名','交通工具','跑单量','背单时长','总收入','接单率','标准时薪','时段补贴','总计补贴','补贴营收比','法定最低收入','需补差额','均单补贴','TPH','TPH阈值','骑手责尾单率','补贴档位','TPH档位','效率档位','骑手标签'];
+    const lines=[header,...items.map(x=>[curCycle(),x.id,x.name,x.vehicle,x.orders??'',x.duration??'',x.income??'',x.acceptanceRatePct??'',x.hourly??'',x.periodSubsidyRaw==null?'暂无数据':(Number(x.periodSubsidyRaw)<=0?'无需补贴':x.periodSubsidyRaw),x.totalSubsidy??'',subsidyRevenueRatioExportText(x),x.legalMin??'',x.needSubsidy??'',x.avgSubsidy??'',x.tph??'',x.tphThreshold??'',x.tailRatePct??'',x.subsidyLevel||'',x.tphLevel||'',x.effLevel||'',x.label])];
     const csv='\ufeff'+lines.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
     try{if(typeof downloadBlob==='function')downloadBlob(csv,`骑手标签核算结果_${curCycle()||'未选择'}.csv`);else{const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`骑手标签核算结果_${curCycle()||'未选择'}.csv`;a.click();URL.revokeObjectURL(url);}}catch(e){console.warn(e)}
   }
