@@ -7111,6 +7111,139 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 /* === 2026-08 update: 时薪法案新增接单率/时段补贴/总计补贴排序导出字段 === */
 </script>
 
+
+<script>
+/* === 2026-08 fix: 单骑手跟踪/多人对比新增总计补贴展示 === */
+(function(){
+  if(window.__profileCompareTotalSubsidyPatch)return;
+  window.__profileCompareTotalSubsidyPatch=true;
+
+  function h(v){
+    try{return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,function(s){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s];});}
+    catch(_){return String(v??'')}
+  }
+  function num(v){const n=Number(v);return Number.isFinite(n)?n:null;}
+  function money(v){const n=num(v);return n==null?'暂无数据':'$'+n.toFixed(2);}
+  function subsidyResult(id,cycle){
+    try{
+      if(!id||!cycle)return null;
+      if(typeof window.getRiderTagCalcResult==='function')return window.getRiderTagCalcResult(id,cycle)||null;
+    }catch(e){console.warn('读取总计补贴失败：',e&&e.message?e.message:e)}
+    return null;
+  }
+  function subsidyValue(id,cycle){
+    const r=subsidyResult(id,cycle);
+    const v=num(r&&r.totalSubsidy);
+    return v==null?null:v;
+  }
+  function subsidyDeltaHTML(cur,pre){
+    const c=num(cur),p=num(pre);
+    if(c==null||p==null)return '<span class="delta warn">无对比</span>';
+    const d=c-p;
+    const cls=d>0?'bad':d<0?'good':'warn';
+    const sign=d>0?'+':'';
+    return '<span class="delta '+cls+'">'+sign+'$'+d.toFixed(2)+'</span>';
+  }
+  function subsidyCardHTML(id,curCycle,preCycle){
+    const c=subsidyValue(id,curCycle),p=subsidyValue(id,preCycle);
+    return '<div class="compareCard totalSubsidyCompareCard" data-total-subsidy-card="1"><b>总计补贴</b><div class="v">'+h(money(c))+'</div><div class="mini">对比：'+h(money(p))+'</div>'+subsidyDeltaHTML(c,p)+'</div>';
+  }
+  function cycleIndex(c){try{return Array.isArray(cycles)?cycles.indexOf(c):-1}catch(_){return -1}}
+  function prevCycleOf(c){
+    try{const i=cycleIndex(c);return i>0?cycles[i-1]:(state&&state.compare)||'';}catch(_){return ''}
+  }
+  function patchProfileCompareGrid(){
+    const grid=document.getElementById('profileCompareGrid');
+    if(!grid||typeof state==='undefined'||!state.selected)return;
+    if(grid.querySelector('[data-total-subsidy-card]'))return;
+    grid.insertAdjacentHTML('beforeend',subsidyCardHTML(state.selected,state.cycle,state.compare));
+  }
+  function patchProfileTable(){
+    const table=document.getElementById('profileTable');
+    if(!table||typeof state==='undefined'||!state.selected)return;
+    const ths=Array.from(table.querySelectorAll('thead th'));
+    if(!ths.length)return;
+    let idx=ths.findIndex(th=>String(th.textContent||'').trim()==='重点指标排名');
+    if(idx<0)idx=ths.findIndex(th=>String(th.textContent||'').trim()==='总计补贴');
+    if(idx<0)return;
+    ths[idx].textContent='总计补贴';
+    Array.from(table.querySelectorAll('tbody tr')).forEach(tr=>{
+      if(tr.querySelector('.empty'))return;
+      const cycle=String(tr.cells&&tr.cells[0]?tr.cells[0].textContent:'').trim();
+      if(!cycle)return;
+      const td=tr.cells[idx];
+      if(!td)return;
+      const cur=subsidyValue(state.selected,cycle);
+      const preCycle=prevCycleOf(cycle);
+      const pre=preCycle?subsidyValue(state.selected,preCycle):null;
+      td.innerHTML=h(money(cur))+'<br>'+(preCycle?subsidyDeltaHTML(cur,pre):'-');
+    });
+  }
+  function patchProfile(){
+    try{patchProfileCompareGrid();patchProfileTable();}catch(e){console.warn('单骑手总计补贴展示补丁失败：',e&&e.message?e.message:e)}
+  }
+  function patchCompareTable(){
+    const table=document.getElementById('multiTable');
+    if(!table||typeof state==='undefined')return;
+    const headRow=table.querySelector('thead tr');
+    if(!headRow||headRow.querySelector('[data-total-subsidy-th]'))return;
+    const ths=Array.from(headRow.children);
+    let insertIdx=ths.findIndex(th=>String(th.textContent||'').trim()==='建议动作');
+    if(insertIdx<0)insertIdx=ths.length;
+    const th=document.createElement('th');
+    th.textContent='总计补贴';
+    th.setAttribute('data-total-subsidy-th','1');
+    headRow.insertBefore(th,headRow.children[insertIdx]||null);
+    Array.from(table.querySelectorAll('tbody tr')).forEach(tr=>{
+      if(tr.querySelector('.empty')||tr.querySelector('[data-total-subsidy-td]'))return;
+      const track=tr.querySelector('[data-track]');
+      const id=track&&track.getAttribute('data-track');
+      const cur=subsidyValue(id,state.cycle),pre=subsidyValue(id,state.compare);
+      const td=document.createElement('td');
+      td.className='multiMetricCell';
+      td.setAttribute('data-total-subsidy-td','1');
+      td.innerHTML='<div class="metricCurrent">'+h(money(cur))+'</div><div class="metricCompare">对比：'+h(money(pre))+'</div>'+subsidyDeltaHTML(cur,pre);
+      tr.insertBefore(td,tr.children[insertIdx]||null);
+    });
+  }
+  function patchCompare(){
+    try{patchCompareTable();}catch(e){console.warn('多人对比总计补贴展示补丁失败：',e&&e.message?e.message:e)}
+  }
+  function patchAll(){patchProfile();patchCompare();}
+
+  try{
+    if(typeof renderProfile==='function'&&!window.__profileTotalSubsidyRenderWrapped){
+      window.__profileTotalSubsidyRenderWrapped=true;
+      const old=renderProfile;
+      renderProfile=function(){const r=old.apply(this,arguments);setTimeout(patchProfile,0);return r;};
+    }
+  }catch(_){ }
+  try{
+    if(typeof renderCompare==='function'&&!window.__compareTotalSubsidyRenderWrapped){
+      window.__compareTotalSubsidyRenderWrapped=true;
+      const old=renderCompare;
+      renderCompare=function(){const r=old.apply(this,arguments);setTimeout(patchCompare,0);return r;};
+    }
+  }catch(_){ }
+  try{
+    if(typeof renderAll==='function'&&!window.__totalSubsidyRenderAllWrapped){
+      window.__totalSubsidyRenderAllWrapped=true;
+      const old=renderAll;
+      renderAll=function(){const r=old.apply(this,arguments);setTimeout(patchAll,0);return r;};
+    }
+  }catch(_){ }
+  try{
+    if(typeof selectTab==='function'&&!window.__totalSubsidySelectTabWrapped){
+      window.__totalSubsidySelectTabWrapped=true;
+      const old=selectTab;
+      selectTab=function(){const r=old.apply(this,arguments);setTimeout(patchAll,0);return r;};
+    }
+  }catch(_){ }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(patchAll,300);});
+  else setTimeout(patchAll,300);
+})();
+</script>
+
 </body>
 </html>
 
