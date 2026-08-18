@@ -618,6 +618,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>步行目标上限</span><input id="tailWalkTargetInp" type="number" min="0" step="0.1" value="1" /></label>
       <label class="field"><span>影响提示阈值 ≥</span><input id="tailImpactMinInp" type="number" min="0" step="0.01" value="0.05" /></label>
       <label class="field"><span>连续裂化维度</span><select id="tailContinuousWindowSel"><option value="2">连续 2 周</option><option value="3">连续 3 周</option><option value="4">连续 4 周</option></select></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="tailNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
     </div>
     <div class="sub" id="tailRuleHint" style="margin-top:8px">标准：车型分为机动车、自行车、步行三类；机动车=电动自行车/摩托车/汽车，自行车=自行车，步行=步行。默认个人责尾单率标准：机动车 ≤ 6%，自行车 ≤ 1%，步行 ≤ 1%。系统按“骑手责尾单单量 / 当周总单量”计算当周贡献值。</div>
   </div>
@@ -3183,13 +3184,20 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   function personalTailPct(r){const x=ratePercent(r&&r.tailRate);return Number.isFinite(x)?x:null}
   function rowOrders(r){const n=val(r,'orders');return Number.isFinite(n)?n:0}
   function tailOrderCount(r){const t=personalTailPct(r);if(t==null)return null;return rowOrders(r)*t/100}
-  function periodRows(c){return riderIds().map(id=>rec(c,id)).filter(r=>r&&active(r))}
+  function periodRows(c){return riderIds().filter(id=>tailPassNewRider(id)).map(id=>rec(c,id)).filter(r=>r&&active(r))}
   function periodTotalOrders(c){return periodRows(c).reduce((s,r)=>s+rowOrders(r),0)}
   function weeklyTailPctForRow(r,c){const total=periodTotalOrders(c);const cnt=tailOrderCount(r);if(!total||cnt==null)return null;return cnt/total*100}
   function fmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
   function fmtCount(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
   function fmtSignedPct(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(2)}%</span>`}
   function fmtSignedCount(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(1)}</span>`}
+  function tailNewRiderFilterMode(){return byId('tailNewRiderFilter')?.value||'all'}
+  function tailPassNewRider(id){
+    const mode=tailNewRiderFilterMode();
+    if(mode==='all')return true;
+    try{if(typeof window.passNewRiderGlobalFilter==='function')return !!window.passNewRiderGlobalFilter(mode,{id});}catch(_){ }
+    return true;
+  }
   function activeCurrentRows(){return periodRows(state.cycle)}
   function groupRateFromSum(sum,total){return total?sum/total*100:null}
   function tailVehicleStats(){
@@ -3197,6 +3205,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0}));
     function add(c,isCur){
       riderIds().forEach(id=>{
+        if(!tailPassNewRider(id))return;
         const r=rec(c,id);if(!r||!active(r))return;
         const g=groupOfVehicle(r.vehicle), o=map.get(g.key), cnt=tailOrderCount(r);
         if(isCur){o.curOrders+=rowOrders(r);o.curN++;if(cnt!=null)o.curTailCnt+=cnt}
@@ -3217,6 +3226,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   }
   function tailWorseTop(){
     return riderIds().map(id=>{
+      if(!tailPassNewRider(id))return null;
       const cur=rec(state.cycle,id),pre=rec(state.compare,id);
       if(!cur||!pre)return null;
       const curPersonal=personalTailPct(cur),prePersonal=personalTailPct(pre);
@@ -3293,7 +3303,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   const oldProfileBackName=profileBackName;
   profileBackName=function(tab){if(tab==='tailOrderCenter')return '尾单骑手管控';return oldProfileBackName(tab)};
   setTimeout(()=>{
-    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手管控已刷新')}});
+    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp','tailNewRiderFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenter;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenter();toast('尾单骑手管控已刷新')}});
     const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItems();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手管控_高影响骑手.csv')};
   },0);
 })();
@@ -3458,7 +3468,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   const prevRenderAll=renderAll;
   renderAll=function(){prevRenderAll();renderTailOrderCenterV2();};
   setTimeout(()=>{
-    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp','tailContinuousWindowSel','tailTopVehicleFilterSel'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenterV2;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenterV2();toast('尾单骑手管控已刷新')}});
+    ['refreshTailCenterBtn','tailMotorTargetInp','tailBikeTargetInp','tailWalkTargetInp','tailImpactMinInp','tailNewRiderFilter','tailContinuousWindowSel','tailTopVehicleFilterSel'].forEach(id=>{const el=byId(id);if(el)el.onchange=renderTailOrderCenterV2;if(el&&id==='refreshTailCenterBtn')el.onclick=()=>{renderTailOrderCenterV2();toast('尾单骑手管控已刷新')}});
     const exp=byId('exportTailCenterBtn');if(exp)exp.onclick=()=>{const items=tailImpactItemsV2();if(!items.length){toast('暂无可导出的高影响骑手');return}const header=['ID','骑手姓名','交通工具','本周骑手责尾单率','本周跑单量','本周尾单单量','预计影响整体下降%','提示'];const lines=[header,...items.map(x=>[x.id,x.name,x.vehicle,fmtPct(x.curPersonal),plain(val(x.cur,'orders'),'orders'),fmtCount(x.curTailCnt),x.impact.toFixed(2),x.tip])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'尾单骑手管控_高影响骑手.csv')};
   },0);
 })();
@@ -3924,11 +3934,13 @@ ${qualityReturnText}
   function tailPatchCnt(r){const t=tailPatchRate(r);return t==null?null:tailPatchOrders(r)*t/100}
   function tailPatchFmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
   function tailPatchFmtCount(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
-  function tailPatchContItems(){const n=Number(byId('tailContinuousWindowSel')?.value)||2;const minOrders=Number(byId('tailContinuousOrdersMinInp')?.value)||0;const idx=cycles.indexOf(state.cycle);if(idx<0)return[];const win=cycles.slice(Math.max(0,idx-n+1),idx+1);if(win.length<n)return[];return riderIds().map(id=>{const vals=win.map(c=>tailPatchRate(rec(c,id)));if(vals.some(v=>v==null))return null;const ok=vals.every((v,i)=>i===0||v>vals[i-1]);if(!ok)return null;const cur=rec(state.cycle,id)||{};if(tailPatchOrders(cur)<minOrders)return null;return {id,name:riderMap.get(id)?.name||cur.name||id,vehicle:String(cur.vehicle||'空白'),window:win,values:vals,delta:vals[vals.length-1]-vals[0],cur}}).filter(Boolean).sort((a,b)=>b.delta-a.delta)}
+  function tailPatchNewRiderMode(){return byId('tailNewRiderFilter')?.value||'all'}
+  function tailPatchPassNewRider(id){const mode=tailPatchNewRiderMode();if(mode==='all')return true;try{if(typeof window.passNewRiderGlobalFilter==='function')return !!window.passNewRiderGlobalFilter(mode,{id});}catch(_){ }return true}
+  function tailPatchContItems(){const n=Number(byId('tailContinuousWindowSel')?.value)||2;const minOrders=Number(byId('tailContinuousOrdersMinInp')?.value)||0;const idx=cycles.indexOf(state.cycle);if(idx<0)return[];const win=cycles.slice(Math.max(0,idx-n+1),idx+1);if(win.length<n)return[];return riderIds().map(id=>{if(!tailPatchPassNewRider(id))return null;const vals=win.map(c=>tailPatchRate(rec(c,id)));if(vals.some(v=>v==null))return null;const ok=vals.every((v,i)=>i===0||v>vals[i-1]);if(!ok)return null;const cur=rec(state.cycle,id)||{};if(tailPatchOrders(cur)<minOrders)return null;return {id,name:riderMap.get(id)?.name||cur.name||id,vehicle:String(cur.vehicle||'空白'),window:win,values:vals,delta:vals[vals.length-1]-vals[0],cur}}).filter(Boolean).sort((a,b)=>b.delta-a.delta)}
   const oldRenderTailOrderCenterFinal=renderTailOrderCenter;
   renderTailOrderCenter=function(){oldRenderTailOrderCenterFinal();const ct=byId('tailContinuousTable');if(!ct)return;const cont=tailPatchContItems();let html='<thead><tr><th>骑手</th><th>交通工具</th><th>本周跑单量</th><th>连续周期</th><th>起始责尾单率</th><th>当前责尾单率</th><th>累计裂化值</th><th>每周走势</th><th>操作</th></tr></thead><tbody>';cont.forEach(x=>{html+=`<tr><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmt(tailPatchOrders(x.cur),'orders')}</td><td>${esc(x.window.join(' → '))}</td><td>${tailPatchFmtPct(x.values[0])}</td><td>${tailPatchFmtPct(x.values[x.values.length-1])}</td><td><b class="dangerText">+${x.delta.toFixed(2)}%</b></td><td><span class="mini">${x.values.map(v=>tailPatchFmtPct(v)).join(' → ')}</span></td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});ct.innerHTML=cont.length?html+'</tbody>':'<tr><td class="empty">暂无符合连续裂化与单量条件的骑手</td></tr>';ct.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));}
   const oldRenderAllFinal=renderAll;renderAll=function(){oldRenderAllFinal();renderTailOrderCenter();};
-  setTimeout(()=>{const el=byId('tailContinuousOrdersMinInp');if(el)el.oninput=renderTailOrderCenter;refreshControls();},0);
+  setTimeout(()=>{const el=byId('tailContinuousOrdersMinInp');if(el)el.oninput=renderTailOrderCenter;const nf=byId('tailNewRiderFilter');if(nf)nf.onchange=renderTailOrderCenter;refreshControls();},0);
 })();
 
 
@@ -7330,11 +7342,13 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     diagnosis:'diagnosisNewRiderFilter',
     tagCalc:'tagCalcNewRiderFilter',
     contacts:'contactsNewRiderFilter',
-    profile:'profileNewRiderFilter'
+    profile:'profileNewRiderFilter',
+    tail:'tailNewRiderFilter'
   };
   const stateKeys={
     problems:'problemNewRiderFilter',follow:'followNewRiderFilter',owner:'ownerNewRiderFilter',returnPotential:'returnPotentialNewRiderFilter',
-    compare:'compareNewRiderFilter',diagnosis:'diagnosisNewRiderFilter',tagCalc:'tagCalcNewRiderFilter',contacts:'contactsNewRiderFilter',profile:'profileNewRiderFilter'
+    compare:'compareNewRiderFilter',diagnosis:'diagnosisNewRiderFilter',tagCalc:'tagCalcNewRiderFilter',contacts:'contactsNewRiderFilter',profile:'profileNewRiderFilter',
+    tail:'tailNewRiderFilter'
   };
   let cacheBuilt=false,cacheToken='',cacheVersion=0,decorateTimer=null;
   let activePhonesFull=new Set(),activePhonesTail9=new Set(),activePhonesTail8=new Set(),activeRows=[];
@@ -7375,6 +7389,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     insertControl(document.querySelector('#tagCalc .compareControlGrid'),filterIds.tagCalc,'tagCalc','#tagCalcSearchInp');
     insertControl(document.querySelector('#riderContacts .contactToolbar'),filterIds.contacts,'contacts','.inlineActions');
     insertControl(document.querySelector('#profile .profileToolbar'),filterIds.profile,'profile');
+    insertControl(document.querySelector('#tailOrderCenter .compareControlGrid'),filterIds.tail,'tail');
   }
   function rerenderForKey(key){
     try{if(key==='problems'&&typeof renderProblems==='function')renderProblems();
@@ -7386,6 +7401,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       else if(key==='tagCalc'&&typeof renderTagCalc==='function')renderTagCalc();
       else if(key==='contacts'&&typeof renderRiderContacts==='function')renderRiderContacts();
       else if(key==='profile'){applyProfileFilter();if(typeof renderProfile==='function')renderProfile();}
+      else if(key==='tail'&&typeof renderTailOrderCenter==='function')renderTailOrderCenter();
     }catch(e){console.warn('新骑手筛选刷新失败：',e&&e.message||e);}
     setTimeout(()=>{ensureControls();applyDomFilters();scheduleDecorate();},0);
   }
@@ -7429,7 +7445,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     wrapListFunction('compareCandidates','compare');
     wrapListFunction('diagnosisItems','diagnosis');
     wrapListFunction('contactCandidateItems',()=>{try{return state&&state.tab==='ownerFollowup'?'owner':'follow';}catch(_){return 'follow';}});
-    ['renderAll','selectTab','refreshControls','renderProblems','renderFollowup','renderFollowOwnerBoard','renderReturnPotentialPool','renderCompare','renderDiagnosis','renderProfile','renderRiderContacts','renderTagCalc','renderStationWeeklyReport'].forEach(n=>wrapRender(n));
+    ['renderAll','selectTab','refreshControls','renderProblems','renderFollowup','renderFollowOwnerBoard','renderReturnPotentialPool','renderCompare','renderDiagnosis','renderProfile','renderRiderContacts','renderTagCalc','renderTailOrderCenter','renderStationWeeklyReport'].forEach(n=>wrapRender(n));
     ['loadNewRiderRecords','saveNewRiderRecord','deleteNewRiderRecord','loadRiderContacts','saveRiderContact','deleteRiderContact','importContactCSV'].forEach(n=>wrapRender(n,()=>rebuildCache(true)));
     window.isActiveNewRiderById=isIdActive;window.isActiveNewRiderByPhone=isPhoneActive;window.isNewRiderItem=itemActive;window.passNewRiderGlobalFilter=pass;window.decorateNewRiderTags=decorate;window.rebuildNewRiderTagCache=()=>rebuildCache(true);
     preloadNewRiderRecords().then(()=>{ensureControls();applyDomFilters();decorate(activeRoot());});
@@ -7513,6 +7529,38 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
   [100,300,800,1500,3000].forEach(t=>setTimeout(bind,t));
+})();
+</script>
+
+
+<script>
+/* === 2026-08 patch: 尾单骑手管控新增是否新骑手筛选 === */
+(function(){
+  if(window.__tailNewRiderFilterPatchV1)return;
+  window.__tailNewRiderFilterPatchV1=true;
+  function bindTailNewRiderFilter(){
+    const sel=document.getElementById('tailNewRiderFilter');
+    if(sel&&!sel.dataset.tailNewRiderBound){
+      sel.dataset.tailNewRiderBound='1';
+      sel.addEventListener('change',function(){
+        try{sessionStorage.setItem('newRiderFilter:tail',sel.value||'all');}catch(_){ }
+        try{if(typeof renderTailOrderCenter==='function')renderTailOrderCenter();}catch(e){console.warn('尾单骑手管控新骑手筛选刷新失败：',e&&e.message||e);}
+      });
+      try{const saved=sessionStorage.getItem('newRiderFilter:tail');if(saved)sel.value=saved;}catch(_){ }
+    }
+  }
+  function wrapRender(){
+    try{
+      if(typeof renderTailOrderCenter==='function'&&!renderTailOrderCenter.__tailNewRiderFilterBound){
+        const old=renderTailOrderCenter;
+        renderTailOrderCenter=function(){const out=old.apply(this,arguments);setTimeout(bindTailNewRiderFilter,0);return out;};
+        renderTailOrderCenter.__tailNewRiderFilterBound=true;
+      }
+    }catch(_){ }
+  }
+  function init(){bindTailNewRiderFilter();wrapRender();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  [100,400,1000,2000].forEach(t=>setTimeout(init,t));
 })();
 </script>
 
