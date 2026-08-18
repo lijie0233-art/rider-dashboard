@@ -6670,6 +6670,15 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(!x||x.totalSubsidy==null)return '暂无数据';
     return '$'+fmtNum(x.totalSubsidy,2);
   }
+  function tagCalcNewRiderBadgeHTML(x){
+    try{
+      const id=x&&x.id;
+      let active=false;
+      if(id&&typeof window.isActiveNewRiderById==='function')active=!!window.isActiveNewRiderById(id);
+      if(!active&&typeof window.isNewRiderItem==='function')active=!!window.isNewRiderItem(x||{});
+      return active?'<span class="newRiderInlineTag tagCalcNewRiderStable" data-new-rider-inline="1" title="新骑手流程表 28 天内记录匹配；满 28 天后自动清除">新骑手</span>':'';
+    }catch(_){return ''}
+  }
   function allRowsForRider(id){
     try{return (rows||[]).filter(r=>String(r.id||'')===String(id||''));}catch(_){return []}
   }
@@ -6842,7 +6851,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const items=resultItems();
     if(!allCycles().length){table.innerHTML='<tr><td class="empty">暂无云数据，请先刷新 rider_weekly_data。</td></tr>';return}
     if(!items.length){table.innerHTML='<tr><td class="empty">当前筛选下暂无骑手标签核算结果。</td></tr>';return}
-    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>'+tagCalcSortTh('orders','跑单量')+'</th><th>'+tagCalcSortTh('duration','背单时长')+'</th><th>'+tagCalcSortTh('income','总收入')+'</th><th>'+tagCalcSortTh('acceptanceRatePct','接单率')+'</th><th>标准时薪</th><th>'+tagCalcSortTh('periodSubsidy','时段补贴')+'</th><th>'+tagCalcSortTh('totalSubsidy','总计补贴')+'</th><th>'+tagCalcSortTh('subsidyRevenueRatioPct','补贴营收比')+'</th><th>'+tagCalcSortTh('avgSubsidy','均单补贴')+'</th><th>TPH</th><th>'+tagCalcSortTh('tailRatePct','责尾单率')+'</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.acceptanceRatePct==null?'-':h(fmtPct(x.acceptanceRatePct,1))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${h(tagCalcPeriodSubsidyText(x))}</td><td>${h(tagCalcTotalSubsidyText(x))}</td><td>${subsidyRevenueRatioHTML(x)}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
+    table.innerHTML='<thead><tr><th>骑手</th><th>交通工具</th><th>'+tagCalcSortTh('orders','跑单量')+'</th><th>'+tagCalcSortTh('duration','背单时长')+'</th><th>'+tagCalcSortTh('income','总收入')+'</th><th>'+tagCalcSortTh('acceptanceRatePct','接单率')+'</th><th>标准时薪</th><th>'+tagCalcSortTh('periodSubsidy','时段补贴')+'</th><th>'+tagCalcSortTh('totalSubsidy','总计补贴')+'</th><th>'+tagCalcSortTh('subsidyRevenueRatioPct','补贴营收比')+'</th><th>'+tagCalcSortTh('avgSubsidy','均单补贴')+'</th><th>TPH</th><th>'+tagCalcSortTh('tailRatePct','责尾单率')+'</th><th>骑手标签</th></tr></thead><tbody>'+items.map(x=>`<tr><td><button class="nameBtn" data-track="${h(x.id)}"><div class="riderName">${h(x.name||'-')}${tagCalcNewRiderBadgeHTML(x)}</div><div class="mini">ID ${h(x.id||'-')}</div></button></td><td>${h(x.vehicle||'-')}</td><td>${x.orders==null?'-':h(x.orders)}</td><td>${x.duration==null?'-':h(fmtNum(x.duration,1))}</td><td>${x.income==null?'-':h(fmtMoney(x.income))}</td><td>${x.acceptanceRatePct==null?'-':h(fmtPct(x.acceptanceRatePct,1))}</td><td>${x.hourly==null?'-':h('$'+fmtNum(x.hourly,1)+'/h')}</td><td>${h(tagCalcPeriodSubsidyText(x))}</td><td>${h(tagCalcTotalSubsidyText(x))}</td><td>${subsidyRevenueRatioHTML(x)}</td><td>${x.avgSubsidy==null?'-':h('$'+fmtNum(x.avgSubsidy,2))}</td><td>${x.tph==null?'-':`${h(fmtNum(x.tph,2))}<br><span class="mini">阈值 ${h(x.tphThreshold||tphThreshold(x.normalizedVehicle))}</span>`}</td><td>${x.tailRatePct==null?'-':h(fmtPct(x.tailRatePct,1))}</td><td><span class="tagLabel ${labelClass(x.label)}">${h(x.label)}</span>${x.rawLabel&&x.label!==x.rawLabel?`<br><span class="mini">${h(x.rawLabel)}</span>`:''}</td></tr>`).join('')+'</tbody>';
     table.querySelectorAll('[data-tag-sort]').forEach(btn=>btn.onclick=(ev)=>{try{ev.preventDefault();ev.stopPropagation();const key=btn.dataset.tagSort;if(tagCalcSort.key===key){tagCalcSort.dir=tagCalcSort.dir==='asc'?'desc':'asc';}else{tagCalcSort={key,dir:'desc'};}renderResults();}catch(e){console.warn(e)}});
     table.querySelectorAll('[data-track]').forEach(btn=>btn.onclick=()=>{try{openProfile(btn.dataset.track)}catch(_){}});
   }
@@ -7391,7 +7400,6 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     applyTableFilter('returnPoolTable','returnPotential');
     applyTableFilter('potentialPoolTable','returnPotential');
     applyTableFilter('diagnosisTable','diagnosis');
-    applyTableFilter('tagCalcResultTable','tagCalc');
     applyTableFilter('contactsTable','contacts');
     applyProfileFilter();
   }
@@ -7399,8 +7407,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function badge(){const s=document.createElement('span');s.className='newRiderInlineTag';s.dataset.newRiderInline='1';s.textContent=TAG_TEXT;s.title='新骑手流程表 28 天内记录匹配；满 28 天后自动清除';return s;}
   function upsertBadge(host,active){if(!host)return;let b=host.querySelector&&host.querySelector(':scope > .newRiderInlineTag');if(active){if(!b)host.appendChild(badge());}else if(b)b.remove();if(host.dataset)host.dataset.newRiderApplied=active?'1':'0';}
   function nameHost(row){return row&&row.querySelector&&(row.querySelector('.riderName')||row.querySelector('.nameBtn .name')||row.querySelector('.contactIdLink')||row.querySelector('td b')||row.querySelector('td:nth-child(2)')||row.querySelector('td'));}
-  function decorateRows(root){(root||document).querySelectorAll?.('tr').forEach(row=>{const id=rowId(row),p=rowPhone(row);if(!id&&!p)return;const active=(id&&isIdActive(id))||(!id&&p&&isPhoneActive(p))||(id&&p&&isPhoneActive(p));upsertBadge(nameHost(row),active);});}
-  function decorateButtons(root){(root||document).querySelectorAll?.('[data-track]').forEach(el=>{const id=el.dataset&&el.dataset.track;if(!id)return;const host=el.querySelector?.('.riderName')||el.querySelector?.('.name')||el;upsertBadge(host,isIdActive(id));});}
+  function decorateRows(root){(root||document).querySelectorAll?.('tr').forEach(row=>{if(row.closest&&row.closest('#riderTagCalc'))return;const id=rowId(row),p=rowPhone(row);if(!id&&!p)return;const active=(id&&isIdActive(id))||(!id&&p&&isPhoneActive(p))||(id&&p&&isPhoneActive(p));upsertBadge(nameHost(row),active);});}
+  function decorateButtons(root){(root||document).querySelectorAll?.('[data-track]').forEach(el=>{if(el.closest&&el.closest('#riderTagCalc'))return;const id=el.dataset&&el.dataset.track;if(!id)return;const host=el.querySelector?.('.riderName')||el.querySelector?.('.name')||el;upsertBadge(host,isIdActive(id));});}
   function decorateProfile(){let id='';try{id=state&&state.selected||'';}catch(_){ }const box=document.getElementById('profileSummary');if(!id||!box)return;upsertBadge(box.querySelector('.profileTitle')||box.firstElementChild,isIdActive(id));}
   function activeRoot(){try{const tab=state&&state.tab;const sec=tab?document.getElementById(tab):null;if(sec)return sec;}catch(_){ }return document.querySelector('section.tab.active')||document.querySelector('main')||document.body;}
   function decorate(root){try{rebuildCache(false);root=root||activeRoot();decorateButtons(root);decorateRows(root);decorateProfile();}catch(e){console.warn('新骑手标签同步失败：',e&&e.message||e);}}
@@ -7432,6 +7440,81 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+
+
+<script>
+/* === 2026-08 hotfix: 时薪法案骑手分层新骑手标签稳定修复 === */
+(function(){
+  if(window.__tagCalcNewRiderStableFixV1)return;
+  window.__tagCalcNewRiderStableFixV1=true;
+  const TAB_ID='riderTagCalc';
+  const BADGE_CLASS='newRiderInlineTag tagCalcNewRiderStable';
+  function isActive(id){
+    try{return !!(id&&typeof window.isActiveNewRiderById==='function'&&window.isActiveNewRiderById(id));}catch(_){return false}
+  }
+  function makeBadge(){
+    const s=document.createElement('span');
+    s.className=BADGE_CLASS;
+    s.dataset.newRiderInline='1';
+    s.dataset.tagCalcStable='1';
+    s.title='新骑手流程表 28 天内记录匹配；满 28 天后自动清除';
+    s.textContent='新骑手';
+    return s;
+  }
+  function setBadge(host,active){
+    if(!host)return;
+    let badge=host.querySelector(':scope > .tagCalcNewRiderStable, :scope > .newRiderInlineTag');
+    if(active){
+      if(!badge){badge=makeBadge();host.appendChild(badge);} 
+      else{badge.className=BADGE_CLASS;badge.dataset.newRiderInline='1';badge.dataset.tagCalcStable='1';badge.textContent='新骑手';}
+    }else if(badge){badge.remove();}
+  }
+  function refreshTagCalcBadges(){
+    try{
+      const section=document.getElementById(TAB_ID);
+      if(!section)return;
+      section.querySelectorAll('#tagCalcResultTable .nameBtn[data-track]').forEach(btn=>{
+        const id=btn.dataset.track||'';
+        const host=btn.querySelector('.riderName')||btn;
+        setBadge(host,isActive(id));
+      });
+    }catch(e){console.warn('时薪法案新骑手标签稳定刷新失败：',e&&e.message||e);}
+  }
+  function wrap(name,after){
+    try{
+      const old=window[name]||(0,eval)(name);
+      if(typeof old!=='function'||old.__tagCalcNewRiderStableFix)return;
+      const fn=function(){
+        const out=old.apply(this,arguments);
+        const done=()=>setTimeout(()=>{try{after&&after();refreshTagCalcBadges();}catch(_){ }},0);
+        if(out&&typeof out.then==='function')return out.then(v=>{done();return v;});
+        done();return out;
+      };
+      fn.__tagCalcNewRiderStableFix=true;
+      window[name]=fn;
+      try{(0,eval)(name+' = window["'+name+'"]');}catch(_){ }
+    }catch(_){ }
+  }
+  wrap('renderTagCalc');
+  wrap('loadNewRiderRecords',()=>{try{if(typeof window.rebuildNewRiderTagCache==='function')window.rebuildNewRiderTagCache();}catch(_){ }});
+  wrap('saveNewRiderRecord',()=>{try{if(typeof window.rebuildNewRiderTagCache==='function')window.rebuildNewRiderTagCache();}catch(_){ }});
+  wrap('deleteNewRiderRecord',()=>{try{if(typeof window.rebuildNewRiderTagCache==='function')window.rebuildNewRiderTagCache();}catch(_){ }});
+  wrap('renderAll');
+  wrap('selectTab');
+  function bind(){
+    ['tagCalcCycleSel','tagCalcLabelFilterSel','tagCalcVehicleFilterSel','tagCalcNewRiderFilter','tagCalcSearchInp'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el&&!el.dataset.tagCalcNewRiderStableBound){
+        el.dataset.tagCalcNewRiderStableBound='1';
+        el.addEventListener(id==='tagCalcSearchInp'?'input':'change',()=>setTimeout(refreshTagCalcBadges,0));
+      }
+    });
+    refreshTagCalcBadges();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  [100,300,800,1500,3000].forEach(t=>setTimeout(bind,t));
+})();
+</script>
 
 </body>
 </html>
