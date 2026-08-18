@@ -3332,12 +3332,24 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   function personalTailPct(r){const x=ratePercent(r&&r.tailRate);return Number.isFinite(x)?x:null}
   function rowOrders(r){const n=val(r,'orders');return Number.isFinite(n)?n:0}
   function tailOrderCount(r){const t=personalTailPct(r);if(t==null)return null;return rowOrders(r)*t/100}
-  function periodRows(c){return riderIds().map(id=>rec(c,id)).filter(r=>r&&active(r))}
+  function periodRows(c){return riderIds().filter(id=>tailPassNewRider(id)).map(id=>rec(c,id)).filter(r=>r&&active(r))}
   function periodTotalOrders(c){return periodRows(c).reduce((s,r)=>s+rowOrders(r),0)}
   function fmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
   function fmtCount(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
   function fmtSignedPct(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(2)}%</span>`}
   function fmtSignedCount(v){return v==null||!Number.isFinite(+v)?'<span class="mini">空白</span>':`<span class="${v>0?'dangerText':v<0?'tailStdOk':''}">${v>=0?'+':''}${(+v).toFixed(1)}</span>`}
+  // 兜底修复：V2 版本覆盖 renderTailOrderCenter 后仍会调用 tailPassNewRider，
+  // 但旧函数位于上一段 IIFE 私有作用域内，云数据加载时会报 tailPassNewRider is not defined。
+  function tailNewRiderFilterMode(){return byId('tailNewRiderFilter')?.value||'all'}
+  function tailPassNewRider(id){
+    const mode=tailNewRiderFilterMode();
+    if(mode==='all')return true;
+    try{
+      if(typeof window.passNewRiderGlobalFilter==='function')return !!window.passNewRiderGlobalFilter(mode,{id});
+    }catch(_){ }
+    // 新骑手缓存尚未加载完成时先放行，避免影响云数据读取与页面首屏渲染。
+    return true;
+  }
   function activeCurrentRows(){return periodRows(state.cycle)}
   function groupRateFromSum(sum,total){return total?sum/total*100:null}
   function tailVehicleStats(){
@@ -3345,6 +3357,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     vehicleGroups.forEach(g=>map.set(g.key,{key:g.key,label:g.label,std:g.std,curTailCnt:0,preTailCnt:0,curOrders:0,preOrders:0,curN:0,preN:0}));
     function add(c,isCur){
       riderIds().forEach(id=>{
+        if(!tailPassNewRider(id))return;
         const r=rec(c,id);if(!r||!active(r))return;
         const g=groupOfVehicle(r.vehicle), o=map.get(g.key), cnt=tailOrderCount(r);
         if(isCur){o.curOrders+=rowOrders(r);o.curN++;if(cnt!=null)o.curTailCnt+=cnt}
@@ -3390,6 +3403,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     const win=cycles.slice(Math.max(0,idx-n+1),idx+1);
     if(win.length<n)return [];
     return riderIds().map(id=>{
+      if(!tailPassNewRider(id))return null;
       const vals=win.map(c=>personalTailPct(rec(c,id)));
       if(vals.some(v=>v==null))return null;
       const ok=vals.every((v,i)=>i===0||v>vals[i-1]);
