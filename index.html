@@ -3366,9 +3366,12 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
   function tailTopByCurrentCount(){
     const filter=byId('tailTopVehicleFilterSel')?.value||'all';
     const hint=byId('tailTopVehicleFilterHint');
+    const nrMode=byId('tailNewRiderFilter')?.value||'all';
     const filterLabel=filter==='motor'?'机动车':filter==='bike'?'自行车':filter==='walk'?'步行':'全部车型';
-    if(hint)hint.textContent=`当前筛选：${filterLabel} · 按本周尾单单量排序取 TOP10`;
+    const nrLabel=nrMode==='yes'?'新骑手：是':nrMode==='no'?'新骑手：否':'新骑手：全部';
+    if(hint)hint.textContent=`当前筛选：${filterLabel} · ${nrLabel} · 按本周尾单单量排序取 TOP10`;
     return riderIds().map(id=>{
+      if(!tailPassNewRider(id))return null;
       const cur=rec(state.cycle,id),pre=rec(state.compare,id);
       if(!cur)return null;
       const group=groupOfVehicle(cur.vehicle||(pre&&pre.vehicle));
@@ -3443,7 +3446,7 @@ function renderReturnPotentialPool(){const returnTable=byId('returnPoolTable'),p
     if(wt){
       let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>对比周骑手责尾单率</th><th>本周尾单单量</th><th>对比周尾单单量</th><th>裂化值尾单率</th><th>操作</th></tr></thead><tbody>';
       top.forEach((x,i)=>{html+=`<tr><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${esc(x.id)}"><div class="riderName">${esc(x.name)}</div><div class="mini">ID ${esc(x.id)}</div></button></td><td>${esc(x.vehicle)}</td><td>${fmtPct(x.curPersonal)}</td><td>${fmtPct(x.prePersonal)}</td><td>${fmtCount(x.curTailCnt)}</td><td>${fmtCount(x.preTailCnt)}</td><td>${x.delta==null?'<span class="mini">空白</span>':`<b class="${x.delta>0?'dangerText':'tailStdOk'}">${x.delta>=0?'+':''}${x.delta.toFixed(2)}%</b>`}</td><td><button class="btn small" data-track="${esc(x.id)}">查看追踪</button></td></tr>`});
-      wt.innerHTML=top.length?html+'</tbody>':'<tr><td class="empty">暂无符合当前交通工具筛选的本周尾单单量骑手</td></tr>';wt.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
+      wt.innerHTML=top.length?html+'</tbody>':'<tr><td class="empty">暂无符合当前交通工具 / 是否新骑手筛选的本周尾单单量骑手</td></tr>';wt.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track))
     }
     const cont=tailContinuousItems();
     if(ct){
@@ -7561,6 +7564,87 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function init(){bindTailNewRiderFilter();wrapRender();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
   [100,400,1000,2000].forEach(t=>setTimeout(init,t));
+})();
+</script>
+
+
+<script>
+/* === 2026-08 final fix: 尾单骑手管控 TOP10 同步适配是否新骑手筛选 === */
+(function(){
+  if(window.__tailTop10NewRiderFilterFinalFix)return;
+  window.__tailTop10NewRiderFilterFinalFix=true;
+  function by(id){return document.getElementById(id)}
+  function esc2(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function tailMode(){return by('tailNewRiderFilter')?.value||'all'}
+  function passNewRider(id){
+    const mode=tailMode();
+    if(mode==='all')return true;
+    try{if(typeof window.passNewRiderGlobalFilter==='function')return !!window.passNewRiderGlobalFilter(mode,{id});}catch(_){ }
+    return true;
+  }
+  function groupOf(v){
+    const s=String(v||'').trim().toLowerCase();
+    if(/(步行|walk|walking)/i.test(s))return {key:'walk',label:'步行'};
+    if(/(自行车|单车|bike|bicycle)/i.test(s) && !/(电动自行车|电动车|e-?bike|ebike)/i.test(s))return {key:'bike',label:'自行车'};
+    if(/(电动自行车|电动车|e-?bike|ebike|摩托|motor|motorcycle|scooter|汽车|car|auto)/i.test(s))return {key:'motor',label:'机动车'};
+    return {key:'motor',label:'机动车'};
+  }
+  function num(v){return Number.isFinite(+v)?+v:0}
+  function rPct(v){try{const x=ratePercent(v);return Number.isFinite(x)?x:null}catch(_){return null}}
+  function ordersOf(r){try{return num(val(r,'orders'))}catch(_){return num(r&&r.orders)}}
+  function tailCnt(r){const t=rPct(r&&r.tailRate);return t==null?null:ordersOf(r)*t/100}
+  function pctText(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
+  function cntText(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
+  function allRiderIds(){try{if(typeof riderIds==='function')return riderIds()}catch(_){ }try{return (riders||[]).map(r=>r.id)}catch(_){return []}}
+  function renderTop10(){
+    const wt=by('tailWorseTopTable');
+    if(!wt||!document.getElementById('tailOrderCenter'))return;
+    const vehicleFilter=by('tailTopVehicleFilterSel')?.value||'all';
+    const nrMode=tailMode();
+    const vehicleLabel=vehicleFilter==='motor'?'机动车':vehicleFilter==='bike'?'自行车':vehicleFilter==='walk'?'步行':'全部车型';
+    const nrLabel=nrMode==='yes'?'新骑手：是':nrMode==='no'?'新骑手：否':'新骑手：全部';
+    const hint=by('tailTopVehicleFilterHint');
+    if(hint)hint.textContent=`当前筛选：${vehicleLabel} · ${nrLabel} · 按本周尾单单量排序取 TOP10`;
+    let top=[];
+    try{
+      top=allRiderIds().map(id=>{
+        if(!passNewRider(id))return null;
+        const cur=rec(state.cycle,id), pre=rec(state.compare,id);
+        if(!cur)return null;
+        const g=groupOf(cur.vehicle||(pre&&pre.vehicle));
+        if(vehicleFilter!=='all'&&g.key!==vehicleFilter)return null;
+        const curPersonal=rPct(cur.tailRate), prePersonal=rPct(pre&&pre.tailRate);
+        const curTailCnt=tailCnt(cur), preTailCnt=pre?tailCnt(pre):null;
+        if(curTailCnt==null||curTailCnt<=0)return null;
+        const delta=(curPersonal!=null&&prePersonal!=null)?curPersonal-prePersonal:null;
+        const rm=(typeof riderMap!=='undefined'&&riderMap&&riderMap.get)?riderMap.get(id):null;
+        return {id,name:(rm&&rm.name)||cur.name||id,vehicle:String(cur.vehicle||(pre&&pre.vehicle)||'空白'),curPersonal,prePersonal,curTailCnt,preTailCnt,delta};
+      }).filter(Boolean).sort((a,b)=>b.curTailCnt-a.curTailCnt).slice(0,10);
+    }catch(e){console.warn('尾单 TOP10 新骑手筛选渲染失败：',e&&e.message||e);return;}
+    let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>对比周骑手责尾单率</th><th>本周尾单单量</th><th>对比周尾单单量</th><th>裂化值尾单率</th><th>操作</th></tr></thead><tbody>';
+    top.forEach((x,i)=>{html+=`<tr><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${esc2(x.id)}"><div class="riderName">${esc2(x.name)}</div><div class="mini">ID ${esc2(x.id)}</div></button></td><td>${esc2(x.vehicle)}</td><td>${pctText(x.curPersonal)}</td><td>${pctText(x.prePersonal)}</td><td>${cntText(x.curTailCnt)}</td><td>${cntText(x.preTailCnt)}</td><td>${x.delta==null?'<span class="mini">空白</span>':`<b class="${x.delta>0?'dangerText':'tailStdOk'}">${x.delta>=0?'+':''}${x.delta.toFixed(2)}%</b>`}</td><td><button class="btn small" data-track="${esc2(x.id)}">查看追踪</button></td></tr>`});
+    wt.innerHTML=top.length?html+'</tbody>':'<tr><td class="empty">暂无符合当前交通工具 / 是否新骑手筛选的本周尾单单量骑手</td></tr>';
+    wt.querySelectorAll('[data-track]').forEach(b=>b.onclick=()=>openProfile(b.dataset.track));
+  }
+  function bind(){
+    ['tailNewRiderFilter','tailTopVehicleFilterSel','refreshTailCenterBtn'].forEach(id=>{
+      const el=by(id);
+      if(el&&!el.dataset.tailTop10NewRiderFinalBound){
+        el.dataset.tailTop10NewRiderFinalBound='1';
+        el.addEventListener(id==='refreshTailCenterBtn'?'click':'change',()=>setTimeout(renderTop10,0));
+      }
+    });
+    renderTop10();
+  }
+  try{
+    if(typeof renderTailOrderCenter==='function'&&!renderTailOrderCenter.__tailTop10NewRiderFinalWrapped){
+      const old=renderTailOrderCenter;
+      renderTailOrderCenter=function(){const out=old.apply(this,arguments);setTimeout(renderTop10,0);return out};
+      renderTailOrderCenter.__tailTop10NewRiderFinalWrapped=true;
+    }
+  }catch(_){ }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  [100,300,800,1500,3000].forEach(t=>setTimeout(bind,t));
 })();
 </script>
 
