@@ -557,6 +557,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>跑单量统计周期</span><select id="problemOrdersAvgWindow"><option value="1">近一周平均跑单</option><option value="2">近二周平均跑单</option><option value="4">近四周平均跑单</option></select></label>
       <label class="field"><span>平均跑单量 ≥</span><input id="problemOrdersMin" type="number" min="0" step="1" placeholder="留空不限" /></label>
       <label class="field"><span>最低风险分</span><select id="minScoreFilter"><option value="0">不限</option><option value="40">≥40</option><option value="60">≥60</option><option value="80">≥80</option></select></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="problemNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <label class="field"><span>排序</span><select id="sortFilter"><option value="score">风险分高到低</option><option value="ordersAmt">跑单下降量</option><option value="ordersPct">跑单降幅%</option><option value="incomeAmt">收入下降额</option><option value="hourlyPct">时薪降幅%</option><option value="durationAmt">背单下降时长</option></select></label>
       <div class="field"><span>当前筛选</span><b id="filterSummary">全部问题</b></div><div class="field"><span>操作</span><button class="btn" id="resetFiltersBtn">重置筛选</button></div>
     </div></div>
@@ -578,6 +579,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field lightField"><span>回归判定周期</span><select id="returnNoRunWeeksSel"><option value="1">近 1 周无跑单</option><option value="2">近 2 周连续无跑单</option><option value="3">近 3 周连续无跑单</option><option value="4">近 4 周连续无跑单</option></select></label>
       <label class="field lightField"><span>高潜统计周期</span><select id="potentialLookbackSel"><option value="4">近 4 周</option><option value="8">近 8 周</option></select></label>
       <label class="field lightField"><span>基准跑单阈值 X</span><input id="potentialThresholdInp" type="number" min="0" step="1" placeholder="例如 30" /></label>
+      <label class="field lightField newRiderFilterField"><span>是否新骑手</span><select id="returnPotentialNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <div class="field lightField"><span>配置</span><button class="btn primary small" id="saveReturnPotentialConfigBtn">保存并刷新</button></div>
     </div>
     <div class="sub" id="returnPotentialRuleHint" style="margin-top:8px">系统将根据当前周期和历史周期自动判断。</div>
@@ -660,6 +662,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>搜索并添加骑手</span><input id="compareSearchInp" placeholder="输入姓名或 ID，快速选择会展示全部匹配骑手" /></label>
       <label class="field"><span>快速选择</span><select id="compareRiderSel"></select></label>
       <label class="field"><span>对比指标</span><select id="compareMetricSel"></select></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="compareNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <button class="btn primary" id="addCompareBtn">加入对比</button>
       <button class="btn" id="addVisibleCompareBtn">加入当前搜索结果</button>
     </div>
@@ -691,6 +694,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>诊断指标</span><select id="diagnosisMetricSel"></select></label>
       <label class="field"><span>观察周期</span><select id="diagnosisLookbackSel"><option value="4">最近 4 周</option><option value="8">最近 8 周</option><option value="all">全部周期</option></select></label>
       <label class="field"><span>搜索骑手 / ID</span><input id="diagnosisSearchInp" placeholder="留空查看全部骑手" /></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="diagnosisNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <div class="field"><span>诊断说明</span><b id="diagnosisRuleHint">使用系统默认连续下滑阈值</b></div>
     </div>
     <div class="snapshotGrid" id="diagnosisSummaryGrid"></div>
@@ -803,6 +807,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       <label class="field"><span>问题标签</span><select id="followIssueFilter"></select></label>
       <label class="field"><span>负责人</span><select id="followOwnerFilter"><option value="all">全部负责人</option></select></label>
       <label class="field"><span>搜索骑手 / ID</span><input id="followSearchInp" placeholder="留空显示当前待联系人群" /></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="followNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <div class="field"><span>当前周期</span><b id="followCycleHint">-</b></div>
       <div class="field"><span>闭环说明</span><b>勾选骑手后可批量更新</b></div>
     </div>
@@ -858,6 +863,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       </div>
       <div class="followOwnerControls">
         <label class="field"><span>查看负责人</span><select id="followOwnerBoardSel"></select></label>
+        <label class="field newRiderFilterField"><span>是否新骑手</span><select id="ownerNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
         <div class="field"><span>说明</span><b>仅显示当前负责人的跟进名单</b></div>
       </div>
       <div class="snapshotGrid" id="ownerBoardSummaryGrid"></div>
@@ -911,6 +917,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     </div>
     <div class="contactToolbar">
       <label class="field" style="min-width:260px"><span>搜索 ID / 姓名 / 手机号</span><input id="contactSearchInp" placeholder="输入关键词" /></label>
+      <label class="field newRiderFilterField"><span>是否新骑手</span><select id="contactsNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
       <div class="inlineActions">
         <button class="btn" id="downloadContactTplBtn">下载通讯录模版</button>
         <button class="btn" id="importContactBtn">导入 CSV</button>
@@ -1323,6 +1330,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="profileToolbar">
       <label class="field lightField"><span>搜索骑手 / ID</span><input id="profileSearchInp" placeholder="输入姓名或 ID，自动筛选下方骑手" /></label>
       <label class="field lightField"><span>选择骑手</span><select id="riderSel"></select></label>
+      <label class="field lightField newRiderFilterField"><span>是否新骑手</span><select id="profileNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
     </div>
     <div class="profileBox profileSummaryWide" id="profileSummary"></div>
     <div class="metricMini" id="profileMetrics"></div>
@@ -6730,9 +6738,11 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const q=(document.getElementById('tagCalcSearchInp')?.value||'').trim().toLowerCase();
     const tag=(document.getElementById('tagCalcLabelFilterSel')?.value||'all');
     const vehicle=(document.getElementById('tagCalcVehicleFilterSel')?.value||'all');
+    const newRiderMode=(document.getElementById('tagCalcNewRiderFilter')?.value||'all');
     const items=rowsInCycle(cycle).map(calcTag).map(attachRevenueRatio).filter(x=>{
       if(tag!=='all'&&x.label!==tag)return false;
       if(vehicle!=='all'&&x.normalizedVehicle!==vehicle)return false;
+      if(newRiderMode!=='all'&&typeof window.passNewRiderGlobalFilter==='function'&&!window.passNewRiderGlobalFilter(newRiderMode,{id:x.id,phone:x.phone,rider_phone:x.rider_phone}))return false;
       if(q){const hay=[x.id,x.name,x.vehicle,x.label,x.rawLabel||''].join(' ').toLowerCase();if(!hay.includes(q))return false;}
       return true;
     });
@@ -6759,6 +6769,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
           <label class="field"><span>核算周期</span><select id="tagCalcCycleSel"></select></label>
           <label class="field"><span>标签筛选</span><select id="tagCalcLabelFilterSel"><option value="all">全部标签</option></select></label>
           <label class="field"><span>交通工具筛选</span><select id="tagCalcVehicleFilterSel"><option value="all">全部车型</option></select></label>
+          <label class="field newRiderFilterField"><span>是否新骑手</span><select id="tagCalcNewRiderFilter"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select></label>
           <label class="field"><span>搜索骑手 / ID</span><input id="tagCalcSearchInp" placeholder="输入姓名或 ID" /></label>
         </div>
         <div class="tagCalcGrid" id="tagCalcSummaryGrid"></div>
@@ -6913,7 +6924,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     const map={tagCalcConfigBtn:()=>openTagCalcConfigModal(),tagCalcConfigCloseBtn:()=>closeTagCalcConfigModal(),tagCalcRefreshBtn:()=>loadTagCalcConfig(),tagCalcSaveBtn:()=>saveTagCalcConfig(),tagCalcResetBtn:()=>resetDefaults(),tagCalcExportBtn:()=>exportResults()};
     Object.entries(map).forEach(([id,fn])=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onclick=fn;}});
     const modal=document.getElementById('tagCalcConfigModal');if(modal&&!modal.dataset.bound){modal.dataset.bound='1';modal.addEventListener('click',e=>{if(e.target===modal)closeTagCalcConfigModal();});}
-    ['tagCalcCycleSel','tagCalcLabelFilterSel','tagCalcVehicleFilterSel'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onchange=()=>renderTagCalc();}});
+    ['tagCalcCycleSel','tagCalcLabelFilterSel','tagCalcVehicleFilterSel','tagCalcNewRiderFilter'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.bound){el.dataset.bound='1';el.onchange=()=>renderTagCalc();}});
     const s=document.getElementById('tagCalcSearchInp');if(s&&!s.dataset.bound){s.dataset.bound='1';s.oninput=()=>renderTagCalc();}
   }
 
@@ -7291,15 +7302,17 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 
 
 
+
 <script>
-/* === 2026-08 update: 新骑手标签筛选 + 稳定同步优化 === */
+/* === 2026-08 hotfix: 新骑手筛选可见化 + 标签稳定同步 V3 === */
 (function(){
-  if(window.__newRiderTagSyncPatchV2)return;
-  window.__newRiderTagSyncPatchV2=true;
+  if(window.__newRiderTagSyncPatchV3)return;
+  window.__newRiderTagSyncPatchV3=true;
+
   const TAG_TEXT='新骑手';
   const DEFAULT_RETENTION_DAYS=28;
-  const FILTER_ALL='all', FILTER_YES='yes', FILTER_NO='no';
-  const filterKeys={
+  const ALL='all', YES='yes', NO='no';
+  const filterIds={
     problems:'problemNewRiderFilter',
     follow:'followNewRiderFilter',
     owner:'ownerNewRiderFilter',
@@ -7310,143 +7323,115 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     contacts:'contactsNewRiderFilter',
     profile:'profileNewRiderFilter'
   };
-  let decorateTimer=null,cacheHash='',cacheVersion=0;
-  let cachedActiveRows=[],phoneFull=new Set(),phoneTail9=new Set(),phoneTail8=new Set(),idStatus=new Map();
+  const stateKeys={
+    problems:'problemNewRiderFilter',follow:'followNewRiderFilter',owner:'ownerNewRiderFilter',returnPotential:'returnPotentialNewRiderFilter',
+    compare:'compareNewRiderFilter',diagnosis:'diagnosisNewRiderFilter',tagCalc:'tagCalcNewRiderFilter',contacts:'contactsNewRiderFilter',profile:'profileNewRiderFilter'
+  };
+  let cacheBuilt=false,cacheToken='',cacheVersion=0,decorateTimer=null;
+  let activePhonesFull=new Set(),activePhonesTail9=new Set(),activePhonesTail8=new Set(),activeRows=[];
+  const idCache=new Map();
 
-  function h(v){try{if(typeof esc==='function')return esc(v);}catch(_){ }return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+  function escHtml(v){try{if(typeof esc==='function')return esc(v);}catch(_){ }return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
   function digits(v){return String(v||'').replace(/\D+/g,'');}
   function tail(v,n){const d=digits(v);return d.length>=n?d.slice(-n):d;}
-  function fuzzyPhoneMatch(a,b){const da=digits(a),db=digits(b);if(!da||!db)return false;if(da===db)return true;const min=Math.min(da.length,db.length);return (min>=9&&da.slice(-9)===db.slice(-9))||(min>=8&&da.slice(-8)===db.slice(-8));}
-  function toastMsg(msg){try{if(typeof toast==='function')toast(msg);}catch(_){ }}
+  function fuzzyPhone(a,b){const da=digits(a),db=digits(b);if(!da||!db)return false;if(da===db)return true;const min=Math.min(da.length,db.length);return (min>=9&&da.slice(-9)===db.slice(-9))||(min>=8&&da.slice(-8)===db.slice(-8));}
   function retentionDays(){try{return Number((typeof NEW_RIDER_RETENTION_DAYS!=='undefined'&&NEW_RIDER_RETENTION_DAYS)||DEFAULT_RETENTION_DAYS)||DEFAULT_RETENTION_DAYS;}catch(_){return DEFAULT_RETENTION_DAYS;}}
-  function recordDate(x){const raw=x&& (x.add_date||x.created_at||x.updated_at);if(!raw)return null;const d=new Date(raw);return Number.isNaN(d.getTime())?null:d;}
-  function isExpired(x){try{if(typeof isNewRiderExpired==='function')return !!isNewRiderExpired(x);}catch(_){ }const d=recordDate(x);if(!d)return false;d.setHours(0,0,0,0);const c=new Date();c.setHours(0,0,0,0);c.setDate(c.getDate()-retentionDays());return d<c;}
-  function normalizeRecord(x){try{if(typeof normalizeNewRiderRecord==='function')return normalizeNewRiderRecord(x);}catch(_){ }return x||{};}
-  function localNewRiderRows(){try{if(typeof safeGet==='function'&&typeof newRiderLocalKey==='function'){const rows=safeGet(newRiderLocalKey(),[]);return Array.isArray(rows)?rows:[];}}catch(_){ }return [];}
-  function rawNewRiderRows(){let rows=[];try{if(typeof newRiderRecords!=='undefined'&&Array.isArray(newRiderRecords))rows=rows.concat(newRiderRecords);}catch(_){ }try{const local=localNewRiderRows();if(local.length)rows=rows.concat(local);}catch(_){ }return rows;}
-  function buildHash(rows){return rows.map(x=>[x&&x.id,x&&x.phone,x&&x.add_date,x&&x.created_at,x&&x.updated_at].join('|')).join('||');}
-  function rebuildCache(force=false){const rows=rawNewRiderRows();const hash=buildHash(rows);if(!force&&hash===cacheHash)return;cacheHash=hash;cacheVersion++;phoneFull=new Set();phoneTail9=new Set();phoneTail8=new Set();idStatus=new Map();const seen=new Set();cachedActiveRows=[];(rows||[]).map(normalizeRecord).forEach(x=>{const p=digits(x.phone||x.mobile||x.rider_phone||'');if(!p||isExpired(x))return;const key=tail(p,9)+'|'+String(x.add_date||x.created_at||'');if(seen.has(key))return;seen.add(key);cachedActiveRows.push(x);phoneFull.add(p);if(p.length>=9)phoneTail9.add(p.slice(-9));if(p.length>=8)phoneTail8.add(p.slice(-8));});}
-  function riderContact(id){const key=String(id||'').trim();if(!key)return null;try{if(typeof riderContacts!=='undefined'&&riderContacts){return riderContacts[key]||riderContacts[String(id||'')]||null;}}catch(_){ }return null;}
-  function phoneForRiderId(id){const c=riderContact(id)||{};const p=c.phone||c.mobile||c.rider_phone||c.phone_number||'';if(p)return p;const s=String(id||'');return digits(s).length>=8?s:'';}
-  function isActiveNewRiderByPhone(phone){rebuildCache();const p=digits(phone);if(!p)return false;if(phoneFull.has(p))return true;if(p.length>=9&&phoneTail9.has(p.slice(-9)))return true;if(p.length>=8&&phoneTail8.has(p.slice(-8)))return true;return false;}
-  function getActiveNewRiderByPhone(phone){rebuildCache();const p=digits(phone);if(!p)return null;return cachedActiveRows.find(x=>fuzzyPhoneMatch(x.phone||x.mobile||x.rider_phone,p))||null;}
-  function isActiveNewRiderById(id){rebuildCache();const key=String(id||'').trim();if(!key)return false;const cached=idStatus.get(key);if(cached&&cached.version===cacheVersion)return cached.active;const active=isActiveNewRiderByPhone(phoneForRiderId(key));idStatus.set(key,{version:cacheVersion,active});return active;}
-  function isNewRiderItem(x){if(!x)return false;if(x.id&&isActiveNewRiderById(x.id))return true;if(x.rider_id&&isActiveNewRiderById(x.rider_id))return true;const phone=x.phone||x.mobile||x.rider_phone||x.riderPhone||x.registered_phone||x.registeredPhone||'';return phone?isActiveNewRiderByPhone(phone):false;}
-  function passNewRiderFilter(mode,item){mode=mode||FILTER_ALL;if(mode===FILTER_ALL)return true;const active=isNewRiderItem(item);return mode===FILTER_YES?active:!active;}
-  function currentFilter(key){try{return (state&&state[filterKeys[key]])||FILTER_ALL;}catch(_){return FILTER_ALL;}}
-  function setFilter(key,value){try{state[filterKeys[key]]=value||FILTER_ALL;}catch(_){ }}
-  function idFromMiniText(text){const m=String(text||'').match(/\bID\s*[:：]?\s*([^\s｜|,，;；]+)/i);return m?m[1].trim():'';}
-  function idFromRow(row){const track=row&&row.querySelector&&row.querySelector('[data-track]');if(track&&track.dataset&&track.dataset.track)return track.dataset.track;const contact=row&&row.querySelector&&row.querySelector('[data-contact-id]');if(contact&&contact.dataset&&contact.dataset.contactId)return contact.dataset.contactId;const mini=[...(row&&row.querySelectorAll?row.querySelectorAll('.mini'):[])].find(el=>idFromMiniText(el.textContent));return mini?idFromMiniText(mini.textContent):'';}
-  function phoneFromText(txt){const candidates=String(txt||'').match(/(?:\+?\d[\d\s()\-]{6,}\d)/g)||[];for(const c of candidates){if(digits(c).length>=8)return c;}return '';}
-  function phoneFromRow(row){return row?phoneFromText(row.textContent||''):'';}
-  function bestNameHostInRow(row){return row&&row.querySelector&& (row.querySelector('.riderName')||row.querySelector('.nameBtn .name')||row.querySelector('td .riderName')||row.querySelector('td b')||row.querySelector('td:nth-child(2)')||row.querySelector('td'));}
-  function createBadge(){const span=document.createElement('span');span.className='newRiderInlineTag';span.dataset.newRiderInline='1';span.textContent=TAG_TEXT;span.title='新骑手流程表 28 天内记录匹配；超过 28 天后自动清除';return span;}
-  function upsertBadge(host,active){if(!host)return;let badge=null;try{badge=host.querySelector(':scope > .newRiderInlineTag');}catch(_){badge=host.querySelector&&host.querySelector('.newRiderInlineTag');}const applied=host.dataset?host.dataset.newRiderApplied:null;const next=active?'1':'0';if(applied===next&&((active&&badge)||(!active&&!badge)))return;if(active){if(!badge){badge=createBadge();host.appendChild(badge);}else if(badge.textContent!==TAG_TEXT)badge.textContent=TAG_TEXT;}else if(badge){badge.remove();}if(host.dataset)host.dataset.newRiderApplied=next;}
-  function decorateTrackedButtons(root){(root||document).querySelectorAll?.('.nameBtn[data-track], [data-track]').forEach(el=>{const id=el.dataset&&el.dataset.track;if(!id)return;const host=el.querySelector?.('.riderName')||el.querySelector?.('.name')||el;upsertBadge(host,isActiveNewRiderById(id));});}
-  function decorateContactRows(root){(root||document).querySelectorAll?.('tr').forEach(row=>{const id=idFromRow(row),phone=phoneFromRow(row);if(!id&&!phone)return;let active=id?isActiveNewRiderById(id):false;if(!active&&phone)active=isActiveNewRiderByPhone(phone);upsertBadge(bestNameHostInRow(row),active);});}
-  function decorateCards(root){(root||document).querySelectorAll?.('.materialCard,.appealCard,.profileBox,.compareHeroMetric').forEach(card=>{const id=idFromRow(card),phone=phoneFromRow(card);if(!id&&!phone)return;let active=id?isActiveNewRiderById(id):false;if(!active&&phone)active=isActiveNewRiderByPhone(phone);const host=card.querySelector?.('.materialTitle b,.appealTitle b,.profileTitle,b')||card.firstElementChild;upsertBadge(host,active);});}
-  function decorateProfile(){const summary=document.getElementById('profileSummary');let id='';try{id=state&&state.selected||'';}catch(_){ }if(!summary||!id)return;const title=summary.querySelector('.profileTitle')||summary.firstElementChild;upsertBadge(title,isActiveNewRiderById(id));}
+  function recordDate(x){const raw=x&&(x.add_date||x.created_at||x.updated_at);if(!raw)return null;const d=new Date(raw);return Number.isNaN(d.getTime())?null:d;}
+  function expired(x){try{if(typeof isNewRiderExpired==='function')return !!isNewRiderExpired(x);}catch(_){ }const d=recordDate(x);if(!d)return false;d.setHours(0,0,0,0);const c=new Date();c.setHours(0,0,0,0);c.setDate(c.getDate()-retentionDays());return d<c;}
+  function normalize(x){try{if(typeof normalizeNewRiderRecord==='function')return normalizeNewRiderRecord(x);}catch(_){ }return x||{};}
+  function localRows(){try{if(typeof safeGet==='function'&&typeof newRiderLocalKey==='function'){const rows=safeGet(newRiderLocalKey(),[]);return Array.isArray(rows)?rows:[];}}catch(_){ }return [];}
+  function currentRows(){let out=[];try{if(typeof newRiderRecords!=='undefined'&&Array.isArray(newRiderRecords))out=out.concat(newRiderRecords);}catch(_){ }try{out=out.concat(localRows());}catch(_){ }return out;}
+  function rowsToken(rows){return (rows||[]).map(x=>[x&&x.id,x&&x.phone,x&&x.mobile,x&&x.rider_phone,x&&x.add_date,x&&x.created_at,x&&x.updated_at].join('|')).join('||');}
+  function rebuildCache(force){const rows=currentRows();const token=rowsToken(rows);if(cacheBuilt&&!force&&token===cacheToken)return;cacheBuilt=true;cacheToken=token;cacheVersion++;activePhonesFull=new Set();activePhonesTail9=new Set();activePhonesTail8=new Set();activeRows=[];idCache.clear();const seen=new Set();rows.map(normalize).forEach(x=>{const p=digits(x.phone||x.mobile||x.rider_phone||x.riderPhone||'');if(!p||expired(x))return;const key=(p.slice(-9)||p)+'|'+String(x.add_date||x.created_at||'');if(seen.has(key))return;seen.add(key);activeRows.push(x);activePhonesFull.add(p);if(p.length>=9)activePhonesTail9.add(p.slice(-9));if(p.length>=8)activePhonesTail8.add(p.slice(-8));});}
+  function phoneForId(id){const key=String(id||'').trim();if(!key)return '';try{const c=(typeof riderContacts!=='undefined'&&riderContacts)?(riderContacts[key]||riderContacts[String(key)]):null;if(c){return c.phone||c.mobile||c.rider_phone||c.phone_number||'';}}catch(_){ }return digits(key).length>=8?key:'';}
+  function isPhoneActive(phone){rebuildCache(false);const p=digits(phone);if(!p)return false;if(activePhonesFull.has(p))return true;if(p.length>=9&&activePhonesTail9.has(p.slice(-9)))return true;if(p.length>=8&&activePhonesTail8.has(p.slice(-8)))return true;return false;}
+  function isIdActive(id){rebuildCache(false);const key=String(id||'').trim();if(!key)return false;const cached=idCache.get(key);if(cached&&cached.version===cacheVersion)return cached.active;const active=isPhoneActive(phoneForId(key));idCache.set(key,{version:cacheVersion,active});return active;}
+  function itemActive(item){if(!item)return false;const id=item.id||item.rider_id||item.riderId||item.riderID||'';if(id&&isIdActive(id))return true;const p=item.phone||item.mobile||item.rider_phone||item.riderPhone||item.registered_phone||item.registeredPhone||'';return p?isPhoneActive(p):false;}
+  function pass(mode,item){mode=mode||ALL;if(mode===ALL)return true;const active=itemActive(item);return mode===YES?active:!active;}
+  function setMode(key,mode){mode=mode||ALL;try{if(typeof state!=='undefined'&&state)state[stateKeys[key]]=mode;}catch(_){ }try{sessionStorage.setItem('newRiderFilter:'+key,mode);}catch(_){ }}
+  function modeFor(key){try{const s=(typeof state!=='undefined'&&state)?state[stateKeys[key]]:'';if(s)return s;}catch(_){ }try{return sessionStorage.getItem('newRiderFilter:'+key)||ALL;}catch(_){return ALL;}}
+  function modeLabel(mode){return mode===YES?'是':mode===NO?'否':'全部';}
+  function optionHtml(key){const v=modeFor(key);return `<option value="all" ${v===ALL?'selected':''}>全部</option><option value="yes" ${v===YES?'selected':''}>是</option><option value="no" ${v===NO?'selected':''}>否</option>`;}
+  function makeControl(id,key){const label=document.createElement('label');label.className='field newRiderFilterField';label.innerHTML=`<span>是否新骑手</span><select id="${id}">${optionHtml(key)}</select>`;return label;}
+  function insertControl(container,id,key,beforeSelector){if(!container)return;let sel=document.getElementById(id);if(!sel){const label=makeControl(id,key);const ref=beforeSelector?container.querySelector(beforeSelector):null;if(ref)container.insertBefore(label,ref);else container.appendChild(label);sel=label.querySelector('select');}
+    if(sel){sel.value=modeFor(key);if(!sel.dataset.newRiderBoundV3){sel.dataset.newRiderBoundV3='1';sel.addEventListener('change',()=>{setMode(key,sel.value);rerenderForKey(key);});}}
+  }
+  function ensureControls(){
+    insertControl(document.querySelector('#filterPanel .filterGrid'),filterIds.problems,'problems','#sortFilter');
+    insertControl(document.querySelector('#followup .compareControlGrid:not(.contactRuleGrid)'),filterIds.follow,'follow','#followCycleHint');
+    insertControl(document.querySelector('#followOwnerBoard .followOwnerControls'),filterIds.owner,'owner');
+    insertControl(document.querySelector('#returnPotential .returnPotentialConfigGrid'),filterIds.returnPotential,'returnPotential','#saveReturnPotentialConfigBtn');
+    insertControl(document.querySelector('#compare .compareControlGrid'),filterIds.compare,'compare','#addCompareBtn');
+    insertControl(document.querySelector('#diagnosis .compareControlGrid'),filterIds.diagnosis,'diagnosis','#diagnosisRuleHint');
+    insertControl(document.querySelector('#tagCalc .compareControlGrid'),filterIds.tagCalc,'tagCalc','#tagCalcSearchInp');
+    insertControl(document.querySelector('#riderContacts .contactToolbar'),filterIds.contacts,'contacts','.inlineActions');
+    insertControl(document.querySelector('#profile .profileToolbar'),filterIds.profile,'profile');
+  }
+  function rerenderForKey(key){
+    try{if(key==='problems'&&typeof renderProblems==='function')renderProblems();
+      else if(key==='follow'&&typeof renderFollowup==='function')renderFollowup();
+      else if(key==='owner'&&typeof renderFollowOwnerBoard==='function')renderFollowOwnerBoard();
+      else if(key==='returnPotential'&&typeof renderReturnPotentialPool==='function')renderReturnPotentialPool();
+      else if(key==='compare'&&typeof renderCompare==='function'){try{if(Array.isArray(state.compareRiders)){state.compareRiders=state.compareRiders.filter(id=>pass(modeFor('compare'),{id}));}}catch(_){ }renderCompare();try{if(typeof drawMulti==='function')drawMulti();}catch(_){ }}
+      else if(key==='diagnosis'&&typeof renderDiagnosis==='function'){renderDiagnosis();try{if(typeof drawDiagnosis==='function')drawDiagnosis();}catch(_){ }}
+      else if(key==='tagCalc'&&typeof renderTagCalc==='function')renderTagCalc();
+      else if(key==='contacts'&&typeof renderRiderContacts==='function')renderRiderContacts();
+      else if(key==='profile'){applyProfileFilter();if(typeof renderProfile==='function')renderProfile();}
+    }catch(e){console.warn('新骑手筛选刷新失败：',e&&e.message||e);}
+    setTimeout(()=>{ensureControls();applyDomFilters();scheduleDecorate();},0);
+  }
+  function rowId(row){if(!row||!row.querySelector)return '';const el=row.querySelector('[data-track],[data-contact-id]');if(el&&el.dataset)return el.dataset.track||el.dataset.contactId||'';const m=String(row.textContent||'').match(/\bID\s*[:：]?\s*([^\s｜|,，;；]+)/i);return m?m[1].trim():'';}
+  function rowPhone(row){const m=String(row&&row.textContent||'').match(/(?:\+?\d[\d\s()\-]{6,}\d)/g)||[];for(const c of m){if(digits(c).length>=8)return c;}return '';}
+  function rowPass(row,mode){if(mode===ALL)return true;const id=rowId(row),p=rowPhone(row);const active=(id&&isIdActive(id))||(!id&&p&&isPhoneActive(p))||(id&&p&&isPhoneActive(p));return mode===YES?active:!active;}
+  function applyTableFilter(tableId,key){const table=document.getElementById(tableId),mode=modeFor(key);if(!table||mode===ALL){if(table)table.querySelectorAll('tbody tr').forEach(r=>{if(!r.dataset.newRiderFilterEmpty)r.style.display='';});return;}const rows=[...table.querySelectorAll('tbody tr')].filter(r=>!r.dataset.newRiderFilterEmpty&&!r.querySelector('.empty'));let shown=0;rows.forEach(row=>{const ok=rowPass(row,mode);row.style.display=ok?'':'none';if(ok)shown++;});let empty=table.querySelector('tr[data-new-rider-filter-empty="1"]');if(!shown&&rows.length){if(!empty){empty=document.createElement('tr');empty.dataset.newRiderFilterEmpty='1';const colspan=table.querySelectorAll('thead th').length||6;empty.innerHTML=`<td class="empty" colspan="${colspan}">当前“是否新骑手 = ${escHtml(modeLabel(mode))}”筛选下暂无数据。</td>`;table.tBodies[0]?.appendChild(empty);}empty.style.display='';}else if(empty)empty.style.display='none';}
+  function applyDomFilters(){
+    applyTableFilter('problemTable','problems');
+    applyTableFilter('followupTable','follow');
+    applyTableFilter('ownerBoardTable','owner');
+    applyTableFilter('returnPoolTable','returnPotential');
+    applyTableFilter('potentialPoolTable','returnPotential');
+    applyTableFilter('diagnosisTable','diagnosis');
+    applyTableFilter('tagCalcResultTable','tagCalc');
+    applyTableFilter('contactsTable','contacts');
+    applyProfileFilter();
+  }
+  function applyProfileFilter(){const mode=modeFor('profile');const sel=document.getElementById('riderSel');if(!sel)return;[...sel.options].forEach(opt=>{const ok=mode===ALL||pass(mode,{id:opt.value});opt.hidden=!ok;opt.disabled=!ok;});try{if(sel.value&&sel.selectedOptions[0]&&(sel.selectedOptions[0].hidden||sel.selectedOptions[0].disabled)){const next=[...sel.options].find(o=>!o.hidden&&!o.disabled);if(next){sel.value=next.value;state.selected=next.value;}}}catch(_){ }}
+  function badge(){const s=document.createElement('span');s.className='newRiderInlineTag';s.dataset.newRiderInline='1';s.textContent=TAG_TEXT;s.title='新骑手流程表 28 天内记录匹配；满 28 天后自动清除';return s;}
+  function upsertBadge(host,active){if(!host)return;let b=host.querySelector&&host.querySelector(':scope > .newRiderInlineTag');if(active){if(!b)host.appendChild(badge());}else if(b)b.remove();if(host.dataset)host.dataset.newRiderApplied=active?'1':'0';}
+  function nameHost(row){return row&&row.querySelector&&(row.querySelector('.riderName')||row.querySelector('.nameBtn .name')||row.querySelector('.contactIdLink')||row.querySelector('td b')||row.querySelector('td:nth-child(2)')||row.querySelector('td'));}
+  function decorateRows(root){(root||document).querySelectorAll?.('tr').forEach(row=>{const id=rowId(row),p=rowPhone(row);if(!id&&!p)return;const active=(id&&isIdActive(id))||(!id&&p&&isPhoneActive(p))||(id&&p&&isPhoneActive(p));upsertBadge(nameHost(row),active);});}
+  function decorateButtons(root){(root||document).querySelectorAll?.('[data-track]').forEach(el=>{const id=el.dataset&&el.dataset.track;if(!id)return;const host=el.querySelector?.('.riderName')||el.querySelector?.('.name')||el;upsertBadge(host,isIdActive(id));});}
+  function decorateProfile(){let id='';try{id=state&&state.selected||'';}catch(_){ }const box=document.getElementById('profileSummary');if(!id||!box)return;upsertBadge(box.querySelector('.profileTitle')||box.firstElementChild,isIdActive(id));}
   function activeRoot(){try{const tab=state&&state.tab;const sec=tab?document.getElementById(tab):null;if(sec)return sec;}catch(_){ }return document.querySelector('section.tab.active')||document.querySelector('main')||document.body;}
-  function decorateNewRiderTags(root){try{rebuildCache();root=root||activeRoot();decorateTrackedButtons(root);decorateContactRows(root);decorateCards(root);decorateProfile();}catch(e){console.warn('新骑手标签稳定同步失败：',e&&e.message||e);}}
-  function scheduleDecorate(root){if(decorateTimer)return;decorateTimer=setTimeout(()=>{decorateTimer=null;decorateNewRiderTags(root||activeRoot());},80);}
-  function filterLabel(mode){return mode===FILTER_YES?'是':mode===FILTER_NO?'否':'全部';}
-  function ensureFilterControl(container,id,key,renderFn,insertBefore){
-    if(!container||document.getElementById(id))return;
-    const label=document.createElement('label');label.className='field newRiderFilterField';label.innerHTML='<span>是否新骑手</span><select id="'+id+'"><option value="all">全部</option><option value="yes">是</option><option value="no">否</option></select>';
-    const ref=insertBefore&&container.querySelector(insertBefore);if(ref)container.insertBefore(label,ref);else container.appendChild(label);
-    const sel=label.querySelector('select');sel.value=currentFilter(key);sel.onchange=()=>{setFilter(key,sel.value);try{if(typeof renderFn==='function')renderFn();}catch(e){console.warn('新骑手筛选刷新失败',e&&e.message||e);}scheduleDecorate();};
-  }
-  function ensureAllFilterControls(){
-    ensureFilterControl(document.querySelector('#filterPanel .filterGrid'),'problemNewRiderFilter','problems',()=>renderProblems(),'#sortFilter');
-    ensureFilterControl(document.querySelector('#followup .compareControlGrid:not(.contactRuleGrid)'),'followNewRiderFilter','follow',()=>{renderFollowup();renderFollowOwnerBoard&&renderFollowOwnerBoard();},'#followCycleHint');
-    ensureFilterControl(document.querySelector('#followOwnerBoard .followOwnerControls'),'ownerNewRiderFilter','owner',()=>renderFollowOwnerBoard());
-    ensureFilterControl(document.querySelector('#returnPotential .returnPotentialConfigGrid'),'returnPotentialNewRiderFilter','returnPotential',()=>renderReturnPotentialPool());
-    ensureFilterControl(document.querySelector('#compare .compareControlGrid'),'compareNewRiderFilter','compare',()=>{renderCompare();drawMulti&&drawMulti();},'#addCompareBtn');
-    ensureFilterControl(document.querySelector('#diagnosis .compareControlGrid'),'diagnosisNewRiderFilter','diagnosis',()=>{renderDiagnosis();drawDiagnosis&&drawDiagnosis();},'#diagnosisRuleHint');
-    ensureFilterControl(document.querySelector('#tagCalc .compareControlGrid'),'tagCalcNewRiderFilter','tagCalc',()=>renderTagCalc(),'#tagCalcSearchInp');
-    ensureFilterControl(document.querySelector('#riderContacts .contactToolbar'),'contactsNewRiderFilter','contacts',()=>renderRiderContacts());
-    ensureFilterControl(document.querySelector('#profile .profileToolbar,#profile .controls,#profile .panelHead'),'profileNewRiderFilter','profile',()=>{applyProfileNewRiderFilter();renderProfile&&renderProfile();});
-  }
-  function wrapArrayFilter(name,key){
-    try{const old=window[name]||eval(name);if(typeof old!=='function'||old.__newRiderFilterWrapped)return;const wrapped=function(){let list=old.apply(this,arguments)||[];const mode=currentFilter(key);return mode===FILTER_ALL?list:list.filter(x=>passNewRiderFilter(mode,x));};wrapped.__newRiderFilterWrapped=true;window[name]=wrapped;try{(0,eval)(name+' = window["'+name+'"];');}catch(_){ }}catch(_){ }
-  }
-  function wrapRender(name,after){
-    try{const old=window[name]||eval(name);if(typeof old!=='function'||old.__newRiderStableWrapped)return;const wrapped=function(){const out=old.apply(this,arguments);const done=()=>{try{ensureAllFilterControls();after&&after();}catch(_){ }scheduleDecorate();};if(out&&typeof out.then==='function')return out.then(v=>{done();return v;});done();return out;};wrapped.__newRiderStableWrapped=true;window[name]=wrapped;try{(0,eval)(name+' = window["'+name+'"];');}catch(_){ }}catch(_){ }
-  }
-  function patchNewRiderProcessReset(){
-    try{const old=window.resetNewRiderListFilters||eval('resetNewRiderListFilters');if(typeof old==='function'&&!old.__newRiderFilterResetWrapped){const wrapped=function(){const r=old.apply(this,arguments);try{const v=document.getElementById('newRiderVehicleFilter');if(v)v.value='all';}catch(_){ }return r;};wrapped.__newRiderFilterResetWrapped=true;window.resetNewRiderListFilters=wrapped;try{(0,eval)('resetNewRiderListFilters = window.resetNewRiderListFilters;');}catch(_){ }}}catch(_){ }
-  }
-  function patchProfileSelector(){
-    try{const old=window.refreshControls||eval('refreshControls');if(typeof old==='function'&&!old.__newRiderProfileFilterWrapped){const wrapped=function(){const r=old.apply(this,arguments);try{applyProfileNewRiderFilter();ensureAllFilterControls();}catch(_){ }return r;};wrapped.__newRiderProfileFilterWrapped=true;window.refreshControls=wrapped;try{(0,eval)('refreshControls = window.refreshControls;');}catch(_){ }}}catch(_){ }
-  }
-  function applyProfileNewRiderFilter(){
-    const mode=currentFilter('profile');if(mode===FILTER_ALL)return;
-    const sel=document.getElementById('riderSel');if(!sel)return;
-    [...sel.options].forEach(opt=>{const id=opt.value;const pass=passNewRiderFilter(mode,{id});opt.hidden=!pass;opt.disabled=!pass;});
-    if(sel.value&&sel.selectedOptions[0]&&(sel.selectedOptions[0].hidden||sel.selectedOptions[0].disabled)){const next=[...sel.options].find(o=>!o.hidden&&!o.disabled);if(next){sel.value=next.value;try{state.selected=next.value;}catch(_){ }}}
-  }
-  function applyContactsDomFilter(){
-    const mode=currentFilter('contacts');const table=document.getElementById('contactsTable');if(!table||mode===FILTER_ALL)return;
-    const rows=[...table.querySelectorAll('tbody tr')];let shown=0;rows.forEach(row=>{const id=idFromRow(row),phone=phoneFromRow(row);const active=(id&&isActiveNewRiderById(id))||(!id&&phone&&isActiveNewRiderByPhone(phone))||(id&&phone&&isActiveNewRiderByPhone(phone));const pass=mode===FILTER_YES?active:!active;row.style.display=pass?'':'none';if(pass)shown++;});
-    let empty=table.querySelector('[data-new-rider-filter-empty]');if(!shown&&rows.length){if(!empty){empty=document.createElement('tr');empty.dataset.newRiderFilterEmpty='1';empty.innerHTML='<td class="empty" colspan="6">当前“是否新骑手 = '+h(filterLabel(mode))+'”筛选下暂无通讯录记录。</td>';table.tBodies[0]?.appendChild(empty);}else empty.style.display='';}else if(empty){empty.style.display='none';}
-  }
-  function applyCompareSelectionGuard(){
-    const mode=currentFilter('compare');if(mode===FILTER_ALL)return;
-    try{if(!Array.isArray(state.compareRiders))return;const before=state.compareRiders.length;state.compareRiders=state.compareRiders.filter(id=>passNewRiderFilter(mode,{id}));if(before!==state.compareRiders.length)toastMsg('已按“是否新骑手”筛选移除不符合条件的已选骑手');}catch(_){ }
-  }
-  function installStyle(){
-    if(document.getElementById('newRiderTagSyncStyleV2'))return;
-    const style=document.createElement('style');style.id='newRiderTagSyncStyleV2';style.textContent=`
-      .newRiderInlineTag{display:inline-flex;align-items:center;margin-left:6px;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:950;line-height:1.25;border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;white-space:nowrap;vertical-align:middle;box-shadow:0 3px 8px rgba(37,99,235,.08)}
-      .profileTitle>.newRiderInlineTag{font-size:12px;padding:3px 9px;position:relative;top:-1px}.riderName>.newRiderInlineTag,.name>.newRiderInlineTag{margin-top:3px}
-      .newRiderFilterField select{font-weight:850}.newRiderFilterField{border-color:#bfdbfe!important;background:linear-gradient(135deg,#eff6ff,#fff)!important}
-    `;document.head.appendChild(style);
-  }
-  function installObserver(){
-    try{if(window.__newRiderTagObserver&&window.__newRiderTagObserver.disconnect)window.__newRiderTagObserver.disconnect();}catch(_){ }
-    try{if(window.__newRiderStableObserver)window.__newRiderStableObserver.disconnect();}catch(_){ }
-    const target=document.querySelector('main')||document.body;
-    window.__newRiderStableObserver=new MutationObserver(muts=>{for(const m of muts){if(m.target&&m.target.closest&&m.target.closest('.newRiderInlineTag'))continue;if(m.addedNodes&&m.addedNodes.length){scheduleDecorate(activeRoot());break;}}});
-    window.__newRiderStableObserver.observe(target,{childList:true,subtree:true});
-  }
+  function decorate(root){try{rebuildCache(false);root=root||activeRoot();decorateButtons(root);decorateRows(root);decorateProfile();}catch(e){console.warn('新骑手标签同步失败：',e&&e.message||e);}}
+  function scheduleDecorate(){if(decorateTimer)return;decorateTimer=setTimeout(()=>{decorateTimer=null;decorate(activeRoot());},60);}
+  function wrapListFunction(name,key){try{const old=window[name]||(0,eval)(name);if(typeof old!=='function'||old.__newRiderFilterV3)return;const wrapped=function(){let list=old.apply(this,arguments)||[];const mode=modeFor(typeof key==='function'?key():key);return mode===ALL?list:list.filter(x=>pass(mode,x));};wrapped.__newRiderFilterV3=true;window[name]=wrapped;try{(0,eval)(name+' = window["'+name+'"];');}catch(_){ }}catch(_){ }}
+  function wrapRender(name,after){try{const old=window[name]||(0,eval)(name);if(typeof old!=='function'||old.__newRiderRenderV3)return;const wrapped=function(){const out=old.apply(this,arguments);const done=()=>{try{ensureControls();after&&after();applyDomFilters();}catch(_){ }scheduleDecorate();};if(out&&typeof out.then==='function')return out.then(v=>{done();return v;});done();return out;};wrapped.__newRiderRenderV3=true;window[name]=wrapped;try{(0,eval)(name+' = window["'+name+'"];');}catch(_){ }}catch(_){ }}
+  async function preloadNewRiderRecords(){try{if(typeof loadNewRiderRecords==='function'){await loadNewRiderRecords();rebuildCache(true);}}catch(e){console.warn('新骑手标签预加载失败：',e&&e.message||e);}}
+  function installStyle(){if(document.getElementById('newRiderFilterVisibleStyleV3'))return;const style=document.createElement('style');style.id='newRiderFilterVisibleStyleV3';style.textContent=`
+    .newRiderInlineTag{display:inline-flex;align-items:center;margin-left:6px;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:950;line-height:1.25;border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;white-space:nowrap;vertical-align:middle;box-shadow:0 3px 8px rgba(37,99,235,.08)}
+    .newRiderFilterField{border-color:#bfdbfe!important;background:linear-gradient(135deg,#eff6ff,#fff)!important}.newRiderFilterField select{font-weight:850}.contactIdLink>.newRiderInlineTag{margin-left:4px}
+  `;document.head.appendChild(style);}
   function init(){
-    installStyle();rebuildCache(true);ensureAllFilterControls();patchNewRiderProcessReset();patchProfileSelector();
-    wrapArrayFilter('filteredProblems','problems');
-    try{
-      const oldContact=window.contactCandidateItems||eval('contactCandidateItems');
-      if(typeof oldContact==='function'&&!oldContact.__newRiderContextFilterWrapped){
-        const wrappedContact=function(){
-          let list=oldContact.apply(this,arguments)||[];
-          let key='follow';
-          try{if(state&&state.tab==='ownerFollowup')key='owner';}catch(_){ }
-          const mode=currentFilter(key);
-          return mode===FILTER_ALL?list:list.filter(x=>passNewRiderFilter(mode,x));
-        };
-        wrappedContact.__newRiderContextFilterWrapped=true;
-        window.contactCandidateItems=wrappedContact;
-        try{(0,eval)('contactCandidateItems = window.contactCandidateItems;');}catch(_){ }
-      }
-    }catch(_){ }
-    wrapArrayFilter('returnPoolItems','returnPotential');
-    wrapArrayFilter('potentialPoolItems','returnPotential');
-    wrapArrayFilter('compareCandidates','compare');
-    wrapArrayFilter('diagnosisItems','diagnosis');
-    wrapArrayFilter('resultItems','tagCalc');
-    ['renderAll','selectTab','refreshControls','renderProblems','renderFollowup','renderFollowOwnerBoard','renderReturnPotentialPool','renderDiagnosis','renderCompare','renderProfile','renderRiderContacts','renderTagCalc','renderStationWeeklyReport'].forEach(n=>wrapRender(n,n==='renderRiderContacts'?applyContactsDomFilter:(n==='renderCompare'?applyCompareSelectionGuard:null)));
-    ['loadNewRiderRecords','saveNewRiderRecord','deleteNewRiderRecord','loadRiderContacts','saveRiderContact','deleteRiderContact','importContactCSV'].forEach(n=>wrapRender(n,()=>{rebuildCache(true);}));
-    window.isActiveNewRiderById=isActiveNewRiderById;
-    window.isActiveNewRiderByPhone=isActiveNewRiderByPhone;
-    window.getActiveNewRiderByPhone=getActiveNewRiderByPhone;
-    window.isNewRiderItem=isNewRiderItem;
-    window.decorateNewRiderTags=decorateNewRiderTags;
-    window.rebuildNewRiderTagCache=()=>rebuildCache(true);
-    installObserver();
-    setTimeout(()=>{ensureAllFilterControls();decorateNewRiderTags(activeRoot());},120);
-    setTimeout(()=>{ensureAllFilterControls();decorateNewRiderTags(activeRoot());},800);
+    try{if(window.__newRiderStableObserver&&window.__newRiderStableObserver.disconnect)window.__newRiderStableObserver.disconnect();}catch(_){ }
+    installStyle();rebuildCache(true);ensureControls();
+    wrapListFunction('filteredProblems','problems');
+    wrapListFunction('returnPoolItems','returnPotential');
+    wrapListFunction('potentialPoolItems','returnPotential');
+    wrapListFunction('compareCandidates','compare');
+    wrapListFunction('diagnosisItems','diagnosis');
+    wrapListFunction('contactCandidateItems',()=>{try{return state&&state.tab==='ownerFollowup'?'owner':'follow';}catch(_){return 'follow';}});
+    ['renderAll','selectTab','refreshControls','renderProblems','renderFollowup','renderFollowOwnerBoard','renderReturnPotentialPool','renderCompare','renderDiagnosis','renderProfile','renderRiderContacts','renderTagCalc','renderStationWeeklyReport'].forEach(n=>wrapRender(n));
+    ['loadNewRiderRecords','saveNewRiderRecord','deleteNewRiderRecord','loadRiderContacts','saveRiderContact','deleteRiderContact','importContactCSV'].forEach(n=>wrapRender(n,()=>rebuildCache(true)));
+    window.isActiveNewRiderById=isIdActive;window.isActiveNewRiderByPhone=isPhoneActive;window.isNewRiderItem=itemActive;window.passNewRiderGlobalFilter=pass;window.decorateNewRiderTags=decorate;window.rebuildNewRiderTagCache=()=>rebuildCache(true);
+    preloadNewRiderRecords().then(()=>{ensureControls();applyDomFilters();decorate(activeRoot());});
+    setTimeout(()=>{ensureControls();applyDomFilters();decorate(activeRoot());},250);
+    setTimeout(()=>{ensureControls();applyDomFilters();decorate(activeRoot());},1200);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
 
 </body>
 </html>
