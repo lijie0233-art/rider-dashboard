@@ -7662,6 +7662,164 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+<script>
+/* === 2026-08 hotfix: 尾单骑手管控新骑手筛选性能与标签稳定修复 === */
+(function(){
+  if(window.__tailNewRiderPerfStableFixV2)return;
+  window.__tailNewRiderPerfStableFixV2=true;
+
+  const SECTION_ID='tailOrderCenter';
+  const TOP_TABLE_ID='tailWorseTopTable';
+  const FILTER_ID='tailNewRiderFilter';
+  const TOP_VEHICLE_ID='tailTopVehicleFilterSel';
+  const BADGE_CLASS='newRiderInlineTag tailNewRiderStableTag';
+  let fullRenderTimer=null;
+  let bindingTimer=null;
+
+  function by(id){return document.getElementById(id)}
+  function section(){return by(SECTION_ID)}
+  function escHtml(v){try{if(typeof esc==='function')return esc(v);}catch(_){ }return String(v==null?'':v).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+  function num(v){return Number.isFinite(+v)?+v:0}
+  function fmtPct(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(2)+'%'}
+  function fmtCnt(v){return v==null||!Number.isFinite(+v)?'空白':(+v).toFixed(1)}
+  function pct(v){try{const x=ratePercent(v);return Number.isFinite(x)?x:null;}catch(_){const x=Number(v);return Number.isFinite(x)?x:null;}}
+  function orders(r){try{const x=val(r,'orders');return Number.isFinite(x)?x:0;}catch(_){return num(r&&r.orders)}}
+  function tailCount(r){const t=pct(r&&r.tailRate);return t==null?null:orders(r)*t/100}
+  function riderName(id,cur){try{return (riderMap&&riderMap.get&&riderMap.get(id)?.name)||cur?.name||id;}catch(_){return cur?.name||id}}
+  function allIds(){try{if(typeof riderIds==='function')return riderIds()||[];}catch(_){ }try{return Array.from(new Set((rows||[]).map(r=>r.id).filter(Boolean)));}catch(_){return []}}
+  function groupOf(v){
+    const s=String(v||'').trim().toLowerCase();
+    if(/(步行|walk|walking)/i.test(s))return {key:'walk',label:'步行'};
+    if(/(电动自行车|电动车|e-?bike|ebike|摩托|motor|motorcycle|scooter|汽车|car|auto)/i.test(s))return {key:'motor',label:'机动车'};
+    if(/(自行车|单车|bike|bicycle)/i.test(s))return {key:'bike',label:'自行车'};
+    return {key:'motor',label:'机动车'};
+  }
+  function mode(){return by(FILTER_ID)?.value||'all'}
+  function topVehicle(){return by(TOP_VEHICLE_ID)?.value||'all'}
+  function activeNewRider(id,localCache){
+    const key=String(id||'').trim();
+    if(!key)return false;
+    if(localCache&&localCache.has(key))return localCache.get(key);
+    let active=false;
+    try{if(typeof window.isActiveNewRiderById==='function')active=!!window.isActiveNewRiderById(key);}catch(_){active=false;}
+    if(localCache)localCache.set(key,active);
+    return active;
+  }
+  function passNewRider(id,localCache){
+    const m=mode();
+    if(m==='all')return true;
+    const active=activeNewRider(id,localCache);
+    return m==='yes'?active:!active;
+  }
+  function badgeHtml(id,localCache){return activeNewRider(id,localCache)?'<span class="'+BADGE_CLASS+'" data-new-rider-inline="1" data-tail-stable-badge="1" title="新骑手流程表 28 天内记录匹配；满 28 天后自动清除">新骑手</span>':''}
+  function setHint(){
+    const vehicle=topVehicle();
+    const nr=mode();
+    const vehicleLabel=vehicle==='motor'?'机动车':vehicle==='bike'?'自行车':vehicle==='walk'?'步行':'全部车型';
+    const nrLabel=nr==='yes'?'新骑手：是':nr==='no'?'新骑手：否':'新骑手：全部';
+    const hint=by('tailTopVehicleFilterHint');
+    if(hint)hint.textContent=`当前筛选：${vehicleLabel} · ${nrLabel} · 按本周尾单单量排序取 TOP10`;
+  }
+  function renderStableTop10(){
+    const wt=by(TOP_TABLE_ID);if(!wt)return;
+    const sec=section();if(!sec)return;
+    const vehicleFilter=topVehicle();
+    const nrCache=new Map();
+    let top=[];
+    try{
+      top=allIds().map(id=>{
+        if(!passNewRider(id,nrCache))return null;
+        const cur=rec(state.cycle,id),pre=rec(state.compare,id);
+        if(!cur)return null;
+        const g=groupOf(cur.vehicle||(pre&&pre.vehicle));
+        if(vehicleFilter!=='all'&&g.key!==vehicleFilter)return null;
+        const curPersonal=pct(cur.tailRate),prePersonal=pct(pre&&pre.tailRate);
+        const curTailCnt=tailCount(cur),preTailCnt=pre?tailCount(pre):null;
+        if(curTailCnt==null||curTailCnt<=0)return null;
+        const delta=(curPersonal!=null&&prePersonal!=null)?curPersonal-prePersonal:null;
+        return {id,name:riderName(id,cur),vehicle:String(cur.vehicle||(pre&&pre.vehicle)||'空白'),curPersonal,prePersonal,curTailCnt,preTailCnt,delta};
+      }).filter(Boolean).sort((a,b)=>b.curTailCnt-a.curTailCnt).slice(0,10);
+    }catch(e){console.warn('尾单 TOP10 稳定渲染失败：',e&&e.message||e);return;}
+    setHint();
+    let html='<thead><tr><th>排名</th><th>骑手</th><th>交通工具</th><th>本周骑手责尾单率</th><th>对比周骑手责尾单率</th><th>本周尾单单量</th><th>对比周尾单单量</th><th>裂化值尾单率</th><th>操作</th></tr></thead><tbody>';
+    top.forEach((x,i)=>{html+=`<tr data-tail-row="1" data-rider-id="${escHtml(x.id)}"><td><span class="rank">${i+1}</span></td><td><button class="nameBtn" data-track="${escHtml(x.id)}"><div class="riderName">${escHtml(x.name)}${badgeHtml(x.id,nrCache)}</div><div class="mini">ID ${escHtml(x.id)}</div></button></td><td>${escHtml(x.vehicle)}</td><td>${fmtPct(x.curPersonal)}</td><td>${fmtPct(x.prePersonal)}</td><td>${fmtCnt(x.curTailCnt)}</td><td>${fmtCnt(x.preTailCnt)}</td><td>${x.delta==null?'<span class="mini">空白</span>':`<b class="${x.delta>0?'dangerText':'tailStdOk'}">${x.delta>=0?'+':''}${x.delta.toFixed(2)}%</b>`}</td><td><button class="btn small" data-track="${escHtml(x.id)}">查看追踪</button></td></tr>`});
+    wt.innerHTML=top.length?html+'</tbody>':'<tr><td class="empty">暂无符合当前交通工具 / 是否新骑手筛选的本周尾单单量骑手</td></tr>';
+    wt.querySelectorAll('[data-track]').forEach(b=>{b.onclick=()=>{try{openProfile(b.dataset.track)}catch(_){ }}});
+  }
+  function refreshTailBadges(){
+    const sec=section();if(!sec)return;
+    const nrCache=new Map();
+    sec.querySelectorAll('[data-track]').forEach(el=>{
+      const id=el.dataset&&el.dataset.track;if(!id)return;
+      const host=(el.querySelector&&el.querySelector('.riderName'))||el;
+      let badge=host.querySelector&&host.querySelector(':scope > .tailNewRiderStableTag, :scope > .newRiderInlineTag');
+      const active=activeNewRider(id,nrCache);
+      if(active){
+        if(!badge){const s=document.createElement('span');s.className=BADGE_CLASS;s.dataset.newRiderInline='1';s.dataset.tailStableBadge='1';s.title='新骑手流程表 28 天内记录匹配；满 28 天后自动清除';s.textContent='新骑手';host.appendChild(s);} 
+        else{badge.className=BADGE_CLASS;badge.dataset.newRiderInline='1';badge.dataset.tailStableBadge='1';badge.textContent='新骑手';}
+      }else if(badge){badge.remove();}
+    });
+  }
+  function scheduleFullRender(reason){
+    if(fullRenderTimer)clearTimeout(fullRenderTimer);
+    fullRenderTimer=setTimeout(()=>{
+      fullRenderTimer=null;
+      try{
+        const m=mode();
+        try{sessionStorage.setItem('newRiderFilter:tail',m);}catch(_){ }
+        try{if(typeof state!=='undefined'&&state)state.tailNewRiderFilter=m;}catch(_){ }
+        if(typeof window.rebuildNewRiderTagCache==='function')window.rebuildNewRiderTagCache();
+      }catch(_){ }
+      try{
+        // 调用最终生效的尾单渲染函数，但仅合并为一次，避免筛选切换触发多层重复渲染。
+        if(typeof renderTailOrderCenter==='function')renderTailOrderCenter();
+      }catch(e){console.warn('尾单骑手管控稳定刷新失败：',e&&e.message||e);}
+      requestAnimationFrame(()=>{renderStableTop10();refreshTailBadges();});
+    },80);
+  }
+  function cloneControl(id){
+    const el=by(id);if(!el||el.dataset.tailPerfStableCloned==='1')return by(id);
+    const clone=el.cloneNode(true);clone.value=el.value;clone.dataset.tailPerfStableCloned='1';el.replaceWith(clone);return clone;
+  }
+  function bindControls(){
+    if(bindingTimer)clearTimeout(bindingTimer);
+    bindingTimer=setTimeout(()=>{
+      bindingTimer=null;
+      const nr=cloneControl(FILTER_ID);
+      const tv=cloneControl(TOP_VEHICLE_ID);
+      if(nr&&!nr.dataset.tailPerfStableBound){
+        nr.dataset.tailPerfStableBound='1';
+        try{const saved=sessionStorage.getItem('newRiderFilter:tail');if(saved)nr.value=saved;}catch(_){ }
+        nr.addEventListener('change',()=>scheduleFullRender('new-rider-filter'));
+      }
+      if(tv&&!tv.dataset.tailPerfStableBound){
+        tv.dataset.tailPerfStableBound='1';
+        tv.addEventListener('change',()=>requestAnimationFrame(()=>{renderStableTop10();refreshTailBadges();}));
+      }
+      setHint();renderStableTop10();refreshTailBadges();
+    },0);
+  }
+  function wrapRender(name){
+    try{
+      const old=window[name]||(0,eval)(name);
+      if(typeof old!=='function'||old.__tailPerfStableWrapped)return;
+      const fn=function(){const out=old.apply(this,arguments);const done=()=>setTimeout(()=>{bindControls();renderStableTop10();refreshTailBadges();},0);if(out&&typeof out.then==='function')return out.then(v=>{done();return v});done();return out;};
+      fn.__tailPerfStableWrapped=true;window[name]=fn;try{(0,eval)(name+' = window["'+name+'"]');}catch(_){ }
+    }catch(_){ }
+  }
+  function installStyle(){
+    if(by('tailNewRiderPerfStableStyle'))return;
+    const st=document.createElement('style');st.id='tailNewRiderPerfStableStyle';st.textContent=`
+      #tailOrderCenter .tailNewRiderStableTag{display:inline-flex;align-items:center;margin-left:6px;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:950;line-height:1.25;border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;white-space:nowrap;vertical-align:middle;box-shadow:0 3px 8px rgba(37,99,235,.08)}
+      #tailOrderCenter .nameBtn .riderName{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+    `;document.head.appendChild(st);
+  }
+  function init(){installStyle();wrapRender('renderTailOrderCenter');wrapRender('selectTab');wrapRender('renderAll');bindControls();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  [120,350,800,1500,3000].forEach(t=>setTimeout(init,t));
+})();
+</script>
+
 </body>
 </html>
 
