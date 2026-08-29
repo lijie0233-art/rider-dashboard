@@ -4131,6 +4131,149 @@ function bindNewRiderProcessControls(){const region=byId('newRiderRegion');if(re
 function initNewRiderProcessFeature(){bindNewRiderProcessControls();loadNewRiderRecords().then(renderNewRiderProcess)}
 
 
+/* === Training center progress sync + new rider list column === */
+(function(){
+  const TRAINING_PROGRESS_TABLE='rider_training_progress';
+  const TRAINING_EMPTY='-';
+  let trainingProgressLoaded=false;
+  let trainingProgressLoading=null;
+  let trainingProgressMap=new Map();
+
+  function normalizeTrainingPhone(v){
+    let d=String(v||'').replace(/\D/g,'');
+    if(!d)return '';
+    if(d.startsWith('6104')&&d.length>=12)d='61'+d.slice(3);
+    if(d.startsWith('04')&&d.length===10)d='61'+d.slice(1);
+    if(d.startsWith('4')&&d.length===9)d='61'+d;
+    if(d.startsWith('0614')&&d.length>=12)d=d.slice(1);
+    return d;
+  }
+  window.normalizeTrainingPhone=window.normalizeTrainingPhone||normalizeTrainingPhone;
+
+  function trainingPercentNumber(v){
+    const n=Number(v);
+    if(!Number.isFinite(n))return null;
+    return Math.max(0,Math.min(100,Math.round(n)));
+  }
+  function trainingProgressTextValue(info){
+    if(!info||!info.hasData)return TRAINING_EMPTY;
+    const pct=trainingPercentNumber(info.percent);
+    if(pct===null)return TRAINING_EMPTY;
+    return pct>=100?'已完成':`${pct}%`;
+  }
+  function trainingProgressBadge(info){
+    const text=trainingProgressTextValue(info);
+    if(text===TRAINING_EMPTY)return '<span class="muted">-</span>';
+    const cls=text==='已完成'?'yesPill':'pill blue';
+    return `<span class="${cls}" title="新培训进度：${esc(text)}">${esc(text)}</span>`;
+  }
+  function normalizeTrainingProgressRow(row={}){
+    const phone=normalizeTrainingPhone(row.normalized_phone||row.phone||row.display_phone||row.rider_phone||'');
+    const percent=trainingPercentNumber(row.progress_percent ?? row.training_progress_percent ?? row.new_training_progress ?? 0);
+    return {
+      phone,
+      display_phone:row.display_phone||row.phone||row.rider_phone||'',
+      progress_percent:percent===null?0:percent,
+      completed_lessons:Array.isArray(row.completed_lessons)?row.completed_lessons:[],
+      completed_count:Number(row.completed_count||0)||0,
+      total_lessons:Number(row.total_lessons||0)||0,
+      completed_at:row.completed_at||null,
+      updated_at:row.updated_at||row.training_last_sync_at||null,
+      progress_payload:row.progress_payload||row.training_progress_payload||null
+    };
+  }
+  async function loadTrainingProgressRows(force=false){
+    if(trainingProgressLoaded&&!force)return Array.from(trainingProgressMap.values());
+    if(trainingProgressLoading&&!force)return trainingProgressLoading;
+    trainingProgressLoading=(async()=>{
+      const map=new Map();
+      try{
+        const {data,error}=await getCloudClient().from(TRAINING_PROGRESS_TABLE).select('*').order('updated_at',{ascending:false});
+        if(error)throw error;
+        (data||[]).map(normalizeTrainingProgressRow).forEach(r=>{if(r.phone&&!map.has(r.phone))map.set(r.phone,r)});
+      }catch(e){
+        console.warn('培训进度云端读取失败，暂不展示新培训进度：',e?.message||e);
+      }
+      trainingProgressMap=map;
+      trainingProgressLoaded=true;
+      return Array.from(map.values());
+    })();
+    try{return await trainingProgressLoading}finally{trainingProgressLoading=null}
+  }
+  window.loadRiderTrainingProgress=loadTrainingProgressRows;
+
+  function getTrainingProgressInfoForNewRider(row={}){
+    const phone=normalizeTrainingPhone(row.phone||row.rider_phone||row.mobile||'');
+    const direct=trainingPercentNumber(row.training_progress_percent ?? row.new_training_progress ?? row.new_training_progress_percent);
+    const synced=phone?trainingProgressMap.get(phone):null;
+    if(synced)return {hasData:true,percent:synced.progress_percent,row:synced,source:'training_progress'};
+    if(direct!==null)return {hasData:true,percent:direct,row,source:'new_rider_process'};
+    return {hasData:false,percent:null,row:null,source:'none'};
+  }
+  window.getNewRiderTrainingProgressInfo=getTrainingProgressInfoForNewRider;
+  window.newRiderTrainingProgressBadge=trainingProgressBadge;
+  window.newRiderTrainingProgressTextValue=trainingProgressTextValue;
+
+  const __normalizeNewRiderRecordForTraining=normalizeNewRiderRecord;
+  normalizeNewRiderRecord=function(x={}){
+    const r=__normalizeNewRiderRecordForTraining(x);
+    r.training_progress_percent=trainingPercentNumber(x.training_progress_percent ?? x.new_training_progress ?? x.new_training_progress_percent);
+    r.training_completed_at=x.training_completed_at||null;
+    r.training_last_sync_at=x.training_last_sync_at||null;
+    r.training_progress_payload=x.training_progress_payload||x.progress_payload||null;
+    return r;
+  };
+
+  const __loadNewRiderRecordsForTraining=loadNewRiderRecords;
+  loadNewRiderRecords=async function(){
+    const rows=await __loadNewRiderRecordsForTraining.apply(this,arguments);
+    await loadTrainingProgressRows(true);
+    newRiderRecords=(newRiderRecords||[]).map(normalizeNewRiderRecord);
+    saveNewRiderLocal();
+    return newRiderRecords;
+  };
+
+  const __renderNewRiderStatsTraining=renderNewRiderStats;
+  renderNewRiderStats=function(items=filteredNewRiderRecords()){
+    const grid=byId('newRiderStatsGrid');
+    if(!grid)return __renderNewRiderStatsTraining(items);
+    const total=newRiderRecords.length,view=items.length,wa=items.filter(x=>x.whatsapp_filled==='是').length;
+    const trainingDone=items.filter(x=>{const info=getTrainingProgressInfoForNewRider(x);return info.hasData&&trainingPercentNumber(info.percent)>=100}).length;
+    const trainingNoData=items.filter(x=>!getTrainingProgressInfoForNewRider(x).hasData).length;
+    const pending=Math.max(0,view-trainingDone-trainingNoData);
+    const vehicleStats=newRiderCategoryStatsHtml(items,x=>x.vehicle_type,['步行','电动自行车','自行车','摩托车','汽车','未填写']);
+    const groupStats=newRiderCategoryStatsHtml(items,x=>x.rider_group,['华','西','未填写']);
+    grid.innerHTML=`<div class="newRiderStatCard"><b>全部新骑手</b><div class="n">${total}</div></div><div class="newRiderStatCard"><b>当前筛选</b><div class="n">${view}</div></div><div class="newRiderStatCard"><b>已填 Whatsapp</b><div class="n">${wa}</div></div><div class="newRiderStatCard"><b>新培训已完成</b><div class="n">${trainingDone}</div></div><div class="newRiderStatCard"><b>新培训进行中</b><div class="n">${pending}</div></div><div class="newRiderStatCard"><b>车型统计</b><div class="newRiderStatList">${vehicleStats}</div></div><div class="newRiderStatCard"><b>骑手人群统计</b><div class="newRiderStatList">${groupStats}</div></div>`;
+  };
+
+  renderNewRiderProcess=function(){
+    const table=byId('newRiderTable');
+    if(!table)return;
+    const hint=byId('newRiderOwnerHint');
+    if(hint)hint.textContent='自动分配规则：CBD → Jack；Kingsford / Waterloo / Mascot / 全部学生区 → Rui；其他区域（含 Macquarie）→ 曹小鹏。新骑手记录自动留存 '+NEW_RIDER_RETENTION_DAYS+' 天，超过后系统自动从列表清理。培训进度会通过手机号自动同步。'+(newRiderLastPurgeCount?(' 本次已清理 '+newRiderLastPurgeCount+' 条过期记录。'):'');
+    applyNewRiderOwner();
+    toggleNewRiderWhatsappAccountVisibility();
+    const allItems=filteredNewRiderRecords();
+    renderNewRiderStats(allItems);
+    renderNewRiderPagination(allItems.length);
+    if(!allItems.length){table.innerHTML='<tr><td class="empty">暂无新骑手流程记录。请点击“新增骑手”录入第一条信息。</td></tr>';return}
+    const items=newRiderPagedItems(allItems);
+    table.innerHTML='<thead><tr><th>添加日期</th><th>手机号</th><th>车型</th><th>真实车型</th><th>骑手人群</th><th>区域</th><th>跟进人</th><th>是否填写 Whatsapp</th><th>WhatsApp 账号</th><th>是否完成培训</th><th>新培训进度</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'+items.map(x=>{const progressInfo=getTrainingProgressInfoForNewRider(x);return `<tr><td>${esc(x.add_date||'-')}</td><td><b>${esc(x.phone||'-')}</b></td><td>${esc(x.vehicle_type||'-')}</td><td>${esc(x.real_vehicle_type||'-')}</td><td><span class="pill blue">${esc(x.rider_group||'-')}</span></td><td>${esc(x.region||'-')}</td><td><span class="ownerPill">${esc(x.follow_owner||newRiderOwnerByRegion(x.region))}</span></td><td><span class="${x.whatsapp_filled==='是'?'yesPill':'noPill'}">${esc(x.whatsapp_filled||'是')}</span></td><td>${x.whatsapp_filled==='是'?esc(x.whatsapp_account||'-'):'-'}</td><td><span class="${x.training_completed==='是'?'yesPill':'noPill'}">${esc(x.training_completed||'是')}</span></td><td>${trainingProgressBadge(progressInfo)}</td><td>${esc((x.remark||'').slice(0,80))}${(x.remark||'').length>80?'…':''}</td><td>${esc((x.updated_at||x.created_at||'').slice(0,10))}</td><td><div class="inlineActions"><button class="btn small" data-new-rider-edit="${esc(x.id)}">编辑</button><button class="btn small danger" data-new-rider-delete="${esc(x.id)}">删除</button></div></td></tr>`}).join('')+'</tbody>';
+    table.querySelectorAll('[data-new-rider-edit]').forEach(btn=>btn.onclick=()=>editNewRiderRecord(btn.dataset.newRiderEdit));
+    table.querySelectorAll('[data-new-rider-delete]').forEach(btn=>btn.onclick=()=>deleteNewRiderRecord(btn.dataset.newRiderDelete));
+  };
+
+  exportNewRiderRecords=function(){
+    const items=filteredNewRiderRecords();
+    if(!items.length){toast('暂无可导出的新骑手记录');return}
+    const header=['添加日期','手机号','车型','真实车型','骑手人群','区域','跟进人','是否填写Whatsapp','WhatsApp账号','是否完成培训','新培训进度','备注','创建时间','更新时间'];
+    const lines=[header,...items.map(x=>[x.add_date,x.phone,x.vehicle_type,x.real_vehicle_type,x.rider_group,x.region,x.follow_owner,x.whatsapp_filled,x.whatsapp_account,x.training_completed,trainingProgressTextValue(getTrainingProgressInfoForNewRider(x)),x.remark,x.created_at,x.updated_at])];
+    downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'新骑手流程表.csv');
+    toast('已导出新骑手流程表');
+  };
+})();
+
+
 
 /* === Patch: order appeal area editable for existing records === */
 (function(){
