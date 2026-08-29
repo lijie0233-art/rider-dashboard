@@ -7961,6 +7961,169 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
   [120,350,800,1500,3000].forEach(t=>setTimeout(init,t));
 })();
+
+
+/* === Patch: training link in new rider process + fixed false account penalty actions === */
+(function(){
+  const TRAINING_URL='https://www.riderhpsearch.com/HungryPanda_Training_Center.html';
+  const PENALTY_OPTIONS=['已处罚','未处罚','已关账号','已关Auto'];
+  const DEFAULT_PENALTY='未处罚';
+  const by=id=>document.getElementById(id);
+  function safeToast(msg){try{typeof toast==='function'?toast(msg):console.log(msg)}catch(_){console.log(msg)}}
+  function copyText(text,okMsg){
+    const done=()=>safeToast(okMsg||'已复制');
+    if(navigator.clipboard&&window.isSecureContext!==false){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+    else fallbackCopy(text,done);
+  }
+  function fallbackCopy(text,done){
+    const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';ta.style.top='0';document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');done&&done()}catch(e){safeToast('复制失败，请手动复制链接')}finally{ta.remove()}
+  }
+  function normalizePenaltyAction(v){
+    const raw=String(v||'').trim();
+    return PENALTY_OPTIONS.includes(raw)?raw:DEFAULT_PENALTY;
+  }
+  window.normalizeFalseAccountPenaltyAction=normalizePenaltyAction;
+
+  function ensureTrainingLinkBox(){
+    const section=by('newRiderProcess');
+    if(!section||by('newRiderTrainingExternalLinkBox'))return;
+    const stats=by('newRiderStatsGrid');
+    const box=document.createElement('div');
+    box.id='newRiderTrainingExternalLinkBox';
+    box.className='newRiderTrainingExternalLinkBox';
+    box.innerHTML='<div><b>外部培训链接</b><span>骑手通过该链接进入培训中心，填写手机号后自动同步新培训进度。</span><code id="newRiderTrainingExternalUrl">'+TRAINING_URL+'</code></div><button class="btn small" id="copyNewRiderTrainingUrlBtn" type="button">复制培训链接</button>';
+    (stats?.parentNode||section.querySelector('.panel')||section).insertBefore(box,stats||section.querySelector('.newRiderListCard'));
+    by('copyNewRiderTrainingUrlBtn')?.addEventListener('click',()=>copyText(TRAINING_URL,'培训链接已复制'));
+  }
+
+  function ensureFalsePenaltyActionButton(){
+    const exportBtn=by('exportFalseAccountBtn');
+    if(!exportBtn||by('openFalseAccountPenaltyActionBtn'))return;
+    const btn=document.createElement('button');
+    btn.className='btn small';
+    btn.id='openFalseAccountPenaltyActionBtn';
+    btn.type='button';
+    btn.textContent='新增处罚动作';
+    exportBtn.insertAdjacentElement('afterend',btn);
+    btn.addEventListener('click',()=>{
+      try{if(typeof openFalseAccountModal==='function')openFalseAccountModal();else by('falseAccountModal')?.classList.add('show')}catch(_){by('falseAccountModal')?.classList.add('show')}
+      ensureFalsePenaltySelect();
+      const title=by('falseAccountModalTitle');if(title)title.textContent='新增处罚动作';
+      const sub=by('falseAccountModalSub');if(sub)sub.textContent='填写手机号并选择固定处罚动作，保存后进入虚假账户记录列表。';
+      const save=by('saveFalseAccountBtn');if(save)save.textContent='保存处罚动作';
+      const action=by('falseAccountPenaltyAction');if(action){action.value='已处罚';setTimeout(()=>action.focus(),60)}
+    });
+  }
+
+  function ensureFalsePenaltySelect(){
+    let el=by('falseAccountPenaltyAction');
+    if(!el)return;
+    if(el.tagName&&el.tagName.toLowerCase()==='select'){
+      const cur=normalizePenaltyAction(el.value);
+      const html=PENALTY_OPTIONS.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+      if(el.innerHTML!==html)el.innerHTML=html;
+      el.value=cur;
+      return;
+    }
+    const sel=document.createElement('select');
+    sel.id='falseAccountPenaltyAction';
+    sel.innerHTML=PENALTY_OPTIONS.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+    sel.value=normalizePenaltyAction(el.value);
+    el.replaceWith(sel);
+  }
+
+  function normalizeExistingFalseAccountRows(){
+    try{
+      if(Array.isArray(falseAccountRecords)){
+        falseAccountRecords=falseAccountRecords.map(r=>Object.assign({},r,{penalty_action:normalizePenaltyAction(r&&r.penalty_action)}));
+      }
+    }catch(_){ }
+  }
+
+  function alignFalseAccountTableColumns(){
+    const table=by('falseAccountTable');
+    if(!table)return;
+    const headRow=table.querySelector('thead tr');
+    if(headRow){
+      const labels=Array.from(headRow.children).map(th=>(th.textContent||'').trim());
+      const penaltyIdx=labels.indexOf('处罚动作');
+      const remarkIdx=labels.indexOf('备注');
+      if(penaltyIdx>-1&&remarkIdx>-1&&penaltyIdx<remarkIdx){
+        const penaltyTh=headRow.children[penaltyIdx];
+        const remarkTh=headRow.children[remarkIdx];
+        remarkTh.insertAdjacentElement('afterend',penaltyTh);
+        table.querySelectorAll('tbody tr').forEach(tr=>{
+          const cells=tr.children;
+          if(cells.length>Math.max(penaltyIdx,remarkIdx)){
+            const penaltyTd=cells[penaltyIdx];
+            const remarkTd=cells[remarkIdx];
+            remarkTd.insertAdjacentElement('afterend',penaltyTd);
+          }
+        });
+      }
+    }
+  }
+
+  function installStyle(){
+    if(by('trainingFalsePenaltyPatchStyle'))return;
+    const st=document.createElement('style');st.id='trainingFalsePenaltyPatchStyle';st.textContent=`
+      .newRiderTrainingExternalLinkBox{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 14px;padding:13px 14px;border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#f8fafc);border-radius:18px;box-shadow:var(--shadow2)}
+      .newRiderTrainingExternalLinkBox b{display:block;font-size:13px;color:#1e3a8a;margin-bottom:3px}.newRiderTrainingExternalLinkBox span{display:block;font-size:12px;color:#475467;margin-bottom:5px}.newRiderTrainingExternalLinkBox code{display:inline-block;max-width:min(720px,65vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:5px 8px;color:#1d4ed8;font-size:12px}
+      @media(max-width:760px){.newRiderTrainingExternalLinkBox{align-items:stretch;flex-direction:column}.newRiderTrainingExternalLinkBox code{max-width:100%}}
+    `;document.head.appendChild(st);
+  }
+
+  function wrapFunction(name,after,before){
+    try{
+      const old=window[name]||(0,eval)(name);
+      if(typeof old!=='function'||old['__trainingFalsePenaltyWrapped_'+name])return;
+      const fn=function(){
+        if(before)try{before.apply(this,arguments)}catch(e){console.warn(name+' before patch failed',e&&e.message||e)}
+        const out=old.apply(this,arguments);
+        const done=()=>{try{after&&after.apply(this,arguments)}catch(e){console.warn(name+' after patch failed',e&&e.message||e)}};
+        if(out&&typeof out.then==='function')return out.then(v=>{done();return v});
+        done();return out;
+      };
+      fn['__trainingFalsePenaltyWrapped_'+name]=true;window[name]=fn;try{(0,eval)(name+' = window["'+name+'"]');}catch(_){ }
+    }catch(_){ }
+  }
+
+  function installWrappers(){
+    wrapFunction('renderNewRiderProcess',ensureTrainingLinkBox);
+    wrapFunction('bindNewRiderProcessControls',ensureTrainingLinkBox);
+    wrapFunction('renderFalseAccounts',()=>{ensureFalsePenaltyActionButton();ensureFalsePenaltySelect();alignFalseAccountTableColumns();},normalizeExistingFalseAccountRows);
+    wrapFunction('bindFalseAccountControls',()=>{ensureFalsePenaltyActionButton();ensureFalsePenaltySelect();});
+    wrapFunction('resetFalseAccountForm',()=>{ensureFalsePenaltySelect();const el=by('falseAccountPenaltyAction');if(el)el.value=DEFAULT_PENALTY;});
+    wrapFunction('editFalseAccountRecord',()=>{ensureFalsePenaltySelect();const el=by('falseAccountPenaltyAction');if(el)el.value=normalizePenaltyAction(el.value);});
+    wrapFunction('readFalseAccountForm',null,ensureFalsePenaltySelect);
+    wrapFunction('loadFalseAccountRecords',normalizeExistingFalseAccountRows);
+    try{
+      const oldNormalize=window.normalizeFalseAccountRecord||(0,eval)('normalizeFalseAccountRecord');
+      if(typeof oldNormalize==='function'&&!oldNormalize.__fixedPenaltyOptions){
+        const fn=function(x){const r=oldNormalize.apply(this,arguments);r.penalty_action=normalizePenaltyAction(r.penalty_action);return r;};
+        fn.__fixedPenaltyOptions=true;window.normalizeFalseAccountRecord=fn;try{(0,eval)('normalizeFalseAccountRecord = window.normalizeFalseAccountRecord');}catch(_){ }
+      }
+    }catch(_){ }
+    try{
+      const oldExport=window.exportFalseAccountRecords||(0,eval)('exportFalseAccountRecords');
+      if(typeof oldExport==='function'&&!oldExport.__falsePenaltyExportOrder){
+        const fn=function(){
+          const items=typeof filteredFalseAccountRecords==='function'?filteredFalseAccountRecords():[];
+          if(!items.length){safeToast('暂无可导出的虚假账户记录');return}
+          const header=['记录时间','手机号','是否已开户','人群','区域','备注','处罚动作','图片链接','创建时间','更新时间'];
+          const lines=[header,...items.map(x=>[x.record_time,x.phone,x.account_opened,x.crowd_type,x.region,x.remark,normalizePenaltyAction(x.penalty_action),(x.image_urls||[]).join(' | '),x.created_at,x.updated_at])];
+          downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'虚假账户记录表.csv');
+          safeToast('已导出虚假账户记录表');
+        };
+        fn.__falsePenaltyExportOrder=true;window.exportFalseAccountRecords=fn;try{(0,eval)('exportFalseAccountRecords = window.exportFalseAccountRecords');}catch(_){ }
+      }
+    }catch(_){ }
+  }
+  function init(){installStyle();installWrappers();ensureTrainingLinkBox();ensureFalsePenaltyActionButton();ensureFalsePenaltySelect();alignFalseAccountTableColumns();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  [120,400,900,1600,3000].forEach(t=>setTimeout(init,t));
+})();
 </script>
 
 </body>
