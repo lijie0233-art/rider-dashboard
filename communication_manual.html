@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>沟通手册｜HungryPanda</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--yellow:#ffd400;--yellow2:#fff4a8;--ink:#101828;--muted:#667085;--line:#e5e7eb;--panel:#fff;--green:#079455;--green2:#ecfdf3;--amber:#dc6803;--amber2:#fffaeb;--shadow:0 18px 44px rgba(16,24,40,.12);--r:24px}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0,#fff7c2 0,#ffd400 36%,#ffc700 100%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC","Microsoft YaHei",sans-serif}.wrap{max-width:1120px;margin:0 auto;padding:22px}.hero{background:rgba(255,255,255,.94);border:1px solid rgba(16,24,40,.08);border-radius:30px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.hero h1{margin:0;font-size:28px;letter-spacing:-.04em}.sub{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px}.toolbar{background:rgba(255,255,255,.94);border:1px solid rgba(16,24,40,.08);border-radius:22px;box-shadow:0 8px 22px rgba(16,24,40,.08);padding:14px;margin-bottom:14px;display:grid;grid-template-columns:1.5fr 200px 200px auto;gap:10px;align-items:end}.field{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:10px 12px}.field span{font-size:12px;color:var(--muted);font-weight:900}input,select,textarea{border:0;outline:0;background:transparent;color:inherit;font:inherit}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:13px;padding:10px 13px;font-weight:900;cursor:pointer}.btn:hover{transform:translateY(-1px)}.btn.primary{background:#101828;color:#fff;border-color:#101828}.statusLine{font-size:13px;color:#344054;margin:0 0 12px 2px;font-weight:700}.grid{display:grid;gap:12px}.card{background:rgba(255,255,255,.96);border:1px solid rgba(16,24,40,.08);border-radius:22px;box-shadow:0 8px 22px rgba(16,24,40,.08);padding:15px;transition:.15s}.card.pending{border-color:#fdb022;background:linear-gradient(135deg,#fffaf0,#fff)}.card.confirmed{background:rgba(248,250,252,.96);color:#475467}.cardHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.cat{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950;background:#101828;color:#fff}.pill{display:inline-flex;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950}.pill.pending{background:var(--amber2);color:var(--amber);border:1px solid #fedf89}.pill.confirmed{background:var(--green2);color:var(--green);border:1px solid #bbf7d0}.question{font-size:17px;font-weight:950;line-height:1.4;margin:12px 0 8px}.content{white-space:pre-wrap;line-height:1.68;color:#344054;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.card.confirmed .content{background:#f8fafc;color:#667085}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.mini{font-size:12px;color:var(--muted);font-weight:700}.modal{position:fixed;inset:0;background:rgba(16,24,40,.48);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}.modal.show{display:flex}.modalBox{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:26px;box-shadow:var(--shadow);padding:18px}.modalHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.modalHead b{font-size:19px}.iconBtn{border:0;background:#f2f4f7;border-radius:999px;width:34px;height:34px;cursor:pointer;font-weight:950}.modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}#editContent{min-height:170px}.empty{background:rgba(255,255,255,.94);border-radius:22px;padding:30px;text-align:center;color:#667085;font-weight:900}.readonlyHint{background:#f2f4f7;border:1px solid var(--line);color:#667085;border-radius:14px;padding:9px 11px;font-size:12px;font-weight:800}@media(max-width:760px){.wrap{padding:14px}.hero{flex-direction:column}.hero h1{font-size:24px}.toolbar{grid-template-columns:1fr}.modalBox{border-radius:22px}.cardHead{flex-direction:column}.actions .btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>沟通手册</h1>
+      <div class="sub">外部访问页面仅用于查看全部沟通话术；待确认审核的话术可提交内容修改，已确认话术仅可读。</div>
+    </div>
+    <div class="cat">HungryPanda</div>
+  </div>
+
+  <div class="toolbar">
+    <label class="field"><span>搜索词语 / 整句</span><input id="searchInp" placeholder="输入关键词，支持模糊匹配" /></label>
+    <label class="field"><span>审核状态</span><select id="statusSel"><option value="all">全部状态</option><option value="待确认审核">待确认审核</option><option value="已确认">已确认</option></select></label>
+    <label class="field"><span>话术分类</span><select id="catSel"><option value="all">全部分类</option></select></label>
+    <button class="btn primary" id="searchBtn">搜索</button>
+  </div>
+  <div class="statusLine" id="statusLine">正在读取话术库...</div>
+  <div class="grid" id="manualGrid"></div>
+</div>
+
+<div class="modal" id="editModal">
+  <div class="modalBox">
+    <div class="modalHead"><div><b>编辑待审核话术</b><div class="sub">外部页面仅允许修改“待确认审核”话术，提交后状态仍保持待确认审核。</div></div><button class="iconBtn" id="closeEditBtn">✕</button></div>
+    <label class="field"><span>话术分类</span><input id="editCategory" /></label>
+    <label class="field"><span>问题</span><input id="editQuestion" /></label>
+    <label class="field"><span>沟通话术内容</span><textarea id="editContent"></textarea></label>
+    <div class="readonlyHint">提交后将同步回写后台话术库，等待后台确认审核。</div>
+    <div class="modalActions"><button class="btn" id="cancelEditBtn">取消</button><button class="btn primary" id="saveEditBtn">提交修改</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CLOUD_CONFIG={url:'https://pxgfvdcajbkviijayemo.supabase.co',anonKey:'sb_publishable_iDwyhhC-3R2gjXaVveAwtg_1Yb16RAy'};
+  const TABLE='communication_manual_scripts';
+  const PENDING='待确认审核', CONFIRMED='已确认';
+  let client=null, records=[], editingId='';
+  const by=id=>document.getElementById(id);
+  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  const status=v=>String(v||'')===CONFIRMED?CONFIRMED:PENDING;
+  function getClient(){if(!client)client=window.supabase.createClient(CLOUD_CONFIG.url,CLOUD_CONFIG.anonKey);return client}
+  function norm(x){return {id:String(x.id||''),category:String(x.category||'').trim(),question:String(x.question||'').trim(),content:String(x.content||'').trim(),review_status:status(x.review_status),updated_at:x.updated_at||''}}
+  function scoreOne(text,q){text=String(text||'').toLowerCase().replace(/\s+/g,'');q=String(q||'').toLowerCase().replace(/\s+/g,'');if(!q)return 0;if(text===q)return 100;if(text.includes(q))return Math.min(99,Math.round(86+Math.min(13,q.length/Math.max(text.length,1)*28)));let hits=0,idx=0;for(const ch of q){const p=text.indexOf(ch,idx);if(p>=0){hits++;idx=p+1}}const seq=hits/q.length;const unique=[...new Set(q.split(''))];const contain=unique.filter(ch=>text.includes(ch)).length/Math.max(unique.length,1);return Math.round(Math.max(seq*76,contain*58))}
+  function matchScore(r,q){if(!q)return null;return Math.max(scoreOne(r.category,q),scoreOne(r.question,q),scoreOne(r.content,q),scoreOne([r.category,r.question,r.content].join(' '),q))}
+  async function load(){try{by('statusLine').textContent='正在读取话术库...';const {data,error}=await getClient().from(TABLE).select('*').order('updated_at',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;records=(data||[]).map(norm);render()}catch(e){by('statusLine').textContent='话术库读取失败，请稍后重试或联系后台管理员：'+(e.message||e);by('manualGrid').innerHTML='<div class="empty">无法读取沟通手册</div>';}}
+  function renderCats(){const sel=by('catSel'),prev=sel.value||'all';const cats=[...new Set(records.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-CN'));sel.innerHTML='<option value="all">全部分类</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');sel.value=cats.includes(prev)?prev:'all'}
+  function render(){renderCats();const q=by('searchInp').value.trim(),s=by('statusSel').value,c=by('catSel').value;let arr=records.map(r=>({r,score:matchScore(r,q)}));if(q)arr=arr.filter(x=>x.score>0).sort((a,b)=>b.score-a.score||String(b.r.updated_at).localeCompare(String(a.r.updated_at)));if(s!=='all')arr=arr.filter(x=>x.r.review_status===s);if(c!=='all')arr=arr.filter(x=>x.r.category===c);by('statusLine').textContent=`共 ${records.length} 条话术，当前展示 ${arr.length} 条`+(q?'，已按匹配概率排序':'');by('manualGrid').innerHTML=arr.length?arr.map(({r,score})=>`<div class="card ${r.review_status===PENDING?'pending':'confirmed'}">
+    <div class="cardHead"><span class="cat">${esc(r.category||'-')}</span><span class="pill ${r.review_status===PENDING?'pending':'confirmed'}">${esc(r.review_status)}</span></div>
+    <div class="question">${esc(r.question||'-')}</div>
+    <div class="content">${esc(r.content||'-')}</div>
+    <div class="actions">${q?`<span class="mini">匹配概率：${score}%</span>`:''}${r.review_status===PENDING?`<button class="btn primary" data-edit="${esc(r.id)}">编辑修改</button>`:'<span class="readonlyHint">已确认话术仅可读</span>'}</div>
+  </div>`).join(''):'<div class="empty">暂无匹配话术</div>';by('manualGrid').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.dataset.edit));}
+  function openEdit(id){const r=records.find(x=>x.id===id);if(!r||r.review_status!==PENDING)return;editingId=id;by('editCategory').value=r.category;by('editQuestion').value=r.question;by('editContent').value=r.content;by('editModal').classList.add('show')}
+  function closeEdit(){editingId='';by('editModal').classList.remove('show')}
+  async function saveEdit(){const r=records.find(x=>x.id===editingId);if(!r)return;const payload={category:by('editCategory').value.trim(),question:by('editQuestion').value.trim(),content:by('editContent').value.trim(),updated_at:new Date().toISOString(),external_updated_at:new Date().toISOString()};if(!payload.category||!payload.question||!payload.content){alert('请完整填写话术分类、问题和沟通话术内容');return}try{const {data,error}=await getClient().from(TABLE).update(payload).eq('id',editingId).eq('review_status',PENDING).select('*').single();if(error)throw error;const idx=records.findIndex(x=>x.id===editingId);if(idx>=0)records[idx]=norm(data||Object.assign({},r,payload));closeEdit();render();alert('已提交修改，等待后台确认审核')}catch(e){alert('提交失败：该话术可能已被后台确认，或当前网络异常。'+(e.message||e))}}
+  by('searchBtn').onclick=render;by('searchInp').onkeydown=e=>{if(e.key==='Enter')render()};by('statusSel').onchange=render;by('catSel').onchange=render;by('closeEditBtn').onclick=closeEdit;by('cancelEditBtn').onclick=closeEdit;by('saveEditBtn').onclick=saveEdit;by('editModal').onclick=e=>{if(e.target.id==='editModal')closeEdit()};
+  load();
+})();
+</script>
+</body>
+</html>
