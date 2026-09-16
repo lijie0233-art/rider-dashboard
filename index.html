@@ -979,16 +979,6 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     <div class="tableWrap"><table id="commManualTable"></table></div>
   </div>
 
-  <div class="panel">
-    <div class="panelHead"><div><h2>新增沟通话术</h2><div class="sub">新建话术默认状态为“待确认审核”。</div></div></div>
-    <div class="manualAddGrid commAddGrid">
-      <label class="field"><span>话术分类</span><input id="commNewCategory" placeholder="例如：跑单下降 / 培训说明 / 物料申领" /></label>
-      <label class="field"><span>问题</span><input id="commNewQuestion" placeholder="请输入问题或场景" /></label>
-    </div>
-    <div class="manualAddGridFull"><label class="field"><span>沟通话术内容</span><textarea id="commNewContent" placeholder="请输入完整沟通话术内容"></textarea></label></div>
-    <div class="dataTools" style="margin-top:12px"><button class="btn primary" id="commAddBtn">新增话术</button><button class="btn" id="commClearAddBtn">清空填写</button></div>
-  </div>
-
   <div class="modal" id="commManualEditModal">
     <div class="modalBox commEditBox">
       <div class="modalHead"><div><b id="commEditTitle">编辑沟通话术</b></div><button class="iconBtn" id="closeCommEditBtn">✕</button></div>
@@ -997,7 +987,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
       </div>
       <label class="field"><span>问题</span><input id="commEditQuestion" /></label>
       <label class="field"><span>沟通话术内容</span><textarea id="commEditContent"></textarea></label>
-      <div class="modalActions"><button class="btn" id="cancelCommEditBtn">取消</button><button class="btn primary" id="saveCommEditBtn">保存修改</button></div>
+      <div class="modalActions"><button class="btn" id="cancelCommEditBtn">取消</button><button class="btn primary" id="saveCommEditBtn">保存</button></div>
     </div>
   </div>
 </section>
@@ -8349,7 +8339,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     if(!commEditingId)return;
     const old=commRecords.find(x=>String(x.id)===String(commEditingId));
     const saved=await upsertCommRecord({category:by('commEditCategory')?.value||'',question:by('commEditQuestion')?.value||'',content:by('commEditContent')?.value||'',review_status:old?.review_status||STATUS_PENDING,confirmation_source:old?.confirmation_source||''},commEditingId);
-    if(saved){closeCommEdit();safeToast('话术已更新')}
+    if(saved){closeCommEdit();renderCommunicationManual();safeToast('话术已保存')}
   }
   async function updateCommStatus(id,status){
     const r=commRecords.find(x=>String(x.id)===String(id));if(!r)return;
@@ -8400,8 +8390,6 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     by('commStatusFilter')?.addEventListener('change',applySearch);
     by('commCategoryFilter')?.addEventListener('change',applySearch);
     by('commClearSearchBtn')?.addEventListener('click',clearSearch);
-    by('commAddBtn')?.addEventListener('click',addComm);
-    by('commClearAddBtn')?.addEventListener('click',()=>['commNewCategory','commNewQuestion','commNewContent'].forEach(id=>{const el=by(id);if(el)el.value=''}));
     by('refreshCommManualBtn')?.addEventListener('click',()=>loadCommManual(true).then(()=>{renderCommunicationManual();safeToast('沟通手册已刷新')}));
     by('downloadCommTplBtn')?.addEventListener('click',downloadCommTemplate);
     by('importCommBtn')?.addEventListener('click',()=>by('commImportFileInp')?.click());
@@ -8415,7 +8403,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   function installCommStyle(){
     let st=by('communicationManualRebuildStyle');if(!st){st=document.createElement('style');st.id='communicationManualRebuildStyle';document.head.appendChild(st)}
     st.textContent=`
-      .commManualHero .panelHead{margin-bottom:10px}.commExternalBox{display:flex;justify-content:space-between;gap:12px;align-items:center;background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid #bfdbfe;border-radius:18px;padding:12px 14px}.commExternalBox b{display:block;font-size:13px;margin-bottom:3px;color:#1e3a8a}.commExternalBox code{display:inline-block;margin-top:6px;background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:6px 8px;color:#1d4ed8;font-size:12px;max-width:min(760px,68vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.commSearchRow{display:grid;grid-template-columns:1.5fr 190px 190px auto;gap:10px;align-items:end;margin-bottom:12px}.commSearchRow .field,.commAddGrid .field,.commEditGrid .field,#communicationManual .manualAddGridFull .field,#commManualEditModal .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}#communicationManual .field span,#commManualEditModal .field span{color:var(--muted)}.commSearchActions{padding-bottom:3px}.commStatsGrid{margin:10px 0 12px}.commContentCell{max-width:520px;white-space:pre-wrap;line-height:1.55;color:#344054}.commRowActions{min-width:260px}.commEditBox{max-width:720px}.commEditGrid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}.commEditGridNoStatus{grid-template-columns:1fr!important}#commEditContent{min-height:150px}.manualAddGrid.commAddGrid{grid-template-columns:1fr 1fr}.modal.show{display:flex!important}.pill.purple,.snap.purple{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}.commSearchActions .btn{white-space:nowrap}@media(max-width:820px){.commSearchRow{grid-template-columns:1fr}.commExternalBox{flex-direction:column;align-items:stretch}.commExternalBox code{max-width:100%}.commEditGrid,.manualAddGrid.commAddGrid{grid-template-columns:1fr}.commRowActions{min-width:0}.commContentCell{max-width:unset}}
+      .commManualHero .panelHead{margin-bottom:10px}.commExternalBox{display:flex;justify-content:space-between;gap:12px;align-items:center;background:linear-gradient(135deg,#eff6ff,#fff);border:1px solid #bfdbfe;border-radius:18px;padding:12px 14px}.commExternalBox b{display:block;font-size:13px;margin-bottom:3px;color:#1e3a8a}.commExternalBox code{display:inline-block;margin-top:6px;background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:6px 8px;color:#1d4ed8;font-size:12px;max-width:min(760px,68vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.commSearchRow{display:grid;grid-template-columns:1.5fr 190px 190px auto;gap:10px;align-items:end;margin-bottom:12px}.commSearchRow .field,.commEditGrid .field,#commManualEditModal .field{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:none}#communicationManual .field span,#commManualEditModal .field span{color:var(--muted)}.commSearchActions{padding-bottom:3px}.commStatsGrid{margin:10px 0 12px}.commContentCell{max-width:520px;white-space:pre-wrap;line-height:1.55;color:#344054}.commRowActions{min-width:260px}.commEditBox{max-width:720px}.commEditGrid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}.commEditGridNoStatus{grid-template-columns:1fr!important}#commEditContent{min-height:150px}.manualAddGrid.commAddGrid{grid-template-columns:1fr 1fr}.modal.show{display:flex!important}.pill.purple,.snap.purple{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}.commSearchActions .btn{white-space:nowrap}@media(max-width:820px){.commSearchRow{grid-template-columns:1fr}.commExternalBox{flex-direction:column;align-items:stretch}.commExternalBox code{max-width:100%}.commEditGrid{grid-template-columns:1fr}.commRowActions{min-width:0}.commContentCell{max-width:unset}}
     `;
   }
   window.loadCommManual=loadCommManual;
