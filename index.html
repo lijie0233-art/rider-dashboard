@@ -965,6 +965,8 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
         <div class="sub">搜索支持输入实时语义联想匹配，结果按语义匹配分值从高到低排序；列表可弹窗编辑、删除、修改审核状态。</div>
       </div>
       <div class="inlineActions">
+        <button class="btn small primary" id="openCommAddBtn">新增话术</button>
+        <button class="btn small" id="exportCommBtn">导出话术</button>
         <button class="btn small" id="downloadCommTplBtn">下载导入模板</button>
         <button class="btn small" id="importCommBtn">文件批量导入</button>
         <input id="commImportFileInp" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden />
@@ -973,7 +975,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
     </div>
     <div class="commSearchRow">
       <label class="field"><span>搜索话术</span><input id="commSearchInp" placeholder="输入词语或整句，实时语义联想搜索" /></label>
-      <label class="field"><span>审核状态</span><select id="commStatusFilter"><option value="all">全部状态</option><option value="待确认审核">待确认审核</option><option value="已确认">已确认</option></select></label>
+      <label class="field"><span>审核状态</span><select id="commStatusFilter"><option value="all">全部状态</option><option value="待确认审核">待确认审核</option><option value="已确认">已确认</option><option value="外部确认">外部确认</option></select></label>
       <label class="field"><span>话术分类</span><select id="commCategoryFilter"><option value="all">全部分类</option></select></label>
       <div class="inlineActions commSearchActions">
         <button class="btn" id="commClearSearchBtn">清空</button>
@@ -8176,6 +8178,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   let commStatus='all';
   let commCategory='all';
   let commEditingId='';
+  let commModalMode='edit';
   let commBound=false;
   let commSearchRaf=0;
   let commRenderRaf=0;
@@ -8261,7 +8264,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     let arr=(commRecords||[]).map(r=>({r,score:matchScore(r,commQuery)}));
     if(commQuery)arr=arr.filter(x=>(x.score||0)>0).sort((a,b)=>(b.score||0)-(a.score||0) || String(b.r.updated_at||'').localeCompare(String(a.r.updated_at||'')));
     else arr=arr.sort((a,b)=>String(b.r.updated_at||'').localeCompare(String(a.r.updated_at||'')));
-    if(commStatus!=='all')arr=arr.filter(x=>x.r.review_status===commStatus);
+    if(commStatus===SOURCE_EXTERNAL)arr=arr.filter(x=>normalizeSource(x.r.confirmation_source)===SOURCE_EXTERNAL);
+    else if(commStatus!=='all')arr=arr.filter(x=>x.r.review_status===commStatus);
     if(commCategory!=='all')arr=arr.filter(x=>x.r.category===commCategory);
     return arr;
   }
@@ -8292,7 +8296,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       <td>${sourcePill(r.confirmation_source)}</td>
       <td>${commQuery?`<b>${Math.max(0,Math.min(100,score||0))}%</b>`:'<span class="mini">-</span>'}</td>
       <td><span class="mini">${escHtml(formatCommTime(r.updated_at))}</span></td>
-      <td><div class="inlineActions commRowActions"><button class="btn small" data-comm-edit="${escHtml(r.id)}">编辑</button><select class="statusSelect" data-comm-status="${escHtml(r.id)}"><option value="待确认审核" ${r.review_status===STATUS_PENDING?'selected':''}>待确认审核</option><option value="已确认" ${r.review_status===STATUS_CONFIRMED?'selected':''}>已确认</option></select><button class="btn small danger" data-comm-del="${escHtml(r.id)}">删除</button></div></td>
+      <td><div class="inlineActions commRowActions"><button class="btn small" data-comm-edit="${escHtml(r.id)}">编辑</button><select class="statusSelect" data-comm-status="${escHtml(r.id)}"><option value="待确认审核" ${r.review_status===STATUS_PENDING?'selected':''}>待确认审核</option><option value="已确认" ${r.review_status===STATUS_CONFIRMED&&normalizeSource(r.confirmation_source)!==SOURCE_EXTERNAL?'selected':''}>已确认</option><option value="外部确认" ${r.review_status===STATUS_CONFIRMED&&normalizeSource(r.confirmation_source)===SOURCE_EXTERNAL?'selected':''}>外部确认</option></select><button class="btn small danger" data-comm-del="${escHtml(r.id)}">删除</button></div></td>
     </tr>`).join('')+'</tbody>';
     table.querySelectorAll('[data-comm-edit]').forEach(b=>b.onclick=()=>openCommEdit(b.dataset.commEdit));
     table.querySelectorAll('[data-comm-del]').forEach(b=>b.onclick=()=>deleteCommRecord(b.dataset.commDel));
@@ -8308,62 +8312,102 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   async function upsertCommRecord(payload,id){
     const old=id?commRecords.find(x=>String(x.id)===String(id)):null;
     const clean={
-      category:String(payload.category||'').trim(),question:String(payload.question||'').trim(),content:String(payload.content||'').trim(),review_status:normalizeStatus(payload.review_status||old?.review_status),confirmation_source:('confirmation_source' in payload)?normalizeSource(payload.confirmation_source):(old?old.confirmation_source:''),updated_at:nowIso(),updated_by_email:activeUserEmail()
+      category:String(payload.category||'').trim(),question:String(payload.question||'').trim(),content:String(payload.content||'').trim(),review_status:normalizeStatus(payload.review_status||old?.review_status),confirmation_source:('confirmation_source' in payload)?(normalizeSource(payload.confirmation_source)||null):(old?(normalizeSource(old.confirmation_source)||null):null),updated_at:nowIso(),updated_by_email:activeUserEmail()
     };
     if(!clean.category||!clean.question||!clean.content){safeToast('请填写话术分类、问题和沟通话术内容');return null}
     try{
-      const client=getClient(); if(!client)throw new Error('no client');
+      const client=getClient();if(!client)throw new Error('Supabase 未连接');
       let res;
       if(id){res=await client.from(COMM_TABLE).update(clean).eq('id',id).select('*').single()}
       else{res=await client.from(COMM_TABLE).insert(Object.assign({},clean,{created_by_email:activeUserEmail(),created_at:nowIso()})).select('*').single()}
       if(res.error)throw res.error;
-      const row=normalizeRecord(res.data||Object.assign({id:id||('local_'+Date.now())},clean));
+      const row=normalizeRecord(res.data);
       const idx=commRecords.findIndex(x=>String(x.id)===String(row.id));
       if(idx>=0)commRecords[idx]=row;else commRecords.unshift(row);
       localWrite(commRecords);renderCommunicationManual();return row;
     }catch(e){
-      console.warn('沟通话术云端保存失败，暂存本机：',e&&e.message||e);
-      const row=normalizeRecord(Object.assign({id:id||('local_'+Date.now()+'_'+Math.random().toString(16).slice(2)),created_at:nowIso()},clean));
-      const idx=commRecords.findIndex(x=>String(x.id)===String(row.id));
-      if(idx>=0)commRecords[idx]=row;else commRecords.unshift(row);
-      localWrite(commRecords);renderCommunicationManual();safeToast('云端保存失败，已暂存本机：请确认已执行最新沟通手册 SQL');return row;
+      console.error('沟通话术云端保存失败：',e);
+      safeToast('保存失败：未写入 Supabase，请检查网络或权限');
+      await loadCommManual(true).catch(()=>{});
+      renderCommunicationManual();
+      return null;
     }
   }
-  async function addComm(){
-    const row={category:by('commNewCategory')?.value||'',question:by('commNewQuestion')?.value||'',content:by('commNewContent')?.value||'',review_status:STATUS_PENDING,confirmation_source:''};
-    const saved=await upsertCommRecord(row);
-    if(saved){['commNewCategory','commNewQuestion','commNewContent'].forEach(id=>{const el=by(id);if(el)el.value=''});safeToast('已新增沟通话术')}
+  function openCommAdd(){
+    commModalMode='add';commEditingId='';
+    if(by('commEditTitle'))by('commEditTitle').textContent='新增沟通话术';
+    if(by('commEditCategory'))by('commEditCategory').value='';
+    if(by('commEditQuestion'))by('commEditQuestion').value='';
+    if(by('commEditContent'))by('commEditContent').value='';
+    by('commManualEditModal')?.classList.add('show');
+    setTimeout(()=>by('commEditCategory')?.focus(),0);
   }
   function openCommEdit(id){
     const r=commRecords.find(x=>String(x.id)===String(id));if(!r)return;
-    commEditingId=String(id);
+    commModalMode='edit';commEditingId=String(id);
+    if(by('commEditTitle'))by('commEditTitle').textContent='编辑沟通话术';
     if(by('commEditCategory'))by('commEditCategory').value=r.category||'';
     if(by('commEditQuestion'))by('commEditQuestion').value=r.question||'';
     if(by('commEditContent'))by('commEditContent').value=r.content||'';
     by('commManualEditModal')?.classList.add('show');
   }
-  function closeCommEdit(){commEditingId='';by('commManualEditModal')?.classList.remove('show')}
+  function closeCommEdit(){commEditingId='';commModalMode='edit';by('commManualEditModal')?.classList.remove('show')}
   async function saveCommEdit(){
+    const category=by('commEditCategory')?.value||'',question=by('commEditQuestion')?.value||'',content=by('commEditContent')?.value||'';
+    if(commModalMode==='add'){
+      const saved=await upsertCommRecord({category,question,content,review_status:STATUS_PENDING,confirmation_source:''});
+      if(saved){closeCommEdit();renderCommunicationManual();safeToast('话术新增成功')}
+      return;
+    }
     if(!commEditingId)return;
     const old=commRecords.find(x=>String(x.id)===String(commEditingId));
-    const saved=await upsertCommRecord({category:by('commEditCategory')?.value||'',question:by('commEditQuestion')?.value||'',content:by('commEditContent')?.value||'',review_status:old?.review_status||STATUS_PENDING,confirmation_source:old?.confirmation_source||''},commEditingId);
+    const saved=await upsertCommRecord({category,question,content,review_status:old?.review_status||STATUS_PENDING,confirmation_source:old?.confirmation_source||''},commEditingId);
     if(saved){closeCommEdit();renderCommunicationManual();safeToast('话术已保存')}
   }
   async function updateCommStatus(id,status){
     const r=commRecords.find(x=>String(x.id)===String(id));if(!r)return;
-    await upsertCommRecord(Object.assign({},r,{review_status:status,confirmation_source:''}),id);
-    safeToast('审核状态已更新');
+    const isExternal=String(status||'')===SOURCE_EXTERNAL;
+    const saved=await upsertCommRecord(Object.assign({},r,{review_status:isExternal?STATUS_CONFIRMED:status,confirmation_source:isExternal?SOURCE_EXTERNAL:''}),id);
+    if(saved)safeToast('审核状态已更新');
   }
   async function deleteCommRecord(id){
     const r=commRecords.find(x=>String(x.id)===String(id));if(!r)return;
     if(!confirm('确认删除这条沟通话术？'))return;
-    try{const client=getClient();if(client){const {error}=await client.from(COMM_TABLE).delete().eq('id',id);if(error)throw error}}
-    catch(e){console.warn('沟通话术云端删除失败，仅删除本机缓存：',e&&e.message||e);safeToast('云端删除失败，已从本机缓存移除')}
-    commRecords=commRecords.filter(x=>String(x.id)!==String(id));localWrite(commRecords);renderCommunicationManual();safeToast('已删除沟通话术');
+    try{
+      const client=getClient();if(!client)throw new Error('Supabase 未连接');
+      const {error}=await client.from(COMM_TABLE).delete().eq('id',id);if(error)throw error;
+      commRecords=commRecords.filter(x=>String(x.id)!==String(id));localWrite(commRecords);renderCommunicationManual();safeToast('已删除沟通话术');
+    }catch(e){console.error('沟通话术云端删除失败：',e);safeToast('删除失败：Supabase 未更新')}
   }
   function applySearch(){commQuery=(by('commSearchInp')?.value||'').trim();commStatus=by('commStatusFilter')?.value||'all';commCategory=by('commCategoryFilter')?.value||'all';scheduleRender()}
   function scheduleSearch(){if(commSearchRaf)cancelAnimationFrame(commSearchRaf);commSearchRaf=requestAnimationFrame(()=>{commSearchRaf=0;applySearch()})}
   function clearSearch(){commQuery='';commStatus='all';commCategory='all';if(by('commSearchInp'))by('commSearchInp').value='';if(by('commStatusFilter'))by('commStatusFilter').value='all';if(by('commCategoryFilter'))by('commCategoryFilter').value='all';renderCommunicationManual()}
+  async function fetchAllCommRecordsFromCloud(){
+    const client=getClient();if(!client)throw new Error('Supabase 未连接');
+    const pageSize=1000;let from=0,all=[];
+    while(true){
+      const {data,error}=await client.from(COMM_TABLE).select('category,question,content,review_status,confirmation_source,updated_at').order('updated_at',{ascending:false}).range(from,from+pageSize-1);
+      if(error)throw error;
+      const batch=data||[];all.push(...batch);
+      if(batch.length<pageSize)break;
+      from+=pageSize;
+    }
+    return all.map(normalizeRecord);
+  }
+  async function exportAllCommRecords(){
+    try{
+      safeToast('正在读取全部话术...');
+      const all=await fetchAllCommRecordsFromCloud();
+      if(!all.length){safeToast('暂无可导出的话术');return}
+      if(!window.XLSX)throw new Error('Excel 导出组件未加载');
+      const rows=[['话术分类','问题','沟通话术内容','审核状态','来源标签'],...all.map(r=>[r.category,r.question,r.content,r.review_status,normalizeSource(r.confirmation_source)||''])];
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:20},{wch:42},{wch:72},{wch:14},{wch:14}];
+      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'沟通话术');
+      const d=new Date(),pad=n=>String(n).padStart(2,'0'),name=`沟通手册_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`;
+      XLSX.writeFile(wb,name);safeToast(`已导出全部 ${all.length} 条话术`);
+    }catch(e){console.error('沟通手册导出失败：',e);safeToast('导出失败：请检查 Supabase 连接或稍后重试')}
+  }
   function downloadCommTemplate(){const rows=[['话术分类','问题','沟通话术内容'],['跑单下降','骑手本周跑单下降，如何沟通？','您好，看到您本周跑单较之前有所下降，想了解下是否遇到排班、区域或车辆方面的问题，我们可以一起看下改善方案。']];try{downloadBlob('\ufeff'+rows.map(r=>r.map(csvEscape).join(',')).join('\n'),'沟通手册导入模板.csv')}catch(_){copyText(rows.map(r=>r.join(',')).join('\n'),'模板内容已复制')}}
   function findHeaderIndex(header,names){try{if(typeof findCol==='function')return findCol(header,names)}catch(_){ }const norm=s=>String(s||'').trim().toLowerCase().replace(/[\s_\-]/g,'');const h=header.map(norm);for(const n of names){const i=h.indexOf(norm(n));if(i>=0)return i}return -1}
   async function parseCommFile(file){
@@ -8382,7 +8426,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       if(catIdx<0||qIdx<0||contentIdx<0)throw new Error('导入文件需包含：话术分类、问题、沟通话术内容');
       const rows=table.slice(1);
       const payload=[];let fail=0;
-      rows.forEach(r=>{const item={category:String(r[catIdx]||'').trim(),question:String(r[qIdx]||'').trim(),content:String(r[contentIdx]||'').trim(),review_status:STATUS_PENDING,confirmation_source:'',created_by_email:activeUserEmail(),updated_by_email:activeUserEmail(),created_at:nowIso(),updated_at:nowIso()};if(item.category&&item.question&&item.content)payload.push(item);else if(r.some(c=>String(c||'').trim()))fail++;});
+      rows.forEach(r=>{const item={category:String(r[catIdx]||'').trim(),question:String(r[qIdx]||'').trim(),content:String(r[contentIdx]||'').trim(),review_status:STATUS_PENDING,confirmation_source:null,created_by_email:activeUserEmail(),updated_by_email:activeUserEmail(),created_at:nowIso(),updated_at:nowIso()};if(item.category&&item.question&&item.content)payload.push(item);else if(r.some(c=>String(c||'').trim()))fail++;});
       if(!payload.length)throw new Error('没有可导入的话术行');
       try{const client=getClient();if(!client)throw new Error('no client');const {data,error}=await client.from(COMM_TABLE).insert(payload).select('*');if(error)throw error;commRecords=[...(data||payload).map(normalizeRecord),...commRecords];}
       catch(e){console.warn('批量导入云端保存失败，暂存本机：',e&&e.message||e);commRecords=[...payload.map(normalizeRecord),...commRecords];safeToast('云端导入失败，已暂存本机：请确认已执行最新沟通手册 SQL')}
@@ -8399,6 +8443,8 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
     by('commCategoryFilter')?.addEventListener('change',applySearch);
     by('commClearSearchBtn')?.addEventListener('click',clearSearch);
     by('refreshCommManualBtn')?.addEventListener('click',()=>loadCommManual(true).then(()=>{renderCommunicationManual();safeToast('沟通手册已刷新')}));
+    by('openCommAddBtn')?.addEventListener('click',openCommAdd);
+    by('exportCommBtn')?.addEventListener('click',exportAllCommRecords);
     by('downloadCommTplBtn')?.addEventListener('click',downloadCommTemplate);
     by('importCommBtn')?.addEventListener('click',()=>by('commImportFileInp')?.click());
     by('commImportFileInp')?.addEventListener('change',e=>importCommFile(e.target.files&&e.target.files[0]));
