@@ -747,7 +747,6 @@ body:before{
 <div class="app">
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="brand"><div class="logo">🐼</div><div><h1>骑手上线监控与电联跟进 <span class="visual-version">V4.5.2 CONTACT LIST FIX</span></h1><small>Rider Attendance & Follow-up Operations Console</small></div></div>
       <div class="top-meta"><div class="meta-chip">📅 <span id="topToday">今日</span></div><div class="meta-chip"><span class="meta-dot"></span><span id="topDataStatus">云端数据同步中</span></div></div>
       <div class="global-focus" id="globalFocus"><span class="gf-label">运营日</span><input type="date" id="globalDateInput" aria-label="全局运营日"></div><div class="top-actions">
         <button class="btn search-trigger" id="globalSearchBtn"><span class="search-label">⌕ 搜索骑手</span><kbd>⌘ K</kbd></button>
@@ -769,8 +768,6 @@ body:before{
       <button class="navbtn" data-nav="followup"><span class="navicon">↗</span><span class="label">二次跟进</span><span class="navbadge" id="followupNavBadge">0</span></button>
       <button class="navbtn" data-nav="history"><span class="navicon">↺</span><span class="label">骑手档案</span></button>
       <button class="navbtn" data-nav="trends"><span class="navicon">⌁</span><span class="label">趋势分析</span></button>
-      <button class="navbtn" data-nav="batches"><span class="navicon">◫</span><span class="label">历史批次</span></button>
-      <button class="navbtn" data-nav="health"><span class="navicon">◎</span><span class="label">数据健康</span><span class="navbadge good" id="healthNavBadge">100</span></button>
 <div class="side-foot"><span class="status-dot dot-ok"></span> Supabase 云端模式<br>花名册与核对数据自动同步。</div>
     </aside>
 
@@ -1015,18 +1012,7 @@ body:before{
         </div>
       </section>
 
-      <section class="page" id="page-batches">
-        <div class="page-head"><div><h2>历史批次</h2><p>回看每日核对结果；同一日期 + 时段 + 路线再次保存时会更新当前版本，并自动保留上一版本用于恢复。</p></div></div>
-        <div class="card"><div class="toolbar"><input class="search grow" id="batchSearch" placeholder="搜索日期 / 时段 / 路线"><button class="btn sm" id="exportAllCsv">导出全部联系记录 CSV</button></div><div id="batchTableWrap"></div></div>
-      </section>
-
-      <section class="page" id="page-health">
-        <div class="page-head"><div><h2>数据健康中心</h2><p>主动检查花名册、核对批次、上传异常与待处理数据，避免错误数据悄悄影响运营判断。</p></div><div class="v35-actions"><button class="btn" id="healthRefresh">重新检查</button><button class="btn primary" id="healthExport">导出检查报告</button></div></div>
-        <div class="health-hero"><div class="health-score-card"><div><div class="muted" style="color:#aeb1b7;font-size:10px;font-weight:800">DATA HEALTH SCORE</div><div class="health-score"><span id="healthScore">—</span><small>/100</small></div><span class="health-grade" id="healthGrade">检查中</span></div><div style="font-size:10px;color:#b9bcc3;line-height:1.5" id="healthDateLabel">按当前运营日检查</div></div><div class="health-summary-grid" id="healthSummary"></div></div>
-        <div class="grid cols-2"><div class="card"><div class="card-title"><h3>当前运营日完整性</h3><span class="sub" id="healthOpsDate">—</span></div><div id="healthOpsIntegrity"></div></div><div class="card"><div class="card-title"><h3>批次版本保护</h3><span class="sub">覆盖前自动留档，可随时恢复</span></div><div id="healthVersionStats"></div></div></div>
-        <div class="card"><div class="card-title"><h3>问题与建议</h3><span class="sub">严重问题优先展示；部分项目是提醒，不代表业务异常</span></div><div class="health-list" id="healthIssueList"></div></div>
-      </section>
-<div class="footer-note">Operations Dashboard V4.6.1 · 360周数据直连版 · 上线电联中心（测试中）</div>
+<div class="footer-note">Operations Dashboard V4.6.3 · 精简导航版 · 上线电联中心（测试中）</div>
     </main>
   </div>
 </div>
@@ -1563,7 +1549,7 @@ function doCompare(){
  const preview=groupRowsByRider(offline,{period,route});$('#comparePreview').innerHTML=preview.length?`<div class="table-wrap"><table class="table" style="min-width:760px"><thead><tr><th>#</th><th>骑手ID</th><th>姓名</th><th>层级</th><th>路线（合并）</th><th>时段</th><th>手机号</th></tr></thead><tbody>${preview.slice(0,100).map((x,i)=>`<tr><td>${i+1}</td><td class="strong">${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.level||'-')}</td><td>${esc(x.routeDisplay)}</td><td>${esc(x.periodDisplay)}</td><td>${esc(x.phone||'-')}</td></tr>`).join('')}</tbody></table></div>${preview.length>100?`<div class="hint" style="margin-top:8px">预览前 100 名骑手；保存后可查看全部。</div>`:''}`:`<div class="notice ok">${esc(period)} 当前口径的应上线骑手已全部匹配上线。</div>`;
 }
 function archiveBatchVersion(run,reason='覆盖前自动留档'){if(!run)return;state.batchVersions=state.batchVersions||[];const snap=clone(run);snap.versionId=uid();snap.archivedAt=new Date().toISOString();snap.archiveReason=reason;snap.originalSavedAt=run.savedAt||'';state.batchVersions.push(snap)}
-function saveCompareDraft(){if(!compareDraft)return;const old=state.runs.find(x=>x.key===compareDraft.key);const commit=()=>{if(old){archiveBatchVersion(old,'同一批次重新上传前自动留档');const oldById=new Map(groupRowsByRider(old.offlineRows||[],old).map(g=>[g.id,getContact(old,g)]));compareDraft.contacts={};for(const g of groupRowsByRider(compareDraft.offlineRows||[],compareDraft)){const c=oldById.get(g.id);if(c&&contactCompleteness(c)>0)saveRiderContact(compareDraft,g.id,c)}state.runs=state.runs.filter(x=>x.key!==compareDraft.key)}state.runs.push(compareDraft);currentRunKey=compareDraft.key;logAction(old?'批次覆盖':'批次保存',`${runLabel(compareDraft)}${old?' · 已自动保留上一版本':''}`,{runKey:compareDraft.key});saveState();toast(old?'已更新批次，并保留上一版本':'批次已保存','ok');nav('contact');compareDraft=null};if(old)modal('同一批次已存在',`<div class="notice warn">${esc(runLabel(old))} 已有历史记录。继续后将以本次结果作为当前版本，同时自动保留旧版本；已有电联数据会按骑手ID继承。</div><div class="notice info" style="margin-top:8px">如误上传，可在“历史批次 → 版本”中恢复上一版。</div>`,[{label:'取消'},{label:'更新并保留旧版',class:'primary',onClick:commit}]);else commit()}
+function saveCompareDraft(){if(!compareDraft)return;const old=state.runs.find(x=>x.key===compareDraft.key);const commit=()=>{if(old){archiveBatchVersion(old,'同一批次重新上传前自动留档');const oldById=new Map(groupRowsByRider(old.offlineRows||[],old).map(g=>[g.id,getContact(old,g)]));compareDraft.contacts={};for(const g of groupRowsByRider(compareDraft.offlineRows||[],compareDraft)){const c=oldById.get(g.id);if(c&&contactCompleteness(c)>0)saveRiderContact(compareDraft,g.id,c)}state.runs=state.runs.filter(x=>x.key!==compareDraft.key)}state.runs.push(compareDraft);currentRunKey=compareDraft.key;logAction(old?'批次覆盖':'批次保存',`${runLabel(compareDraft)}${old?' · 已自动保留上一版本':''}`,{runKey:compareDraft.key});saveState();toast(old?'已更新批次，并保留上一版本':'批次已保存','ok');nav('contact');compareDraft=null};if(old)modal('同一批次已存在',`<div class="notice warn">${esc(runLabel(old))} 已有历史记录。继续后将以本次结果作为当前版本，同时自动保留旧版本；已有电联数据会按骑手ID继承。</div><div class="notice info" style="margin-top:8px">如误上传，系统已在后台保留上一版本。</div>`,[{label:'取消'},{label:'更新并保留旧版',class:'primary',onClick:commit}]);else commit()}
 
 const FOLLOWUP_RESULT_OPTIONS=['','已确认上线','确认请假','迟到/稍后上线','仍无法联系','不再配送','继续跟进','转主管处理','已上报','其他'];
 const CONTACT_OPTION_META={communication:'沟通情况',reply:'回复',reasonDetail:'具体原因',action:'处置'};
@@ -1977,11 +1963,11 @@ $('#runPeriod').onchange=()=>{const p=selectedUploadPeriod();pendingFinalOnline=
 $('#manageContactOptionsBtn').onclick=openContactOptionManager;$('#contactRunSelect').onchange=e=>{currentRunKey=e.target.value;$('#contactPeriodFilter').value='';$('#contactRouteFilter').value='';renderContact()};$('#densityComfort').onclick=()=>{state.settings.density='comfortable';saveState()};$('#densityCompact').onclick=()=>{state.settings.density='compact';saveState()};$('#contactSearch').oninput=renderContact;$('#contactPeriodFilter').onchange=renderContact;$('#contactRouteFilter').onchange=renderContact;$('#contactStatusFilter').onchange=renderContact;$('#contactReplyFilter').onchange=renderContact;$('#contactRiskFilter').onchange=renderContact;$('#contactSort').onchange=e=>{state.settings.defaultSort=e.target.value;saveState()};$('#followupSearch').oninput=renderFollowup;$('#followupPeriodFilter').onchange=renderFollowup;$('#followupRouteFilter').onchange=renderFollowup;$('#followupTypeFilter').onchange=renderFollowup;$('#followupDoneFilter').onchange=renderFollowup;
 ['rosterPeriodFilter','rosterRouteFilter','rosterLevelFilter','rosterVehicleFilter'].forEach(id=>$('#'+id)&&($('#'+id).onchange=renderRoster));$('#rosterSearch').oninput=renderRoster;
 $('#clearRoster').onclick=()=>modal('清空花名册','历史批次不会删除，但之后无法进行新的核对，直到重新导入花名册。',[{label:'取消'},{label:'清空',class:'danger',onClick:()=>{state.roster=[];saveState();toast('花名册已清空')}}]);
-$('#historySearch').oninput=renderHistory;$('#historyRiskFilter').onchange=renderHistory;$('#historyThreshold').onchange=renderHistory;$('#batchSearch').oninput=renderBatches;$$('#trendRange button').forEach(b=>b.onclick=()=>{state.settings.trendDays=Number(b.dataset.days);$$('#trendRange button').forEach(x=>x.classList.toggle('active',x===b));saveState(false);renderTrends()});
+$('#historySearch').oninput=renderHistory;$('#historyRiskFilter').onchange=renderHistory;$('#historyThreshold').onchange=renderHistory;$$('#trendRange button').forEach(b=>b.onclick=()=>{state.settings.trendDays=Number(b.dataset.days);$$('#trendRange button').forEach(x=>x.classList.toggle('active',x===b));saveState(false);renderTrends()});
 $$('#trendDimension button').forEach(b=>b.onclick=()=>{state.settings.trendDimension=b.dataset.dim;saveState(false);renderTrends()});
 if($('#trendPeakFilter'))$('#trendPeakFilter').onchange=e=>{state.settings.trendPeak=e.target.value;saveState(false);renderTrends()};
 if($('#trendVehicleFilter'))$('#trendVehicleFilter').onchange=e=>{state.settings.trendVehicle=e.target.value;saveState(false);renderTrends()};if($('#settingsThreshold'))$('#settingsThreshold').onchange=e=>{state.settings.historyThreshold=Number(e.target.value);$('#historyThreshold').value=e.target.value;saveState()};if($('#settingsDefaultSort'))$('#settingsDefaultSort').onchange=e=>{state.settings.defaultSort=e.target.value;$('#contactSort').value=e.target.value;saveState()};
-$('#exportCurrentCsv').onclick=exportCurrentCsv;$('#exportHistoryCsv').onclick=exportHistoryCsv;$('#exportAllCsv').onclick=exportContactsCsv;
+$('#exportCurrentCsv').onclick=exportCurrentCsv;$('#exportHistoryCsv').onclick=exportHistoryCsv;
 
 if($('#downloadRosterTemplate'))$('#downloadRosterTemplate').onclick=downloadRosterTemplate;
 if($('#downloadOnlineTemplate'))$('#downloadOnlineTemplate').onclick=downloadOnlineTemplate;
@@ -2155,7 +2141,7 @@ function updateOverviewDateUI(date){
   const today=todayLocal(),dates=availableOperationDates(),has=state.runs.some(r=>r.date===date),kind=date===today?'今日':has?'历史运营日':'无核对数据';
   if($('#overviewDateText'))$('#overviewDateText').textContent=date===today?`${date} · 今日`:date;
   if($('#overviewDateKind')){$('#overviewDateKind').textContent=kind;$('#overviewDateKind').className=`badge ${has||date===today?'b-yellow':'b-neutral'}`}
-  if($('#overviewDateDesc'))$('#overviewDateDesc').textContent=`当前分析运营日为 ${date}${date===today?'（今日）':''}；午/晚高峰、热力图、漏斗、数据健康与日报统一以该日期为主。`;
+  if($('#overviewDateDesc'))$('#overviewDateDesc').textContent=`当前分析运营日为 ${date}${date===today?'（今日）':''}；午/晚高峰、热力图、漏斗与日报统一以该日期为主。`;
   if($('#overviewCompletionDate'))$('#overviewCompletionDate').textContent=`${date}${date===today?' · 今日':''}`;
   if($('#overviewTimelineDate'))$('#overviewTimelineDate').textContent=`${date}${date===today?' · 今日':''}`;
   if($('#overviewBreakdownDate'))$('#overviewBreakdownDate').textContent=`${date} · 最近核对批次`;
@@ -2215,7 +2201,7 @@ function renderHealth(){
   const date=getOverviewDate(),h=analyzeDataHealth(date),[grade,cls]=healthGrade(h.score);$('#healthScore').textContent=h.score;$('#healthGrade').textContent=grade;$('#healthGrade').style.background=cls==='good'?'#dff8e8':cls==='warn'?'#fff0bd':'#ffe0e0';$('#healthGrade').style.color=cls==='good'?'#197746':cls==='warn'?'#8a6500':'#a62929';$('#healthDateLabel').textContent=`分析运营日：${date}`;$('#healthOpsDate').textContent=date;
   $('#healthSummary').innerHTML=[['花名册唯一骑手',h.counts.unique],['完全重复记录',h.counts.exactDup],['姓名冲突骑手',h.counts.nameConflicts],['缺手机号骑手',h.counts.missingPhone],['当日未知上线ID',h.counts.unknownOnline],['当日待联系',h.counts.pending],['历史批次版本',h.counts.versions],['当前健康分',h.score]].map(x=>`<div class="health-summary"><div class="n">${x[1]}</div><div class="t">${x[0]}</div></div>`).join('');
   const day=operationalDayStats(date);$('#healthOpsIntegrity').innerHTML=`<div class="mini-grid"><div class="mini-stat"><div class="n">${h.lunch?'✓':'—'}</div><div class="t">午高峰核对</div></div><div class="mini-stat"><div class="n">${h.dinner?'✓':'—'}</div><div class="t">晚高峰核对</div></div><div class="mini-stat"><div class="n">${day.expected||0}</div><div class="t">应上线合计</div></div><div class="mini-stat"><div class="n">${day.offline||0}</div><div class="t">未上线合计</div></div></div>`;
-  const versionKeys=new Set((state.batchVersions||[]).map(v=>v.key));$('#healthVersionStats').innerHTML=`<div class="mini-grid"><div class="mini-stat"><div class="n">${state.runs.length}</div><div class="t">当前批次</div></div><div class="mini-stat"><div class="n">${(state.batchVersions||[]).length}</div><div class="t">历史版本</div></div><div class="mini-stat"><div class="n">${versionKeys.size}</div><div class="t">受版本保护批次</div></div><div class="mini-stat"><div class="n">${state.meta?.updatedAt?new Date(state.meta.updatedAt).toLocaleDateString('zh-CN'):'—'}</div><div class="t">最近保存</div></div></div><div class="notice info" style="margin-top:10px">同一批次重新上传时，上一版会自动留档。可在“历史批次 → 版本”恢复。</div>`;
+  const versionKeys=new Set((state.batchVersions||[]).map(v=>v.key));$('#healthVersionStats').innerHTML=`<div class="mini-grid"><div class="mini-stat"><div class="n">${state.runs.length}</div><div class="t">当前批次</div></div><div class="mini-stat"><div class="n">${(state.batchVersions||[]).length}</div><div class="t">历史版本</div></div><div class="mini-stat"><div class="n">${versionKeys.size}</div><div class="t">受版本保护批次</div></div><div class="mini-stat"><div class="n">${state.meta?.updatedAt?new Date(state.meta.updatedAt).toLocaleDateString('zh-CN'):'—'}</div><div class="t">最近保存</div></div></div><div class="notice info" style="margin-top:10px">同一批次重新上传时，上一版会自动留档。系统会在后台保留上一版本。</div>`;
   $('#healthIssueList').innerHTML=h.issues.map(i=>`<div class="health-item ${i.sev}"><div class="hi-icon">${i.sev==='ok'?'✓':i.sev==='bad'?'!':i.sev==='warn'?'△':'i'}</div><div><b>${esc(i.title)}</b><p>${esc(i.text)}</p></div><div><span class="hi-count">${i.count?i.count+' 项':'正常'}</span><br><button class="btn sm" style="margin-top:6px" onclick="window.__healthNav('${esc(i.nav)}')">查看</button></div></div>`).join('');updateNavBadges();
 }
 window.__healthNav=(name)=>nav(name);
@@ -2284,6 +2270,11 @@ window.__ccProfileBridge={
 <style>
 .ccProfileOps{margin:16px 0;padding:16px;border:1px solid #e7e7e7;border-radius:16px;background:#fff}
 .ccOpsList{display:grid;gap:8px;margin-top:10px}.ccOpsItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:12px;background:#fafafa}.ccOpsRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ccProfileOps .activity-list{margin-top:10px}.ccProfileOps .activity-item{display:grid;grid-template-columns:105px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}.ccProfileOps .activity-item:last-child{border-bottom:0}@media(max-width:760px){.ccOpsItem{align-items:flex-start;flex-direction:column}.ccOpsRight{justify-content:flex-start}.ccProfileOps .activity-item{grid-template-columns:1fr}.ccProfileOps .activity-type{justify-self:start}}
+
+/* ===== V4.6.3 Topbar / navigation simplification ===== */
+.topbar-inner{justify-content:flex-end;gap:12px}
+.topbar .top-actions{margin-left:0}
+@media(max-width:820px){.topbar-inner{justify-content:flex-end}}
 </style>
 <!-- V4.6.1: 周维度档案逻辑已合并进主脚本，避免二次脚本覆盖 -->\n
 </body>
