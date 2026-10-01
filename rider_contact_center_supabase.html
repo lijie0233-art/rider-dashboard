@@ -2246,18 +2246,42 @@ overviewSelectedDate=defaultOverviewDate();if($('#overviewDateInput'))$('#overvi
 repairCriticalSelects();loadWeatherForScope(true);auditSelectOptions();renderAll();loadCloudState();
 })();
 </script>
-\n<script>
-/* ===== V4.5.5: 周维度表现仅放在电联中心独立360档案 ===== */
+\n
+<style>
+.ccProfileOps{margin:16px 0;padding:16px;border:1px solid #e7e7e7;border-radius:16px;background:#fff}
+.ccOpsList{display:grid;gap:8px;margin-top:10px}.ccOpsItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:12px;background:#fafafa}.ccOpsRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ccProfileOps .activity-list{margin-top:10px}.ccProfileOps .activity-item{display:grid;grid-template-columns:105px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}.ccProfileOps .activity-item:last-child{border-bottom:0}@media(max-width:760px){.ccOpsItem{align-items:flex-start;flex-direction:column}.ccOpsRight{justify-content:flex-start}.ccProfileOps .activity-item{grid-template-columns:1fr}.ccProfileOps .activity-type{justify-self:start}}
+</style>
+<script>
+/* ===== V4.5.6: 恢复完整独立360档案 + 周维度表现 ===== */
 (function(){
  const WEEKLY_RPC='get_rider_weekly_profile';
  const cache=new Map();
+ const legacyOpenProfile=window.__openProfile;
  const meta={orders:'周跑单量',attendance_days:'周出勤天数',income:'周收入',hourly:'时薪',duration:'背单时长',period_avg:'时段均单/H',acceptance_rate:'接单率',tail_rate:'骑手责尾单率'};
  function n(v){const x=Number(v);return Number.isFinite(x)?x:null}
  function vt(v,k){let x=n(v);if(x==null)return '—';if((k==='acceptance_rate'||k==='tail_rate')&&Math.abs(x)<=1)x*=100;if(k==='income')return '$'+x.toFixed(0);if(k==='hourly')return '$'+x.toFixed(2);if(k==='acceptance_rate'||k==='tail_rate')return x.toFixed(1)+'%';if(k==='attendance_days')return x.toFixed(1).replace(/\\.0$/,'')+' 天';if(k==='duration')return x.toFixed(1)+' h';if(k==='period_avg')return x.toFixed(2);return Math.round(x).toLocaleString()}
  async function load(id,force=false){id=canonicalRiderId(id);if(!id)return {weeks:[]};if(!force&&cache.has(id))return cache.get(id);try{const {data,error}=await getCloudClient().rpc(WEEKLY_RPC,{p_rider_id:id,p_limit:12});if(error)throw error;let out=data;if(typeof out==='string'){try{out=JSON.parse(out)}catch(_){out={weeks:[]}}}out=out||{weeks:[]};cache.set(id,out);return out}catch(e){console.warn('电联中心360周维度读取失败',e?.message||e);return {weeks:[],error:e?.message||String(e)}}}
  function shell(){return `<div class="ccWeeklyPanel" id="ccWeeklyPanel"><div class="ccWeeklyHead"><div><h4>近期周维度跑单表现</h4><div class="hint">来自主系统 Supabase 后端周聚合；仅在电联中心独立360档案展示。</div></div><select id="ccWeeklyMetric" class="ccWeeklySelect"><option value="orders">周跑单量</option><option value="attendance_days">周出勤天数</option><option value="income">周收入</option><option value="hourly">时薪</option><option value="duration">背单时长</option><option value="period_avg">时段均单/H</option><option value="acceptance_rate">接单率</option><option value="tail_rate">骑手责尾单率</option></select></div><div class="ccWeeklyCore"><div class="ccWeeklyCoreCard"><div class="k">平均周单量</div><div class="v" id="ccAvgOrders">—</div><div class="m" id="ccAvgOrdersMeta">最近周数据平均</div></div><div class="ccWeeklyCoreCard"><div class="k">周平均出勤天数</div><div class="v" id="ccAvgAttendance">—</div><div class="m" id="ccAvgAttendanceMeta">最近周数据平均</div></div></div><div class="ccWeeklyGrid"><div class="ccWeeklyBox"><div class="ccWeeklyTitle" id="ccWeeklyTrendTitle">周跑单量 · 最近趋势</div><div id="ccWeeklyBars" class="ccWeeklyBars"><div class="ccWeeklyEmpty">正在读取后端周数据…</div></div></div><div class="ccWeeklyBox"><div class="ccWeeklyTitle">最近周数据</div><div id="ccWeeklyTable"><div class="ccWeeklyEmpty">正在读取…</div></div></div></div></div>`}
  function render(data,id){const weeks=Array.isArray(data?.weeks)?data.weeks:[];const ao=$('#ccAvgOrders'),aa=$('#ccAvgAttendance'),bars=$('#ccWeeklyBars'),tbl=$('#ccWeeklyTable'),sel=$('#ccWeeklyMetric'),title=$('#ccWeeklyTrendTitle');if(!ao||!aa||!bars||!tbl)return;ao.textContent=n(data?.avg_weekly_orders)==null?'—':Math.round(Number(data.avg_weekly_orders)).toLocaleString()+' 单';aa.textContent=n(data?.avg_weekly_attendance_days)==null?'—':Number(data.avg_weekly_attendance_days).toFixed(1).replace(/\\.0$/,'')+' 天';if($('#ccAvgOrdersMeta'))$('#ccAvgOrdersMeta').textContent=`后端聚合 · ${weeks.length} 个最近周期`;if($('#ccAvgAttendanceMeta'))$('#ccAvgAttendanceMeta').textContent=`后端聚合 · ${weeks.length} 个最近周期`;if(!weeks.length){bars.innerHTML=`<div class="ccWeeklyEmpty">${data?.error?'读取失败：'+esc(data.error):'该骑手暂无周维度跑单数据'}</div>`;tbl.innerHTML='<div class="ccWeeklyEmpty">暂无数据</div>';return}const key=sel?.value||'orders';if(title)title.textContent=(meta[key]||meta.orders)+' · 最近趋势';const vals=weeks.map(w=>{let x=n(w[key]);if(x!=null&&(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(x)<=1)x*=100;return x}).filter(x=>x!=null);const mx=Math.max(...vals.map(x=>Math.abs(x)),1);bars.innerHTML=[...weeks].reverse().map(w=>{let x=n(w[key]);if(x!=null&&(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(x)<=1)x*=100;const width=x==null?0:Math.max(2,Math.min(100,Math.abs(x)/mx*100));return `<div class="ccWeeklyRow"><div class="ccWeeklyLabel" title="${esc(w.cycle||'')}">${esc(w.cycle||'-')}</div><div class="ccWeeklyTrack"><div class="ccWeeklyFill" style="width:${width}%"></div></div><div class="ccWeeklyVal">${esc(vt(x,key))}</div></div>`}).join('');tbl.innerHTML='<table class="ccWeeklyTable"><thead><tr><th>周期</th><th>单量</th><th>出勤</th><th>时薪</th></tr></thead><tbody>'+weeks.slice(0,8).map(w=>`<tr><td><b>${esc(w.cycle||'-')}</b></td><td>${esc(vt(w.orders,'orders'))}</td><td>${esc(vt(w.attendance_days,'attendance_days'))}</td><td>${esc(vt(w.hourly,'hourly'))}</td></tr>`).join('')+'</tbody></table>'}
- async function open(id){id=canonicalRiderId(id);if(masterRiderDirectoryLoaded&&!masterRiderIds.has(id)){toast('主系统骑手数据中未找到 ID：'+id,'warn');return}openProfileV30(id);const body=$('#modalBody');if(body){const host=document.createElement('div');host.innerHTML=shell();body.insertBefore(host.firstElementChild,body.children[3]||null)}const data=await load(id,true);render(data,id)}
+ function opsShell(id){
+  const h=historyById(id),base=(state.roster||[]).find(r=>r.id===id)||{},name=h.name||base.name||'';
+  const related=(state.runs||[]).filter(r=>expectedInRun(r,id)).sort((a,b)=>dateTimeKey(b).localeCompare(dateTimeKey(a))).slice(0,12);
+  const logs=(state.actionLog||[]).filter(a=>{const t=[a?.text,a?.type,JSON.stringify(a?.meta||{})].join(' ');return t.includes(id)||(name&&t.includes(name))}).slice(0,12);
+  const runHtml=related.length?`<div class="ccOpsList">${related.map(r=>{const off=isOfflineInRun(r,id),row=groupRowsByRider(r.offlineRows||[],r).find(x=>x.id===id)||{id},c=getContact(r,row),later=isLaterOnline(r,id);return `<div class="ccOpsItem"><div><b>${esc(r.date||'-')} · ${esc(r.period||'-')}</b><div class="hint">${esc(r.route||'-')} · ${off?'未上线':'已上线'}${later?' · 高峰后续上线':''}</div></div><div class="ccOpsRight"><span class="badge ${off?'b-high':'b-done'}">${off?'未上线':'已上线'}</span>${c.communication?`<span class="badge b-neutral">${esc(c.communication)}</span>`:''}${c.reply?`<span class="badge b-follow">${esc(c.reply)}</span>`:''}</div></div>`}).join('')}</div>`:`<div class="ccWeeklyEmpty">暂无近期核对记录</div>`;
+  const logHtml=logs.length?`<div class="activity-list">${logs.map(a=>`<div class="activity-item"><span class="activity-time">${a.at?esc(new Date(a.at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})):'-'}</span><span class="activity-text">${esc(a.text||'')}</span><span class="activity-type">${esc(a.type||'操作')}</span></div>`).join('')}</div>`:`<div class="ccWeeklyEmpty">暂无该骑手相关操作日志</div>`;
+  return `<div class="ccProfileOps"><div class="ccWeeklyHead"><div><h4>近期核对 / 电联记录</h4><div class="hint">从电联中心已保存批次与电联记录中按骑手ID聚合。</div></div></div>${runHtml}<div class="divider"></div><div class="ccWeeklyTitle">骑手相关操作日志</div>${logHtml}</div>`
+ }
+ async function open(id){id=canonicalRiderId(id);if(masterRiderDirectoryLoaded&&!masterRiderIds.has(id)){toast('主系统骑手数据中未找到 ID：'+id,'warn');return}
+  if(typeof legacyOpenProfile==='function')legacyOpenProfile(id);else openProfileV30(id);
+  const body=$('#modalBody');
+  if(body){
+    const profileHero=body.querySelector('.profile-hero');
+    if(profileHero&&!body.querySelector('.heatmap-wrap'))profileHero.insertAdjacentHTML('afterend',riderHeatmap(id));
+    const ops=document.createElement('div');ops.innerHTML=opsShell(id);body.appendChild(ops.firstElementChild);
+    const host=document.createElement('div');host.innerHTML=shell();body.appendChild(host.firstElementChild);
+  }
+  const data=await load(id,true);render(data,id)
+ }
  window.openContactCenterProfile=open;window.__openProfile=open;
  document.addEventListener('change',e=>{if(e.target?.id==='ccWeeklyMetric'){const id=canonicalRiderId(String($('#modalBody .profile-sub')?.textContent||'').match(/ID\\s+([^·]+)/)?.[1]||'');render(cache.get(id)||{weeks:[]},id)}});
 })();
