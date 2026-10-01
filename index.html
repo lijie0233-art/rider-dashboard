@@ -428,6 +428,14 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 .onlineContactFrame{display:block;width:100%;height:calc(100vh - 104px);min-height:780px;border:0;background:#f6f7f9}
 body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 @media(max-width:980px){.onlineContactFrame{height:calc(100vh - 92px);min-height:720px}}
+
+/* ===== 360档案：近期周维度跑单表现 ===== */
+.weeklyPerfPanel{margin:12px 0 14px;border:1px solid #dbe3f0;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#f8fbff 100%);padding:15px;box-shadow:var(--shadow2)}
+.weeklyPerfHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap}.weeklyPerfHead h3{margin:0;font-size:17px}.weeklyPerfHead .sub{margin-top:4px}.weeklyPerfSelect{min-width:180px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:9px 32px 9px 11px;color:var(--ink);font-weight:850}
+.weeklyCoreGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.weeklyCoreCard{border:1px solid #f1d66b;border-radius:16px;background:linear-gradient(135deg,#fff8cf,#fff);padding:14px}.weeklyCoreCard .label{font-size:12px;color:#7a6500;font-weight:900}.weeklyCoreCard .value{font-size:30px;line-height:1.1;font-weight:1000;letter-spacing:-.04em;margin:7px 0 4px}.weeklyCoreCard .meta{font-size:11px;color:#7d7460}
+.weeklyTrendGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(310px,.65fr);gap:10px}.weeklyTrendBox,.weeklyTableBox{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;min-width:0}.weeklyTrendTitle{font-size:12px;color:var(--muted);font-weight:900;margin-bottom:8px}.weeklyBars{display:grid;gap:8px}.weeklyBarRow{display:grid;grid-template-columns:88px 1fr 74px;gap:9px;align-items:center}.weeklyBarLabel{font-size:11px;color:#667085;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.weeklyBarTrack{height:9px;background:#f2f4f7;border-radius:999px;overflow:hidden}.weeklyBarFill{height:100%;background:#101828;border-radius:999px;min-width:2px}.weeklyBarValue{text-align:right;font-size:11px;font-weight:900;color:#344054}.weeklyPerfEmpty{padding:24px;text-align:center;color:var(--muted);font-weight:800}
+.weeklyMiniTable{width:100%;border-collapse:collapse;min-width:0}.weeklyMiniTable th,.weeklyMiniTable td{padding:8px 7px;border-bottom:1px solid #eef2f6;font-size:11px;text-align:left}.weeklyMiniTable th{color:#667085;background:#f9fafb}.weeklyMiniTable tr:last-child td{border-bottom:0}
+@media(max-width:900px){.weeklyTrendGrid{grid-template-columns:1fr}}@media(max-width:640px){.weeklyCoreGrid{grid-template-columns:1fr}.weeklyBarRow{grid-template-columns:72px 1fr 62px}}
 </style>
 </head>
 <body class="auth-locked">
@@ -1384,6 +1392,22 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
     </div>
     <div class="profileBox profileSummaryWide" id="profileSummary"></div>
     <div class="metricMini" id="profileMetrics"></div>
+    <div class="weeklyPerfPanel" id="profileWeeklyPerformance">
+      <div class="weeklyPerfHead">
+        <div><h3>近期周维度跑单表现</h3><div class="sub">数据由 Supabase 后端按骑手 ID 聚合返回；前端仅负责展示。</div></div>
+        <select class="weeklyPerfSelect" id="profileWeeklyMetric">
+          <option value="orders">周跑单量</option><option value="attendance_days">周出勤天数</option><option value="income">周收入</option><option value="hourly">时薪</option><option value="duration">背单时长</option><option value="period_avg">时段均单/H</option><option value="acceptance_rate">接单率</option><option value="tail_rate">骑手责尾单率</option>
+        </select>
+      </div>
+      <div class="weeklyCoreGrid">
+        <div class="weeklyCoreCard"><div class="label">平均周单量</div><div class="value" id="profileAvgWeeklyOrders">—</div><div class="meta" id="profileAvgWeeklyOrdersMeta">最近周数据平均</div></div>
+        <div class="weeklyCoreCard"><div class="label">周平均出勤天数</div><div class="value" id="profileAvgWeeklyAttendance">—</div><div class="meta" id="profileAvgWeeklyAttendanceMeta">最近周数据平均</div></div>
+      </div>
+      <div class="weeklyTrendGrid">
+        <div class="weeklyTrendBox"><div class="weeklyTrendTitle" id="profileWeeklyTrendTitle">周跑单量 · 最近趋势</div><div id="profileWeeklyBars" class="weeklyBars"><div class="weeklyPerfEmpty">选择骑手后加载周维度数据</div></div></div>
+        <div class="weeklyTableBox"><div class="weeklyTrendTitle">最近周数据</div><div id="profileWeeklyTable"><div class="weeklyPerfEmpty">暂无数据</div></div></div>
+      </div>
+    </div>
     <div class="profileChartGrid">
       <div class="panel innerPanel"><div class="panelHead"><div><h2 id="profileChartTitle">骑手趋势</h2><div class="sub">按当前重点指标展示，可在顶部切换重点指标</div></div></div><div class="chartBox"><canvas id="profileCanvas"></canvas></div></div>
       <div class="panel innerPanel"><div class="panelHead"><div><h2>当前 vs 对比</h2><div class="sub">核心指标差值与变化幅度</div></div></div><div class="profileCompareList" id="profileCompareGrid"></div></div>
@@ -8447,6 +8471,49 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+
+<script>
+/* ===== V4.5.4: 电联中心骑手ID联动 + 360周维度后端聚合 ===== */
+(function(){
+  const WEEKLY_RPC='get_rider_weekly_profile';
+  const weeklyProfileCache=new Map();
+  let weeklyProfileSeq=0;
+  const weeklyMetricMeta={
+    orders:{label:'周跑单量',unit:'单'},attendance_days:{label:'周出勤天数',unit:'天'},income:{label:'周收入',unit:'$'},hourly:{label:'时薪',unit:'$/h'},duration:{label:'背单时长',unit:'h'},period_avg:{label:'时段均单/H',unit:'单/h'},acceptance_rate:{label:'接单率',unit:'%'},tail_rate:{label:'骑手责尾单率',unit:'%'}
+  };
+  const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function num(v){const n=Number(v);return Number.isFinite(n)?n:null}
+  function valueText(v,key){const n=num(v);if(n==null)return '—';if(key==='income')return '$'+n.toFixed(0);if(key==='hourly')return '$'+n.toFixed(2);if(key==='acceptance_rate'||key==='tail_rate')return (Math.abs(n)<=1?n*100:n).toFixed(1)+'%';if(key==='attendance_days')return n.toFixed(1).replace(/\.0$/,'')+' 天';if(key==='duration')return n.toFixed(1)+' h';if(key==='period_avg')return n.toFixed(2);return Math.round(n).toLocaleString()}
+  function normalizeResult(data){if(!data)return {weeks:[]};if(typeof data==='string'){try{return JSON.parse(data)}catch(_){return {weeks:[]}}}return data}
+  async function loadWeeklyProfile(id,force=false){
+    id=String(id||'').trim();if(!id)return {weeks:[]};
+    if(!force&&weeklyProfileCache.has(id))return weeklyProfileCache.get(id);
+    try{
+      const client=getCloudClient();
+      const {data,error}=await client.rpc(WEEKLY_RPC,{p_rider_id:id,p_limit:12});
+      if(error)throw error;const out=normalizeResult(data);weeklyProfileCache.set(id,out);return out;
+    }catch(e){console.warn('360周维度后端聚合读取失败',e?.message||e);return {weeks:[],error:e?.message||String(e)}}
+  }
+  function renderWeeklyProfile(data,id){
+    const orders=document.getElementById('profileAvgWeeklyOrders'),att=document.getElementById('profileAvgWeeklyAttendance'),bars=document.getElementById('profileWeeklyBars'),tbl=document.getElementById('profileWeeklyTable'),sel=document.getElementById('profileWeeklyMetric'),title=document.getElementById('profileWeeklyTrendTitle');
+    if(!orders||!att||!bars||!tbl)return;const weeks=Array.isArray(data?.weeks)?data.weeks:[];
+    orders.textContent=num(data?.avg_weekly_orders)==null?'—':Math.round(Number(data.avg_weekly_orders)).toLocaleString()+' 单';
+    att.textContent=num(data?.avg_weekly_attendance_days)==null?'—':Number(data.avg_weekly_attendance_days).toFixed(1).replace(/\.0$/,'')+' 天';
+    const om=document.getElementById('profileAvgWeeklyOrdersMeta'),am=document.getElementById('profileAvgWeeklyAttendanceMeta');if(om)om.textContent=`后端聚合 · ${weeks.length} 个最近周期`;if(am)am.textContent=`后端聚合 · ${weeks.length} 个最近周期`;
+    if(!weeks.length){bars.innerHTML=`<div class="weeklyPerfEmpty">${data?.error?'后端聚合读取失败：'+h(data.error):'该骑手暂无周维度跑单数据'}</div>`;tbl.innerHTML='<div class="weeklyPerfEmpty">暂无数据</div>';return}
+    const key=sel?.value||'orders',meta=weeklyMetricMeta[key]||weeklyMetricMeta.orders; if(title)title.textContent=meta.label+' · 最近趋势';
+    const vals=weeks.map(w=>num(w[key])).filter(v=>v!=null).map(v=>(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(v)<=1?v*100:v);const max=Math.max(...vals.map(v=>Math.abs(v)),1);
+    bars.innerHTML=[...weeks].reverse().map(w=>{let v=num(w[key]);if(v!=null&&(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(v)<=1)v*=100;const width=v==null?0:Math.max(2,Math.min(100,Math.abs(v)/max*100));return `<div class="weeklyBarRow"><div class="weeklyBarLabel" title="${h(w.cycle||'')}">${h(w.cycle||'-')}</div><div class="weeklyBarTrack"><div class="weeklyBarFill" style="width:${width}%"></div></div><div class="weeklyBarValue">${h(valueText(v,key))}</div></div>`}).join('');
+    tbl.innerHTML='<table class="weeklyMiniTable"><thead><tr><th>周期</th><th>单量</th><th>出勤</th><th>时薪</th></tr></thead><tbody>'+weeks.slice(0,8).map(w=>`<tr><td><b>${h(w.cycle||'-')}</b></td><td>${h(valueText(w.orders,'orders'))}</td><td>${h(valueText(w.attendance_days,'attendance_days'))}</td><td>${h(valueText(w.hourly,'hourly'))}</td></tr>`).join('')+'</tbody></table>';
+  }
+  async function refreshWeeklyProfile(force=false){const id=String(state?.selected||'').trim();const seq=++weeklyProfileSeq;const bars=document.getElementById('profileWeeklyBars');if(bars)bars.innerHTML='<div class="weeklyPerfEmpty">正在从后端读取周维度数据…</div>';const data=await loadWeeklyProfile(id,force);if(seq!==weeklyProfileSeq||id!==String(state?.selected||'').trim())return;renderWeeklyProfile(data,id)}
+  window.refreshRiderWeeklyProfile=refreshWeeklyProfile;
+  document.addEventListener('change',e=>{if(e.target?.id==='profileWeeklyMetric'){const id=String(state?.selected||'').trim();renderWeeklyProfile(weeklyProfileCache.get(id)||{weeks:[]},id)}});
+  window.addEventListener('message',e=>{const d=e?.data||{};if(d.type!=='hp-open-rider-profile')return;const id=String(d.riderId||'').trim();if(!id)return;if(typeof riderMap!=='undefined'&&riderMap?.has?.(id)){openProfile(id);setTimeout(()=>refreshWeeklyProfile(true),0)}else{toast('主系统骑手数据中未找到 ID：'+id);try{e.source?.postMessage({type:'hp-open-rider-profile-result',riderId:id,ok:false},'*')}catch(_){}}});
+  if(typeof renderProfile==='function'&&!window.__weeklyProfileRenderWrapped){window.__weeklyProfileRenderWrapped=true;const old=renderProfile;renderProfile=function(){const r=old.apply(this,arguments);setTimeout(()=>refreshWeeklyProfile(false),0);return r}}
+  const sel=document.getElementById('riderSel');if(sel)sel.addEventListener('change',()=>setTimeout(()=>refreshWeeklyProfile(false),0));
+})();
+</script>
 </body>
 </html>
 
