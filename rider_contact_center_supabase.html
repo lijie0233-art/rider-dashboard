@@ -733,7 +733,7 @@ body:before{
 .cloud-test-tag{display:inline-flex;margin-left:8px;padding:3px 8px;border-radius:999px;background:#111;color:#ffd600;font-size:10px;font-weight:900;vertical-align:middle}
 
 /* ===== V4.5.5 电联中心独立360档案：近期周维度跑单表现 ===== */
-.ccWeeklyPanel{margin:14px 0;border:1px solid #e4d27b;border-radius:18px;background:linear-gradient(135deg,#fff9d7,#fff);padding:14px}
+.ccWeeklyPanel{margin:14px 0 18px;border:2px solid #e2c54a;border-radius:18px;background:linear-gradient(135deg,#fff7bd,#fffdf1 58%,#fff);padding:16px;box-shadow:0 10px 26px rgba(130,105,0,.10)}
 .ccWeeklyHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}.ccWeeklyHead h4{margin:0;font-size:15px}.ccWeeklyHead .hint{margin-top:4px}.ccWeeklySelect{min-width:170px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 30px 8px 10px;font-weight:800}
 .ccWeeklyCore{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}.ccWeeklyCoreCard{border:1px solid #ead267;border-radius:14px;background:#fff;padding:12px}.ccWeeklyCoreCard .k{font-size:11px;color:#7a6500;font-weight:900}.ccWeeklyCoreCard .v{font-size:26px;font-weight:1000;letter-spacing:-.03em;margin:5px 0 2px}.ccWeeklyCoreCard .m{font-size:10px;color:#80765a}
 .ccWeeklyGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:10px}.ccWeeklyBox{border:1px solid var(--line);border-radius:14px;background:#fff;padding:11px;min-width:0}.ccWeeklyTitle{font-size:11px;color:var(--muted);font-weight:900;margin-bottom:8px}.ccWeeklyBars{display:grid;gap:7px}.ccWeeklyRow{display:grid;grid-template-columns:82px 1fr 68px;gap:8px;align-items:center}.ccWeeklyLabel{font-size:10px;color:#777;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ccWeeklyTrack{height:8px;background:#f0f0f0;border-radius:999px;overflow:hidden}.ccWeeklyFill{height:100%;background:#161616;border-radius:999px}.ccWeeklyVal{text-align:right;font-size:10px;font-weight:900}.ccWeeklyEmpty{padding:18px;text-align:center;color:var(--muted);font-weight:800}.ccWeeklyTable{width:100%;border-collapse:collapse}.ccWeeklyTable th,.ccWeeklyTable td{padding:7px 6px;border-bottom:1px solid #eee;font-size:10px;text-align:left}.ccWeeklyTable th{background:#fafafa;color:#666}.ccWeeklyTable tr:last-child td{border-bottom:0}
@@ -2274,7 +2274,7 @@ window.__ccProfileBridge={
 .ccOpsList{display:grid;gap:8px;margin-top:10px}.ccOpsItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:12px;background:#fafafa}.ccOpsRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ccProfileOps .activity-list{margin-top:10px}.ccProfileOps .activity-item{display:grid;grid-template-columns:105px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}.ccProfileOps .activity-item:last-child{border-bottom:0}@media(max-width:760px){.ccOpsItem{align-items:flex-start;flex-direction:column}.ccOpsRight{justify-content:flex-start}.ccProfileOps .activity-item{grid-template-columns:1fr}.ccProfileOps .activity-type{justify-self:start}}
 </style>
 <script>
-/* ===== V4.5.8: 独立360档案按ID同步主系统周数据 + 趋势曲线 ===== */
+/* ===== V4.5.9: 独立360档案周数据首屏展示 + ID同步趋势 ===== */
 (function(){
  const B=window.__ccProfileBridge;
  if(!B){console.error('上线电联中心360档案 bridge 未初始化');return}
@@ -2323,8 +2323,17 @@ window.__ccProfileBridge={
   if(body){
     const profileHero=body.querySelector('.profile-hero');
     if(profileHero&&!body.querySelector('.heatmap-wrap'))profileHero.insertAdjacentHTML('afterend',B.riderHeatmap(id));
-    const ops=document.createElement('div');ops.innerHTML=opsShell(id);body.appendChild(ops.firstElementChild);
-    const host=document.createElement('div');host.innerHTML=shell(id);body.appendChild(host.firstElementChild);
+
+    // V4.5.9: 周维度表现必须出现在档案首屏，而不是追加到历史时间轴最底部。
+    const host=document.createElement('div');host.innerHTML=shell(id);const weeklyEl=host.firstElementChild;
+    const heatmap=body.querySelector('.heatmap-wrap');
+    if(heatmap)heatmap.insertAdjacentElement('afterend',weeklyEl);
+    else if(profileHero)profileHero.insertAdjacentElement('afterend',weeklyEl);
+    else body.prepend(weeklyEl);
+
+    // 核对 / 电联日志保留在周维度表现之后，作为详细运营记录。
+    const ops=document.createElement('div');ops.innerHTML=opsShell(id);weeklyEl.insertAdjacentElement('afterend',ops.firstElementChild);
+    body.scrollTop=0;
   }
   const data=await load(id,true);render(data,id)
  }
