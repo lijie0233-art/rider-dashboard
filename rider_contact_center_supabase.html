@@ -1874,7 +1874,7 @@ function renderOverview(){
  renderOverviewAttentionLean();
  updateNavBadges();
 }
-function renderOverviewTimeline(date=getOverviewDate()){const ev=[];for(const r of todayRuns(date)){ev.push({at:r.savedAt||`${r.date}T00:00:00`,type:'run',text:`${r.period}核对完成 · 上线 ${runOnlineUnique(r)} / 应上线 ${runExpectedUnique(r)} · 未上线 ${runOfflineUnique(r)}`});for(const row of groupRowsByRider(r.offlineRows||[],r)){const c=getContact(r,row);if(c.updatedAt&&c.updatedAt.slice(0,10)===date)ev.push({at:c.updatedAt,type:contactStatus(c)==='跟进中'?'follow':'contact',text:`${row.name||row.id} · ${c.communication||'已更新'}${c.reply?' / '+c.reply:''}`})}}for(const a of (state.actionLog||[]).slice(0,50)){if(a.at?.slice(0,10)===date&&a.type==='撤销')ev.push({at:a.at,type:'contact',text:a.text})}ev.sort((a,b)=>(b.at||'').localeCompare(a.at||''));$('#overviewTimeline').innerHTML=ev.length?`<div class="ops-timeline">${ev.slice(0,7).map(x=>`<div class="ops-event ${x.type}"><span class="tm">${new Date(x.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}</span><span class="dot"></span><div class="copy">${esc(x.text)}</div></div>`).join('')}</div>`:`<div class="ops-empty">${date} 暂无核对或电联操作记录。</div>`}
+function renderOverviewTimeline(date=getOverviewDate()){const ev=[];for(const r of todayRuns(date)){ev.push({at:r.savedAt||`${r.date}T00:00:00`,type:'run',text:`${r.period}核对完成 · 上线 ${runOnlineUnique(r)} / 应上线 ${runExpectedUnique(r)} · 未上线 ${runOfflineUnique(r)}`});for(const row of groupRowsByRider(r.offlineRows||[],r)){const c=B.getContact(r,row);if(c.updatedAt&&c.updatedAt.slice(0,10)===date)ev.push({at:c.updatedAt,type:contactStatus(c)==='跟进中'?'follow':'contact',text:`${row.name||row.id} · ${c.communication||'已更新'}${c.reply?' / '+c.reply:''}`})}}for(const a of (state.actionLog||[]).slice(0,50)){if(a.at?.slice(0,10)===date&&a.type==='撤销')ev.push({at:a.at,type:'contact',text:a.text})}ev.sort((a,b)=>(b.at||'').localeCompare(a.at||''));$('#overviewTimeline').innerHTML=ev.length?`<div class="ops-timeline">${ev.slice(0,7).map(x=>`<div class="ops-event ${x.type}"><span class="tm">${new Date(x.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}</span><span class="dot"></span><div class="copy">${esc(x.text)}</div></div>`).join('')}</div>`:`<div class="ops-empty">${date} 暂无核对或电联操作记录。</div>`}
 function updateNavBadges(){const h=aggregateHistory(),a=h.filter(x=>x.consecutive>=2||x.noAnswer>=2||x.churn||x.leave>=2).length,fu=allFollowups().filter(x=>x.status!=='已完成').length;if($('#anomalyNavBadge')){$('#anomalyNavBadge').textContent=a;$('#anomalyNavBadge').classList.toggle('hot',a>0)}if($('#followupNavBadge')){$('#followupNavBadge').textContent=fu;$('#followupNavBadge').classList.toggle('hot',fu>0)}if($('#healthNavBadge')){const sc=analyzeDataHealth(getOverviewDate()).score;$('#healthNavBadge').textContent=sc;$('#healthNavBadge').className='navbadge '+(sc>=90?'good':sc>=75?'warn':'bad')}}
 
 function anomalyMatches(h,type,currentIds){if(type==='pending')return currentIds?.pending?.has(h.id);if(type==='consecutive')return h.consecutive>=2;if(type==='noanswer')return h.noAnswer>=2;if(type==='churn')return h.churn;if(type==='leave')return h.leave>=2;if(type==='priority')return currentIds?.all?.has(h.id)&&['A','B'].includes(String(h.level||'').toUpperCase());return h.consecutive>=2||h.noAnswer>=2||h.churn||h.leave>=2||(currentIds?.pending?.has(h.id)&&['A','B'].includes(String(h.level||'').toUpperCase()))}
@@ -1893,8 +1893,8 @@ function renderContact(){renderContactV30();enhanceContactWorkspace();updateNavB
 
 function riderDayWeather(id,date){const rs=state.runs.filter(r=>r.date===date&&expectedInRun(r,id)&&r.weather?.confirmed);const byPeriod=new Map();for(const r of rs){const p=normalizePeriodLabel(r.period)||r.weather.period||'时段',prev=byPeriod.get(p);if(!prev||(r.savedAt||'')>(prev.savedAt||''))byPeriod.set(p,{...r.weather,period:p,savedAt:r.savedAt||''})}return [...byPeriod.values()]}
 function riderHeatmap(id){const days=[];for(let i=29;i>=0;i--)days.push(addDays(todayLocal(),-i));const status=new Map();for(const d of days){const rs=state.runs.filter(r=>r.date===d&&expectedInRun(r,id));if(!rs.length){status.set(d,'none');continue}status.set(d,rs.some(r=>isOfflineInRun(r,id))?'off':'ok')}return `<div class="heatmap-wrap"><div class="heatmap-head"><b>近30天上线 × 天气热力图</b><div class="heatmap-legend"><span><i class="legend-dot ok"></i>已上线</span><span><i class="legend-dot off"></i>未上线</span><span><i class="legend-dot none"></i>无核对</span></div></div><div class="heatmap">${days.map(d=>{const st=status.get(d),label=st==='off'?'未上线':st==='ok'?'已上线':'无核对',weather=riderDayWeather(id,d),wt=weather.length?weather.map(w=>weatherSummary(w,true)).join(' / '):'天气未记录';return`<span class="heat-cell ${st} ${d===todayLocal()?'today':''}" data-tip="${esc(d)} · ${esc(label)} · ${esc(wt)}"></span>`}).join('')}</div><div class="hint" style="margin-top:8px">悬停日期可同时查看当天上线状态和午/晚高峰天气。</div></div>`}
-function openProfile(id){openProfileV30(id);const hero=$('#modalBody .profile-hero');if(hero)hero.insertAdjacentHTML('afterend',riderHeatmap(id))}
-window.__openProfile=openProfileV30;
+function openProfile(id){openProfileV30(id);const hero=$('#modalBody .profile-hero');if(hero)hero.insertAdjacentHTML('afterend',B.riderHeatmap(id))}
+window.__openProfile=openProfile;
 
 function openGlobalSearch(){const bg=$('#cmdBg');bg.classList.add('show');$('#cmdInput').value='';renderCommandResults('');setTimeout(()=>$('#cmdInput').focus(),20)}
 function closeGlobalSearch(){$('#cmdBg')?.classList.remove('show')}
@@ -2244,6 +2244,27 @@ overviewSelectedDate=defaultOverviewDate();if($('#overviewDateInput'))$('#overvi
  if(issues.length)console.warn('选项自检发现问题',issues);
 }
 repairCriticalSelects();loadWeatherForScope(true);auditSelectOptions();renderAll();loadCloudState();
+// V4.5.7: expose only the internal APIs required by the independent 360 profile enhancer.
+window.__ccProfileBridge={
+  canonicalRiderId,
+  masterLoaded:()=>masterRiderDirectoryLoaded,
+  hasMasterRider:(id)=>masterRiderIds.has(id),
+  toast,
+  openProfile,
+  openProfileV30,
+  $,
+  esc,
+  historyById,
+  getState:()=>state,
+  expectedInRun,
+  isOfflineInRun,
+  groupRowsByRider,
+  getContact,
+  isLaterOnline,
+  dateTimeKey,
+  riderHeatmap,
+  getCloudClient
+};
 })();
 </script>
 \n
@@ -2252,31 +2273,34 @@ repairCriticalSelects();loadWeatherForScope(true);auditSelectOptions();renderAll
 .ccOpsList{display:grid;gap:8px;margin-top:10px}.ccOpsItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:12px;background:#fafafa}.ccOpsRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ccProfileOps .activity-list{margin-top:10px}.ccProfileOps .activity-item{display:grid;grid-template-columns:105px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}.ccProfileOps .activity-item:last-child{border-bottom:0}@media(max-width:760px){.ccOpsItem{align-items:flex-start;flex-direction:column}.ccOpsRight{justify-content:flex-start}.ccProfileOps .activity-item{grid-template-columns:1fr}.ccProfileOps .activity-type{justify-self:start}}
 </style>
 <script>
-/* ===== V4.5.6: 恢复完整独立360档案 + 周维度表现 ===== */
+/* ===== V4.5.7: 修复档案点击无反应 + 恢复完整独立360档案 ===== */
 (function(){
+ const B=window.__ccProfileBridge;
+ if(!B){console.error('上线电联中心360档案 bridge 未初始化');return}
  const WEEKLY_RPC='get_rider_weekly_profile';
  const cache=new Map();
- const legacyOpenProfile=window.__openProfile;
+ const legacyOpenProfile=B.openProfile;
+ const {$,esc}=B;
  const meta={orders:'周跑单量',attendance_days:'周出勤天数',income:'周收入',hourly:'时薪',duration:'背单时长',period_avg:'时段均单/H',acceptance_rate:'接单率',tail_rate:'骑手责尾单率'};
  function n(v){const x=Number(v);return Number.isFinite(x)?x:null}
  function vt(v,k){let x=n(v);if(x==null)return '—';if((k==='acceptance_rate'||k==='tail_rate')&&Math.abs(x)<=1)x*=100;if(k==='income')return '$'+x.toFixed(0);if(k==='hourly')return '$'+x.toFixed(2);if(k==='acceptance_rate'||k==='tail_rate')return x.toFixed(1)+'%';if(k==='attendance_days')return x.toFixed(1).replace(/\\.0$/,'')+' 天';if(k==='duration')return x.toFixed(1)+' h';if(k==='period_avg')return x.toFixed(2);return Math.round(x).toLocaleString()}
- async function load(id,force=false){id=canonicalRiderId(id);if(!id)return {weeks:[]};if(!force&&cache.has(id))return cache.get(id);try{const {data,error}=await getCloudClient().rpc(WEEKLY_RPC,{p_rider_id:id,p_limit:12});if(error)throw error;let out=data;if(typeof out==='string'){try{out=JSON.parse(out)}catch(_){out={weeks:[]}}}out=out||{weeks:[]};cache.set(id,out);return out}catch(e){console.warn('电联中心360周维度读取失败',e?.message||e);return {weeks:[],error:e?.message||String(e)}}}
+ async function load(id,force=false){id=B.canonicalRiderId(id);if(!id)return {weeks:[]};if(!force&&cache.has(id))return cache.get(id);try{const {data,error}=await B.getCloudClient().rpc(WEEKLY_RPC,{p_rider_id:id,p_limit:12});if(error)throw error;let out=data;if(typeof out==='string'){try{out=JSON.parse(out)}catch(_){out={weeks:[]}}}out=out||{weeks:[]};cache.set(id,out);return out}catch(e){console.warn('电联中心360周维度读取失败',e?.message||e);return {weeks:[],error:e?.message||String(e)}}}
  function shell(){return `<div class="ccWeeklyPanel" id="ccWeeklyPanel"><div class="ccWeeklyHead"><div><h4>近期周维度跑单表现</h4><div class="hint">来自主系统 Supabase 后端周聚合；仅在电联中心独立360档案展示。</div></div><select id="ccWeeklyMetric" class="ccWeeklySelect"><option value="orders">周跑单量</option><option value="attendance_days">周出勤天数</option><option value="income">周收入</option><option value="hourly">时薪</option><option value="duration">背单时长</option><option value="period_avg">时段均单/H</option><option value="acceptance_rate">接单率</option><option value="tail_rate">骑手责尾单率</option></select></div><div class="ccWeeklyCore"><div class="ccWeeklyCoreCard"><div class="k">平均周单量</div><div class="v" id="ccAvgOrders">—</div><div class="m" id="ccAvgOrdersMeta">最近周数据平均</div></div><div class="ccWeeklyCoreCard"><div class="k">周平均出勤天数</div><div class="v" id="ccAvgAttendance">—</div><div class="m" id="ccAvgAttendanceMeta">最近周数据平均</div></div></div><div class="ccWeeklyGrid"><div class="ccWeeklyBox"><div class="ccWeeklyTitle" id="ccWeeklyTrendTitle">周跑单量 · 最近趋势</div><div id="ccWeeklyBars" class="ccWeeklyBars"><div class="ccWeeklyEmpty">正在读取后端周数据…</div></div></div><div class="ccWeeklyBox"><div class="ccWeeklyTitle">最近周数据</div><div id="ccWeeklyTable"><div class="ccWeeklyEmpty">正在读取…</div></div></div></div></div>`}
  function render(data,id){const weeks=Array.isArray(data?.weeks)?data.weeks:[];const ao=$('#ccAvgOrders'),aa=$('#ccAvgAttendance'),bars=$('#ccWeeklyBars'),tbl=$('#ccWeeklyTable'),sel=$('#ccWeeklyMetric'),title=$('#ccWeeklyTrendTitle');if(!ao||!aa||!bars||!tbl)return;ao.textContent=n(data?.avg_weekly_orders)==null?'—':Math.round(Number(data.avg_weekly_orders)).toLocaleString()+' 单';aa.textContent=n(data?.avg_weekly_attendance_days)==null?'—':Number(data.avg_weekly_attendance_days).toFixed(1).replace(/\\.0$/,'')+' 天';if($('#ccAvgOrdersMeta'))$('#ccAvgOrdersMeta').textContent=`后端聚合 · ${weeks.length} 个最近周期`;if($('#ccAvgAttendanceMeta'))$('#ccAvgAttendanceMeta').textContent=`后端聚合 · ${weeks.length} 个最近周期`;if(!weeks.length){bars.innerHTML=`<div class="ccWeeklyEmpty">${data?.error?'读取失败：'+esc(data.error):'该骑手暂无周维度跑单数据'}</div>`;tbl.innerHTML='<div class="ccWeeklyEmpty">暂无数据</div>';return}const key=sel?.value||'orders';if(title)title.textContent=(meta[key]||meta.orders)+' · 最近趋势';const vals=weeks.map(w=>{let x=n(w[key]);if(x!=null&&(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(x)<=1)x*=100;return x}).filter(x=>x!=null);const mx=Math.max(...vals.map(x=>Math.abs(x)),1);bars.innerHTML=[...weeks].reverse().map(w=>{let x=n(w[key]);if(x!=null&&(key==='acceptance_rate'||key==='tail_rate')&&Math.abs(x)<=1)x*=100;const width=x==null?0:Math.max(2,Math.min(100,Math.abs(x)/mx*100));return `<div class="ccWeeklyRow"><div class="ccWeeklyLabel" title="${esc(w.cycle||'')}">${esc(w.cycle||'-')}</div><div class="ccWeeklyTrack"><div class="ccWeeklyFill" style="width:${width}%"></div></div><div class="ccWeeklyVal">${esc(vt(x,key))}</div></div>`}).join('');tbl.innerHTML='<table class="ccWeeklyTable"><thead><tr><th>周期</th><th>单量</th><th>出勤</th><th>时薪</th></tr></thead><tbody>'+weeks.slice(0,8).map(w=>`<tr><td><b>${esc(w.cycle||'-')}</b></td><td>${esc(vt(w.orders,'orders'))}</td><td>${esc(vt(w.attendance_days,'attendance_days'))}</td><td>${esc(vt(w.hourly,'hourly'))}</td></tr>`).join('')+'</tbody></table>'}
  function opsShell(id){
-  const h=historyById(id),base=(state.roster||[]).find(r=>r.id===id)||{},name=h.name||base.name||'';
-  const related=(state.runs||[]).filter(r=>expectedInRun(r,id)).sort((a,b)=>dateTimeKey(b).localeCompare(dateTimeKey(a))).slice(0,12);
+  const state=B.getState(),h=B.historyById(id),base=(state.roster||[]).find(r=>r.id===id)||{},name=h.name||base.name||'';
+  const related=(state.runs||[]).filter(r=>B.expectedInRun(r,id)).sort((a,b)=>dateTimeKey(b).localeCompare(dateTimeKey(a))).slice(0,12);
   const logs=(state.actionLog||[]).filter(a=>{const t=[a?.text,a?.type,JSON.stringify(a?.meta||{})].join(' ');return t.includes(id)||(name&&t.includes(name))}).slice(0,12);
-  const runHtml=related.length?`<div class="ccOpsList">${related.map(r=>{const off=isOfflineInRun(r,id),row=groupRowsByRider(r.offlineRows||[],r).find(x=>x.id===id)||{id},c=getContact(r,row),later=isLaterOnline(r,id);return `<div class="ccOpsItem"><div><b>${esc(r.date||'-')} · ${esc(r.period||'-')}</b><div class="hint">${esc(r.route||'-')} · ${off?'未上线':'已上线'}${later?' · 高峰后续上线':''}</div></div><div class="ccOpsRight"><span class="badge ${off?'b-high':'b-done'}">${off?'未上线':'已上线'}</span>${c.communication?`<span class="badge b-neutral">${esc(c.communication)}</span>`:''}${c.reply?`<span class="badge b-follow">${esc(c.reply)}</span>`:''}</div></div>`}).join('')}</div>`:`<div class="ccWeeklyEmpty">暂无近期核对记录</div>`;
+  const runHtml=related.length?`<div class="ccOpsList">${related.map(r=>{const off=B.isOfflineInRun(r,id),row=B.groupRowsByRider(r.offlineRows||[],r).find(x=>x.id===id)||{id},c=B.getContact(r,row),later=B.isLaterOnline(r,id);return `<div class="ccOpsItem"><div><b>${esc(r.date||'-')} · ${esc(r.period||'-')}</b><div class="hint">${esc(r.route||'-')} · ${off?'未上线':'已上线'}${later?' · 高峰后续上线':''}</div></div><div class="ccOpsRight"><span class="badge ${off?'b-high':'b-done'}">${off?'未上线':'已上线'}</span>${c.communication?`<span class="badge b-neutral">${esc(c.communication)}</span>`:''}${c.reply?`<span class="badge b-follow">${esc(c.reply)}</span>`:''}</div></div>`}).join('')}</div>`:`<div class="ccWeeklyEmpty">暂无近期核对记录</div>`;
   const logHtml=logs.length?`<div class="activity-list">${logs.map(a=>`<div class="activity-item"><span class="activity-time">${a.at?esc(new Date(a.at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})):'-'}</span><span class="activity-text">${esc(a.text||'')}</span><span class="activity-type">${esc(a.type||'操作')}</span></div>`).join('')}</div>`:`<div class="ccWeeklyEmpty">暂无该骑手相关操作日志</div>`;
   return `<div class="ccProfileOps"><div class="ccWeeklyHead"><div><h4>近期核对 / 电联记录</h4><div class="hint">从电联中心已保存批次与电联记录中按骑手ID聚合。</div></div></div>${runHtml}<div class="divider"></div><div class="ccWeeklyTitle">骑手相关操作日志</div>${logHtml}</div>`
  }
- async function open(id){id=canonicalRiderId(id);if(masterRiderDirectoryLoaded&&!masterRiderIds.has(id)){toast('主系统骑手数据中未找到 ID：'+id,'warn');return}
-  if(typeof legacyOpenProfile==='function')legacyOpenProfile(id);else openProfileV30(id);
+ async function open(id){id=B.canonicalRiderId(id);if(B.masterLoaded()&&!B.hasMasterRider(id)){B.toast('主系统骑手数据中未找到 ID：'+id,'warn');return}
+  if(typeof legacyOpenProfile==='function')legacyOpenProfile(id);else B.openProfileV30(id);
   const body=$('#modalBody');
   if(body){
     const profileHero=body.querySelector('.profile-hero');
-    if(profileHero&&!body.querySelector('.heatmap-wrap'))profileHero.insertAdjacentHTML('afterend',riderHeatmap(id));
+    if(profileHero&&!body.querySelector('.heatmap-wrap'))profileHero.insertAdjacentHTML('afterend',B.riderHeatmap(id));
     const ops=document.createElement('div');ops.innerHTML=opsShell(id);body.appendChild(ops.firstElementChild);
     const host=document.createElement('div');host.innerHTML=shell();body.appendChild(host.firstElementChild);
   }
