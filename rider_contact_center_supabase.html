@@ -1894,7 +1894,7 @@ function renderContact(){renderContactV30();enhanceContactWorkspace();updateNavB
 
 function riderDayWeather(id,date){const rs=state.runs.filter(r=>r.date===date&&expectedInRun(r,id)&&r.weather?.confirmed);const byPeriod=new Map();for(const r of rs){const p=normalizePeriodLabel(r.period)||r.weather.period||'时段',prev=byPeriod.get(p);if(!prev||(r.savedAt||'')>(prev.savedAt||''))byPeriod.set(p,{...r.weather,period:p,savedAt:r.savedAt||''})}return [...byPeriod.values()]}
 function riderHeatmap(id){const days=[];for(let i=29;i>=0;i--)days.push(addDays(todayLocal(),-i));const status=new Map();for(const d of days){const rs=state.runs.filter(r=>r.date===d&&expectedInRun(r,id));if(!rs.length){status.set(d,'none');continue}status.set(d,rs.some(r=>isOfflineInRun(r,id))?'off':'ok')}return `<div class="heatmap-wrap"><div class="heatmap-head"><b>近30天上线 × 天气热力图</b><div class="heatmap-legend"><span><i class="legend-dot ok"></i>已上线</span><span><i class="legend-dot off"></i>未上线</span><span><i class="legend-dot none"></i>无核对</span></div></div><div class="heatmap">${days.map(d=>{const st=status.get(d),label=st==='off'?'未上线':st==='ok'?'已上线':'无核对',weather=riderDayWeather(id,d),wt=weather.length?weather.map(w=>weatherSummary(w,true)).join(' / '):'天气未记录';return`<span class="heat-cell ${st} ${d===todayLocal()?'today':''}" data-tip="${esc(d)} · ${esc(label)} · ${esc(wt)}"></span>`}).join('')}</div><div class="hint" style="margin-top:8px">悬停日期可同时查看当天上线状态和午/晚高峰天气。</div></div>`}
-function openProfile(id){openProfileV30(id);const hero=$('#modalBody .profile-hero');if(hero)hero.insertAdjacentHTML('afterend',B.riderHeatmap(id))}
+function openProfile(id){openProfileV30(id);const hero=$('#modalBody .profile-hero');if(hero)hero.insertAdjacentHTML('afterend',riderHeatmap(id))}
 window.__openProfile=openProfile;
 
 function openGlobalSearch(){const bg=$('#cmdBg');bg.classList.add('show');$('#cmdInput').value='';renderCommandResults('');setTimeout(()=>$('#cmdInput').focus(),20)}
@@ -2274,7 +2274,7 @@ window.__ccProfileBridge={
 .ccOpsList{display:grid;gap:8px;margin-top:10px}.ccOpsItem{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:12px;background:#fafafa}.ccOpsRight{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ccProfileOps .activity-list{margin-top:10px}.ccProfileOps .activity-item{display:grid;grid-template-columns:105px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0}.ccProfileOps .activity-item:last-child{border-bottom:0}@media(max-width:760px){.ccOpsItem{align-items:flex-start;flex-direction:column}.ccOpsRight{justify-content:flex-start}.ccProfileOps .activity-item{grid-template-columns:1fr}.ccProfileOps .activity-type{justify-self:start}}
 </style>
 <script>
-/* ===== V4.5.9: 独立360档案周数据首屏展示 + ID同步趋势 ===== */
+/* ===== V4.6.0: 独立360档案完整增强链路修复 + 周数据首屏展示 ===== */
 (function(){
  const B=window.__ccProfileBridge;
  if(!B){console.error('上线电联中心360档案 bridge 未初始化');return}
@@ -2318,20 +2318,23 @@ window.__ccProfileBridge={
   return `<div class="ccProfileOps"><div class="ccWeeklyHead"><div><h4>近期核对 / 电联记录</h4><div class="hint">从电联中心已保存批次与电联记录中按骑手ID聚合。</div></div></div>${runHtml}<div class="divider"></div><div class="ccWeeklyTitle">骑手相关操作日志</div>${logHtml}</div>`
  }
  async function open(id){id=B.canonicalRiderId(id);if(B.masterLoaded()&&!B.hasMasterRider(id)){B.toast('主系统骑手数据中未找到 ID：'+id,'warn');return}
-  if(typeof legacyOpenProfile==='function')legacyOpenProfile(id);else B.openProfileV30(id);
+  // V4.6.0: 直接使用基础档案渲染函数，避免旧 openProfile 包装函数中的任何异常截断增强模块。
+  B.openProfileV30(id);
   const body=$('#modalBody');
   if(body){
     const profileHero=body.querySelector('.profile-hero');
     if(profileHero&&!body.querySelector('.heatmap-wrap'))profileHero.insertAdjacentHTML('afterend',B.riderHeatmap(id));
 
-    // V4.5.9: 周维度表现必须出现在档案首屏，而不是追加到历史时间轴最底部。
+    // 周维度表现固定插入到出勤热力图之后，确保打开档案即可看到。
+    const oldWeekly=body.querySelector('#ccWeeklyPanel');if(oldWeekly)oldWeekly.remove();
     const host=document.createElement('div');host.innerHTML=shell(id);const weeklyEl=host.firstElementChild;
     const heatmap=body.querySelector('.heatmap-wrap');
     if(heatmap)heatmap.insertAdjacentElement('afterend',weeklyEl);
     else if(profileHero)profileHero.insertAdjacentElement('afterend',weeklyEl);
     else body.prepend(weeklyEl);
 
-    // 核对 / 电联日志保留在周维度表现之后，作为详细运营记录。
+    // 核对 / 电联记录及操作日志紧跟在周维度模块后。
+    body.querySelectorAll('.ccProfileOps').forEach(x=>x.remove());
     const ops=document.createElement('div');ops.innerHTML=opsShell(id);weeklyEl.insertAdjacentElement('afterend',ops.firstElementChild);
     body.scrollTop=0;
   }
