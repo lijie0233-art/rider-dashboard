@@ -1017,7 +1017,7 @@ body:before{
         <div class="grid cols-2"><div class="card"><div class="card-title"><h3>当前运营日完整性</h3><span class="sub" id="healthOpsDate">—</span></div><div id="healthOpsIntegrity"></div></div><div class="card"><div class="card-title"><h3>批次版本保护</h3><span class="sub">覆盖前自动留档，可随时恢复</span></div><div id="healthVersionStats"></div></div></div>
         <div class="card"><div class="card-title"><h3>问题与建议</h3><span class="sub">严重问题优先展示；部分项目是提醒，不代表业务异常</span></div><div class="health-list" id="healthIssueList"></div></div>
       </section>
-<div class="footer-note">Operations Dashboard V4.5.2 · Supabase 云端同步版 · 上线电联中心（测试中）</div>
+<div class="footer-note">Operations Dashboard V4.5.3 · Supabase 跨设备实时同步版 · 上线电联中心（测试中）</div>
     </main>
   </div>
 </div>
@@ -1042,7 +1042,7 @@ let selectedRiders=new Set(), undoStack=[], anomalyFocus='all', undoTimer=null, 
 let weatherDraftConfirmed=false, weatherDraftKey='';
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
-let cloudClient=null, cloudSaveTimer=null, cloudSaving=false, cloudSaveQueued=false, cloudLoaded=false;
+let cloudClient=null, cloudSaveTimer=null, cloudSaving=false, cloudSaveQueued=false, cloudLoaded=false, cloudRealtimeChannel=null, cloudReloading=false, cloudLastLoadedAt=0;
 function normalizeCloudState(x){
   if(!x||!Array.isArray(x.roster)||!Array.isArray(x.runs))return clone(defaultState);
   const y=Object.assign(clone(defaultState),x);y.version=4.2;
@@ -1064,24 +1064,58 @@ function setCloudStatus(text,ok=true){
   const el=document.getElementById('topDataStatus');if(el)el.textContent=text;
   const foot=document.querySelector('.side-foot');if(foot)foot.innerHTML=`<span class="status-dot ${ok?'dot-ok':'dot-warn'}"></span> ${ok?'Supabase 云端模式':'云端同步异常'}<br>${text}`;
 }
-async function loadCloudState(){
-  setCloudStatus('正在读取 Supabase 云端数据…');
+async function loadCloudState(options={}){
+  if(cloudReloading)return false;
+  cloudReloading=true;
+  const silent=!!options.silent;
+  if(!silent)setCloudStatus('正在读取 Supabase 云端数据…');
   try{
     const client=getCloudClient();
     const {data,error}=await client.from(CLOUD_CONFIG.table).select('payload,updated_at').eq('workspace',CLOUD_CONFIG.workspace).maybeSingle();
     if(error)throw error;
-    if(data&&data.payload){state=normalizeCloudState(data.payload);cloudLoaded=true;setCloudStatus(`云端已同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);}
-    else{state=clone(defaultState);cloudLoaded=true;await persistCloudState(true);setCloudStatus('云端已初始化');}
+    if(data&&data.payload){
+      state=normalizeCloudState(data.payload);cloudLoaded=true;cloudLastLoadedAt=Date.now();
+      setCloudStatus(`云端已同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
+    }else{
+      state=clone(defaultState);cloudLoaded=true;cloudLastLoadedAt=Date.now();
+      await persistCloudState(true);setCloudStatus('云端已初始化');
+    }
     overviewSelectedDate=defaultOverviewDate();
     if(document.getElementById('overviewDateInput'))document.getElementById('overviewDateInput').value=overviewSelectedDate;
     if(document.getElementById('runDate'))document.getElementById('runDate').value=todayLocal();
     if(document.getElementById('historyThreshold'))document.getElementById('historyThreshold').value=String(state.settings.historyThreshold||2);
     if(document.getElementById('contactSort'))document.getElementById('contactSort').value=state.settings.defaultSort||'smart';
     updateOverviewDateUI(overviewSelectedDate);populateSelectors();updateDailyUploadState();renderRosterQuality();applySidebarState();renderAll();
+    subscribeCloudRealtime();
+    return true;
   }catch(err){
-    console.error('Supabase load failed',err);setCloudStatus('读取失败：'+(err?.message||err),false);toast('Supabase 云端数据读取失败，请检查数据表 / RLS 配置','warn');
-  }
+    console.error('Supabase load failed',err);setCloudStatus('读取失败：'+(err?.message||err),false);
+    if(!silent)toast('Supabase 云端数据读取失败，请检查登录状态 / 数据表 / RLS 配置','warn');
+    return false;
+  }finally{cloudReloading=false}
 }
+function applyRemotePayload(payload){
+  if(!payload||!payload.payload)return;
+  state=normalizeCloudState(payload.payload);cloudLoaded=true;cloudLastLoadedAt=Date.now();
+  setCloudStatus(`云端实时同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
+  populateSelectors();updateDailyUploadState();renderRosterQuality();applySidebarState();renderAll();
+}
+function subscribeCloudRealtime(){
+  if(cloudRealtimeChannel)return;
+  try{
+    const client=getCloudClient();
+    cloudRealtimeChannel=client.channel('rider_ops_monitor_state_shared')
+      .on('postgres_changes',{event:'*',schema:'public',table:CLOUD_CONFIG.table,filter:`workspace=eq.${CLOUD_CONFIG.workspace}`},event=>{
+        if(event?.new?.payload)applyRemotePayload(event.new);
+        else loadCloudState({silent:true});
+      }).subscribe();
+  }catch(err){console.warn('Supabase Realtime subscribe failed',err)}
+}
+function requestFreshCloudState(){return loadCloudState({silent:true})}
+window.addEventListener('message',event=>{if(event?.data?.type==='hp-contact-center-sync')requestFreshCloudState()});
+window.addEventListener('focus',()=>{if(!cloudLastLoadedAt||Date.now()-cloudLastLoadedAt>15000)requestFreshCloudState()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!cloudLastLoadedAt||Date.now()-cloudLastLoadedAt>15000))requestFreshCloudState()});
+try{getCloudClient().auth.onAuthStateChange((event,session)=>{if(session&&['SIGNED_IN','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(()=>requestFreshCloudState(),0)})}catch(_){ }
 function queueCloudSave(){
   clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>persistCloudState(false),250);
 }
