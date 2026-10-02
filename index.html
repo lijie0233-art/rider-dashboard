@@ -1396,7 +1396,14 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
       <div class="panel innerPanel"><div class="panelHead"><div><h2 id="profileChartTitle">骑手趋势</h2><div class="sub">按当前重点指标展示，可在顶部切换重点指标</div></div></div><div class="chartBox"><canvas id="profileCanvas"></canvas></div></div>
       <div class="panel innerPanel"><div class="panelHead"><div><h2>当前 vs 对比</h2><div class="sub">核心指标差值与变化幅度</div></div></div><div class="profileCompareList" id="profileCompareGrid"></div></div>
     </div>
-    <div class="tableWrap compactTable"><table id="profileTable"></table></div>
+    <div class="profileWeeklyTableToolbar" id="profileWeeklyTableToolbar">
+      <div class="profileWeeklyTableTitle"><b>当前骑手周跑单数据</b><span class="mini" id="profilePeriodSummary">全部周期</span></div>
+      <div class="profileWeeklyTableActions">
+        <label class="profilePeriodFilter"><span>周期范围</span><select id="profilePeriodRangeSel"><option value="all">全部周期</option><option value="4">近四周</option><option value="8">近八周</option><option value="12">近十二周</option></select></label>
+        <button class="btn small" id="profileHistoryToggleBtn" type="button">收起较早周期</button>
+      </div>
+    </div>
+    <div class="tableWrap compactTable profileWeeklyTableWrap"><table id="profileTable"></table></div>
   </div>
 </section>
 </main>
@@ -8461,6 +8468,90 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
 })();
 </script>
 
+
+
+<style id="profilePeriodFilterStyle">
+.profileWeeklyTableToolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:14px 0 10px;padding:11px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:14px}
+.profileWeeklyTableTitle{display:flex;align-items:center;gap:10px;min-width:0}.profileWeeklyTableTitle b{font-size:14px}.profileWeeklyTableTitle .mini{white-space:nowrap}
+.profileWeeklyTableActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.profilePeriodFilter{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);font-weight:850}.profilePeriodFilter select{min-width:116px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 30px 7px 9px;color:var(--ink);font-weight:800}
+.profileWeeklyTableWrap{max-height:min(62vh,620px);overflow:auto;position:relative;overscroll-behavior:contain}
+.profileWeeklyTableWrap table thead th{position:sticky!important;top:0!important;z-index:8!important;background:#f9fafb!important;box-shadow:0 1px 0 var(--line),0 3px 8px rgba(16,24,40,.04)}
+.profileWeeklyTableWrap table thead th:first-child{z-index:9!important}
+.profileHistoryDivider td{background:#f8fafc!important;color:#667085!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em;padding:7px 12px!important;border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
+@media(max-width:760px){.profileWeeklyTableToolbar{align-items:stretch;flex-direction:column}.profileWeeklyTableActions{justify-content:flex-start}.profilePeriodFilter{flex:1}.profilePeriodFilter select{flex:1;min-width:0}.profileWeeklyTableWrap{max-height:68vh}}
+</style>
+<script id="profilePeriodFilterPatch">
+(function(){
+  const rangeLabel={all:'全部周期','4':'近四周','8':'近八周','12':'近十二周'};
+  function escProfilePeriod(v){
+    if(typeof safeEsc==='function')return safeEsc(v);
+    if(typeof esc==='function')return esc(v);
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function fullProfileCycles(){return Array.isArray(cycles)?cycles.slice():[]}
+  function normalizeProfilePeriodState(){
+    if(!state.profilePeriodRange||!['all','4','8','12'].includes(String(state.profilePeriodRange)))state.profilePeriodRange='all';
+    if(typeof state.profileOlderExpanded!=='boolean')state.profileOlderExpanded=true;
+  }
+  function profilePeriodBaseCount(){const r=String(state.profilePeriodRange||'all');return r==='all'?null:Number(r)||null}
+  function profileVisibleCycles(){
+    normalizeProfilePeriodState();
+    const all=fullProfileCycles(),n=profilePeriodBaseCount();
+    if(!all.length)return [];
+    if(state.profileOlderExpanded)return all;
+    if(n)return all.slice(-n);
+    return all.slice(-12);
+  }
+  function profilePreviousCycle(c){
+    const all=fullProfileCycles(),i=all.indexOf(c);
+    return i>0?all[i-1]:null;
+  }
+  function renderProfilePeriodControls(){
+    normalizeProfilePeriodState();
+    const all=fullProfileCycles(),n=profilePeriodBaseCount(),sel=byId('profilePeriodRangeSel'),btn=byId('profileHistoryToggleBtn'),sum=byId('profilePeriodSummary');
+    if(sel){sel.value=String(state.profilePeriodRange);sel.onchange=()=>{state.profilePeriodRange=sel.value;state.profileOlderExpanded=sel.value==='all';renderProfile()}}
+    const baseline=n||Math.min(12,all.length),older=Math.max(0,all.length-baseline),visible=profileVisibleCycles().length;
+    if(sum){
+      const base=rangeLabel[String(state.profilePeriodRange)]||'全部周期';
+      sum.textContent=`${base} · 显示 ${visible}/${all.length} 周${state.profileOlderExpanded&&n&&older?`（含更早 ${older} 周）`:''}`;
+    }
+    if(btn){
+      if(!all.length||older<=0){btn.style.display='none';return}
+      btn.style.display='inline-flex';
+      if(state.profileOlderExpanded){
+        btn.textContent=n?`收起更早历史（仅看近${n}周）`:'收起较早周期（保留近12周）';
+        btn.title=n?'点击隐藏筛选范围以外的更早周期':'点击暂时隐藏较早周期，只保留近12周';
+      }else{
+        btn.textContent=n?`展开更早历史（+${older}周）`:`展开全部历史（+${older}周）`;
+        btn.title='点击显示此前隐藏的历史周期';
+      }
+      btn.onclick=()=>{state.profileOlderExpanded=!state.profileOlderExpanded;renderProfile()};
+    }
+  }
+  function renderFilteredProfileWeeklyTable(){
+    const table=byId('profileTable');if(!table||!rows.length||!state.selected)return;
+    normalizeProfilePeriodState();
+    const visible=profileVisibleCycles(),all=fullProfileCycles(),n=profilePeriodBaseCount();
+    let html='<thead><tr><th>周期</th><th>接单率</th><th>骑手责尾单率</th><th>周出勤天数</th><th>跑单量</th><th>总收入</th><th>时薪</th><th>背单时长</th><th>时段均单/H</th><th>重点指标排名</th></tr></thead><tbody>';
+    const recentStart=n&&state.profileOlderExpanded&&all.length>n?all.length-n:-1;
+    visible.forEach((c,visibleIndex)=>{
+      const fullIndex=all.indexOf(c);
+      if(recentStart>=0&&fullIndex===recentStart){html+=`<tr class="profileHistoryDivider"><td colspan="10">以下为${rangeLabel[String(state.profilePeriodRange)]||('近'+n+'周')} · 上方为手动展开的更早历史</td></tr>`}
+      const r=rec(c,state.selected),pc=profilePreviousCycle(c),p=pc?rec(pc,state.selected):null;
+      const attendance=typeof attendanceCell==='function'?attendanceCell(r,p):(fmt(val(r,'attendanceDays'),'attendanceDays')+'<br>'+(p?deltaHTML(val(r,'attendanceDays'),val(p,'attendanceDays'),'attendanceDays'):'-'));
+      html+=`<tr><td><b>${escProfilePeriod(c)}</b></td><td>${escProfilePeriod(fmtField(r,'acceptanceRate'))}<br>${p?deltaHTML(val(r,'acceptanceRate'),val(p,'acceptanceRate'),'acceptanceRate'):'-'}</td><td>${escProfilePeriod(fmtField(r,'tailRate'))}<br>${p?deltaHTML(val(r,'tailRate'),val(p,'tailRate'),'tailRate'):'-'}</td><td>${attendance}</td><td>${fmt(val(r,'orders'),'orders')}<br>${p?deltaHTML(val(r,'orders'),val(p,'orders'),'orders'):'-'}</td><td>${fmt(val(r,'income'),'income')}<br>${p?deltaHTML(val(r,'income'),val(p,'income'),'income'):'-'}</td><td>${fmt(val(r,'hourly'),'hourly')}<br>${p?deltaHTML(val(r,'hourly'),val(p,'hourly'),'hourly'):'-'}</td><td>${fmt(val(r,'duration'),'duration')}<br>${p?deltaHTML(val(r,'duration'),val(p,'duration'),'duration'):'-'}</td><td>${fmt(val(r,'periodAvg'),'periodAvg')}<br>${p?deltaHTML(val(r,'periodAvg'),val(p,'periodAvg'),'periodAvg'):'-'}</td><td>${rankFor(c,state.metric,state.selected)?'#'+rankFor(c,state.metric,state.selected):'-'}</td></tr>`;
+    });
+    table.innerHTML=html+'</tbody>';
+  }
+  const baseRenderProfile=renderProfile;
+  renderProfile=function(){
+    const out=baseRenderProfile.apply(this,arguments);
+    try{renderProfilePeriodControls();renderFilteredProfileWeeklyTable()}catch(e){console.warn('单骑手周期筛选渲染失败：',e?.message||e)}
+    return out;
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{try{renderProfilePeriodControls()}catch(_){}});else{try{renderProfilePeriodControls()}catch(_){}}
+})();
+</script>
 
 </body>
 </html>
