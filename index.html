@@ -1444,11 +1444,11 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 </div>
 
 
-<!-- V4.8.8: independent order-scoped history modal; read-only -->
+<!-- V4.8.9: independent phone-scoped history modal; read-only -->
 <div class="appealHistoryModal" id="appealHistoryModal" role="dialog" aria-modal="true" aria-labelledby="appealHistoryTitle" aria-describedby="appealHistorySub" aria-hidden="true">
   <div class="appealHistoryPanel">
     <div class="appealHistoryHead">
-      <div><h2 id="appealHistoryTitle">订单历史申诉</h2><p id="appealHistorySub">-</p></div>
+      <div><h2 id="appealHistoryTitle">用户历史申诉</h2><p id="appealHistorySub">-</p></div>
       <button type="button" class="btn small" id="closeAppealHistoryBtn" aria-label="关闭历史申诉弹窗">关闭</button>
     </div>
     <div class="appealHistoryScroll">
@@ -3141,7 +3141,8 @@ function renderOrderAppeals(){
   renderAppealPagination(total);
 }
 
-// V4.8.8: order-scoped, read-only, server-side history; ignores filtered/paginated table data.
+// V4.8.9: read-only, server-filtered history by normalized applicant mobile phone.
+// The RPC is SECURITY INVOKER and inherits the order_appeals table RLS policy.
 let appealHistoryRequestSerial=0;
 let appealHistoryFocusOrigin=null;
 function closeAppealHistory(){
@@ -3151,25 +3152,34 @@ function closeAppealHistory(){
   if(appealHistoryFocusOrigin?.isConnected)appealHistoryFocusOrigin.focus();
   appealHistoryFocusOrigin=null;
 }
-function renderAppealHistoryEntries(items){
+function maskAppealHistoryPhone(value){
+  const digits=String(value??'').replace(/\D/g,'');
+  if(digits.length<8)return '未提供有效手机号';
+  return `${digits.slice(0,3)}****${digits.slice(-3)}`;
+}
+function renderAppealHistoryEntries(items,selectedId=''){
   const container=byId('appealHistoryList');
   if(!container)return;
   if(!items.length){container.innerHTML='<div class="appealHistoryEmpty">暂无历史申诉记录</div>';return}
-  container.innerHTML=items.map((item,i)=>`<article class="appealHistoryRecord">
-    <div class="appealHistoryRecordHead"><strong>历史申诉 ${i+1}</strong><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></div>
-    <dl class="appealHistoryFields">
-      <dt>提交时间</dt><dd>${esc(appealDate(item.created_at))}</dd>
-      <dt>问题订单号</dt><dd>${esc(item.order_no||'-')}</dd>
-      <dt>分类</dt><dd><span class="appealReasonTag">${esc(item.reason_category||'其他')}</span></dd>
-      <dt>详细说明</dt><dd><div class="appealHistoryDetails">${esc(item.detail||'暂无详细说明')}</div></dd>
-      <dt>审核结果</dt><dd><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></dd>
-    </dl>
-  </article>`).join('');
+  container.innerHTML=items.map((item,i)=>{
+    const current=String(item.id)===String(selectedId);
+    return `<article class="appealHistoryRecord">
+      <div class="appealHistoryRecordHead"><strong>申诉记录 ${i+1}${current?' · 当前选中记录':''}</strong><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></div>
+      <dl class="appealHistoryFields">
+        <dt>提交时间</dt><dd>${esc(appealDate(item.created_at))}</dd>
+        <dt>问题订单号</dt><dd>${esc(item.order_no||'-')}</dd>
+        <dt>分类</dt><dd><span class="appealReasonTag">${esc(item.reason_category||'其他')}</span></dd>
+        <dt>详细说明</dt><dd><div class="appealHistoryDetails">${esc(item.detail||'暂无详细说明')}</div></dd>
+        <dt>审核结果</dt><dd><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></dd>
+      </dl>
+    </article>`;
+  }).join('');
 }
 async function openAppealHistory(id,originButton=null){
   const record=orderAppeals.find(item=>String(item.id)===String(id));
   if(!record){toast('未找到申诉记录');return}
-  const orderNo=String(record.order_no??'');
+  const phone=String(record.phone??'').trim();
+  const normalizedDigits=phone.replace(/\D/g,'');
   const modal=byId('appealHistoryModal');
   const sub=byId('appealHistorySub');
   const status=byId('appealHistoryStatus');
@@ -3179,47 +3189,46 @@ async function openAppealHistory(id,originButton=null){
   const thisRequest=++appealHistoryRequestSerial;
   modal.classList.add('show');
   modal.setAttribute('aria-hidden','false');
-  sub.textContent=`订单号：${orderNo.trim()||'暂无订单号'} · 仅查看历史记录（不含当前选中记录）`;
-  status.textContent='正在从后端读取该订单的历史申诉…';
+  sub.textContent=`手机号：${maskAppealHistoryPhone(phone)} · 跨订单完整申诉台账（包含当前选中记录）`;
+  status.textContent='正在从后端读取该手机号的全部申诉历史…';
   container.innerHTML='<div class="appealHistoryEmpty">正在加载历史记录…</div>';
   byId('closeAppealHistoryBtn')?.focus();
-  if(!orderNo.trim()){
-    status.textContent='该条申诉未填写有效订单号，无法按订单号检索历史。';
+  if(normalizedDigits.length<8){
+    status.textContent='当前申诉未填写有效手机号，无法按用户手机号关联历史记录。';
     renderAppealHistoryEntries([]);
     return;
   }
   try{
     const client=getCloudClient();
-    const pageSize=500;
-    let from=0;
+    const pageSize=250;
+    const maxPages=200;
     let history=[];
-    // Server query must not be restricted by visible list filters or its current page.
-    for(let page=0;page<200;page++){
-      const {data,error}=await client.from(ORDER_APPEALS_TABLE)
-        .select('id,created_at,order_no,reason_category,detail,review_result')
-        .eq('order_no',orderNo)
-        .order('created_at',{ascending:false})
-        .order('id',{ascending:false})
-        .range(from,from+pageSize-1);
+    // Backend normalizes +61 / 04 / whitespace / punctuation and enforces the caller's table RLS.
+    // The RPC returns only the five business fields plus row ID, never phone or other PII.
+    for(let page=0;page<maxPages;page++){
+      const {data,error}=await client.rpc('order_appeal_history_by_phone',{
+        p_phone:phone,
+        p_limit:pageSize,
+        p_offset:page*pageSize
+      });
       if(thisRequest!==appealHistoryRequestSerial)return;
       if(error)throw error;
       const batch=data||[];
       history.push(...batch);
       if(batch.length<pageSize)break;
-      from+=pageSize;
-      if(page===199)throw new Error('历史数据超过单次安全检索上限，请联系系统管理员分批归档。');
+      if(page===maxPages-1)throw new Error('申诉历史超出安全查询分页上限，请联系管理员分批查询。');
     }
     if(thisRequest!==appealHistoryRequestSerial)return;
-    // History means other submissions for the same order, excluding the selected row.
-    const past=history.filter(item=>String(item.id)!==String(id)&&String(item.order_no)===orderNo);
-    past.sort((a,b)=>Date.parse(b.created_at||0)-Date.parse(a.created_at||0)||String(b.id).localeCompare(String(a.id)));
-    status.textContent=past.length?`共 ${past.length} 条历史申诉 · 按提交时间倒序 · 只读`:'此订单尚无其他历史申诉记录。';
-    renderAppealHistoryEntries(past);
+    history.sort((a,b)=>Date.parse(b.created_at||0)-Date.parse(a.created_at||0)||String(b.id).localeCompare(String(a.id)));
+    const orderCount=new Set(history.map(item=>String(item.order_no||'').trim()).filter(Boolean)).size;
+    status.textContent=history.length?`共 ${history.length} 条申诉 · 涉及 ${orderCount} 个订单 · 提交时间倒序 · 只读`:'该手机号暂无历史申诉记录。';
+    renderAppealHistoryEntries(history,id);
   }catch(error){
     if(thisRequest!==appealHistoryRequestSerial)return;
-    console.warn('订单历史申诉读取失败：',error?.message||error);
-    status.textContent='历史申诉加载失败，请检查网络连接及当前账号的申诉读取权限后重试。';
-    container.innerHTML='<div class="appealHistoryEmpty">加载失败，暂无可展示的历史数据。请稍后重试。</div>';
+    console.warn('手机号维度申诉历史读取失败：',error?.code||'',error?.message||error);
+    const needsSetup=error?.code==='PGRST202'||error?.code==='42883'||/order_appeal_history_by_phone|schema cache|function .*not found/i.test(String(error?.message||''));
+    status.textContent=needsSetup?'历史申诉查询接口未部署，请管理员先执行 V4.8.9 SQL。':'历史申诉加载失败，请检查网络连接及当前账号的申诉读取权限后重试。';
+    container.innerHTML='<div class="appealHistoryEmpty">历史申诉暂时无法加载，请稍后重试。</div>';
   }
 }
 
