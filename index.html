@@ -438,6 +438,73 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 .oldInviteSectionCard{background:#fff;border:1px solid #dbe3ec!important;border-radius:20px;box-shadow:0 8px 24px rgba(16,24,40,.055)}.oldInviteSectionCard>.panelHead{padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid #eef2f6}.oldInviteFormGrid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;align-items:end}.oldInviteFormActions{display:flex;gap:8px;align-items:end;padding-bottom:2px}.oldInviteMatch{display:block;margin-top:6px;font-size:11px;font-weight:800;color:#667085}.oldInviteMatch.ok{color:#067647}.oldInviteMatch.none{color:#b42318}.oldInviteToolbar{display:grid;grid-template-columns:minmax(260px,2fr) minmax(160px,1fr) minmax(180px,1fr);gap:12px;align-items:end}.oldInviteTableWrap{max-height:560px;overflow:auto;border-color:#dbe3ec}.oldInviteTableWrap thead th{position:sticky;top:0;z-index:3;background:#f8fafc;box-shadow:0 1px 0 var(--line)}.oldInviteRiderCell{min-width:180px}.oldInviteRiderCell b{display:block}.oldInviteRiderCell small{display:block;color:var(--muted);margin-top:3px}.oldInviteNoData{color:#b42318;font-weight:800}.oldInviteStatusSelect{min-width:106px;border:1px solid transparent!important;border-radius:999px!important;padding:6px 28px 6px 11px!important;font-size:12px;font-weight:900;line-height:1.2;cursor:pointer;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:border-color .15s,background .15s,color .15s}.oldInviteStatusSelect.status-todo{background:#fff1f2!important;border-color:#fecdd3!important;color:#be123c!important}.oldInviteStatusSelect.status-doing{background:#eff6ff!important;border-color:#bfdbfe!important;color:#1d4ed8!important}.oldInviteStatusSelect.status-done{background:#ecfdf3!important;border-color:#bbf7d0!important;color:#047857!important}.oldInviteStatusSelect:focus{box-shadow:0 0 0 3px rgba(59,130,246,.12)}.oldInvitePhone{white-space:nowrap}.oldInviteUpdated{white-space:nowrap;color:var(--muted);font-size:12px}
 @media(max-width:1100px){.oldInviteFormGrid{grid-template-columns:repeat(2,minmax(180px,1fr))}.oldInviteStats{grid-template-columns:repeat(2,minmax(140px,1fr))}}
 @media(max-width:700px){.oldInviteFormGrid,.oldInviteToolbar,.oldInviteStats{grid-template-columns:1fr}.oldInviteFormActions{padding-bottom:0}}
+
+
+/* === V4.8.3 老邀老登记表：模块层级强化（纯视觉，不改业务逻辑） === */
+#oldInviteRegistry .oldInviteSectionCard{
+  background:#ffffff!important;
+  border:2px solid #d8e1ec!important;
+  border-radius:22px!important;
+  box-shadow:0 10px 28px rgba(15,23,42,.085)!important;
+  padding:0!important;
+  overflow:hidden!important;
+  margin-bottom:18px!important;
+}
+#oldInviteRegistry .oldInviteSectionCard>.panelHead{
+  margin:0!important;
+  padding:15px 18px 14px!important;
+  background:linear-gradient(180deg,#f8fafc 0%,#f4f7fb 100%)!important;
+  border-bottom:1px solid #d8e1ec!important;
+}
+#oldInviteRegistry .oldInviteSectionCard>.panelHead h2{
+  font-size:17px!important;
+  font-weight:950!important;
+  color:#182230!important;
+}
+#oldInviteRegistry .oldInviteSectionCard>.panelHead .sub{
+  color:#667085!important;
+}
+#oldInviteRegistry .oldInviteFormGrid{
+  padding:18px!important;
+  background:#fff!important;
+}
+#oldInviteRegistry .oldInviteToolbar{
+  padding:16px 18px 0!important;
+  margin:0 0 12px!important;
+  background:#fff!important;
+}
+#oldInviteRegistry .oldInviteTableWrap{
+  margin:0 18px 18px!important;
+  border:1px solid #d5dde8!important;
+  border-radius:16px!important;
+  box-shadow:0 2px 8px rgba(15,23,42,.035)!important;
+  background:#fff!important;
+}
+#oldInviteRegistry .oldInviteTableWrap thead th{
+  background:#f7f9fc!important;
+  border-bottom:1px solid #d8e1ec!important;
+}
+#oldInviteRegistry .oldInviteSectionCard .field{
+  background:#fbfcfe!important;
+  border-color:#e2e8f0!important;
+}
+#oldInviteRegistry .oldInviteSectionCard .field span{
+  color:#667085!important;
+}
+#oldInviteRegistry .oldInviteSectionCard input,
+#oldInviteRegistry .oldInviteSectionCard select{
+  color:#182230;
+}
+#oldInviteRegistry .oldInviteSectionCard input::placeholder{
+  color:#a8b3c5!important;
+}
+@media(max-width:700px){
+  #oldInviteRegistry .oldInviteFormGrid{padding:14px!important}
+  #oldInviteRegistry .oldInviteToolbar{padding:14px 14px 0!important}
+  #oldInviteRegistry .oldInviteTableWrap{margin:0 14px 14px!important}
+  #oldInviteRegistry .oldInviteSectionCard>.panelHead{padding:14px!important}
+}
+
 </style>
 </head>
 <body class="auth-locked">
