@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
 <title>骑手周度数据看板｜账号登录管理员版</title>
+<!-- Order appeal history modal V4.8.8 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -429,6 +430,26 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 @media(max-width:980px){.onlineContactFrame{height:calc(100vh - 92px);min-height:720px}}
 
+
+/* V4.8.8: Order appeal history (read-only, live Supabase query) */
+.appealHistoryModal{display:none;position:fixed;inset:0;z-index:1260;background:rgba(15,23,42,.58);padding:18px;align-items:center;justify-content:center}
+.appealHistoryModal.show{display:flex}
+.appealHistoryPanel{width:min(900px,100%);max-height:min(90vh,920px);overflow:hidden;display:flex;flex-direction:column;background:#fff;border:1px solid #dfe5ee;border-radius:23px;box-shadow:0 30px 90px rgba(16,24,40,.26)}
+.appealHistoryHead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:20px 22px 17px;border-bottom:1px solid #e7ebf2;background:linear-gradient(145deg,#fff,#f8faff)}
+.appealHistoryHead h2{font-size:19px;margin:0;color:#101828}
+.appealHistoryHead p{font-size:13px;color:#667085;margin:6px 0 0;overflow-wrap:anywhere}
+.appealHistoryScroll{padding:18px 22px;overflow:auto;overscroll-behavior:contain}
+.appealHistoryStatus{font-size:13px;color:#667085;line-height:1.6;margin-bottom:13px}
+.appealHistoryEmpty{padding:43px 18px;border:1px dashed #ccd5e2;border-radius:16px;background:#f8fafc;color:#667085;font-size:14px;text-align:center}
+.appealHistoryRecord{border:1px solid #e3e9f2;border-radius:16px;background:#fff;padding:15px 16px;margin-bottom:12px;box-shadow:0 5px 17px rgba(16,24,40,.045)}
+.appealHistoryRecordHead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:13px;border-bottom:1px solid #eef1f5;padding-bottom:11px}
+.appealHistoryRecordHead strong{font-size:14px;color:#182230}
+.appealHistoryFields{display:grid;grid-template-columns:125px 1fr;gap:9px 13px;font-size:13px;line-height:1.6}
+.appealHistoryFields dt{color:#667085;font-weight:850}
+.appealHistoryFields dd{margin:0;color:#1d2939;overflow-wrap:anywhere;min-width:0}
+.appealHistoryDetails{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid #ecf0f4;padding:10px 12px;border-radius:12px;max-height:320px;overflow:auto}
+.appealHistoryFoot{padding:12px 22px;border-top:1px solid #e7ebf2;display:flex;align-items:center;justify-content:flex-end;background:#fafbfc}
+@media(max-width:640px){.appealHistoryModal{padding:9px}.appealHistoryPanel{max-height:94vh;border-radius:18px}.appealHistoryHead{padding:15px}.appealHistoryScroll{padding:12px}.appealHistoryFoot{padding:10px 14px}.appealHistoryFields{grid-template-columns:1fr;gap:3px}.appealHistoryFields dt{margin-top:5px}}
 </style>
 
 <style id="oldInviteRegistryStyles">
@@ -1422,6 +1443,21 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
   </div>
 </div>
 
+
+<!-- V4.8.8: independent order-scoped history modal; read-only -->
+<div class="appealHistoryModal" id="appealHistoryModal" role="dialog" aria-modal="true" aria-labelledby="appealHistoryTitle" aria-describedby="appealHistorySub" aria-hidden="true">
+  <div class="appealHistoryPanel">
+    <div class="appealHistoryHead">
+      <div><h2 id="appealHistoryTitle">订单历史申诉</h2><p id="appealHistorySub">-</p></div>
+      <button type="button" class="btn small" id="closeAppealHistoryBtn" aria-label="关闭历史申诉弹窗">关闭</button>
+    </div>
+    <div class="appealHistoryScroll">
+      <div class="appealHistoryStatus" id="appealHistoryStatus" aria-live="polite"></div>
+      <div id="appealHistoryList"></div>
+    </div>
+    <div class="appealHistoryFoot"><button type="button" class="btn" id="closeAppealHistoryFootBtn">返回列表</button></div>
+  </div>
+</div>
 
 <section id="systemManagement" class="tab">
   <div class="panel">
@@ -3099,11 +3135,94 @@ function renderOrderAppeals(){
       <td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td>
       <td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td>
       <td>${appealDate(updatedTime)}</td>
-      <td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td>
+      <td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-history="${esc(x.id)}">历史申诉</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td>
     </tr>`
   }).join('')+'</tbody>';
   renderAppealPagination(total);
 }
+
+// V4.8.8: order-scoped, read-only, server-side history; ignores filtered/paginated table data.
+let appealHistoryRequestSerial=0;
+let appealHistoryFocusOrigin=null;
+function closeAppealHistory(){
+  ++appealHistoryRequestSerial; // invalidate any asynchronous response after closing
+  const modal=byId('appealHistoryModal');
+  if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}
+  if(appealHistoryFocusOrigin?.isConnected)appealHistoryFocusOrigin.focus();
+  appealHistoryFocusOrigin=null;
+}
+function renderAppealHistoryEntries(items){
+  const container=byId('appealHistoryList');
+  if(!container)return;
+  if(!items.length){container.innerHTML='<div class="appealHistoryEmpty">暂无历史申诉记录</div>';return}
+  container.innerHTML=items.map((item,i)=>`<article class="appealHistoryRecord">
+    <div class="appealHistoryRecordHead"><strong>历史申诉 ${i+1}</strong><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></div>
+    <dl class="appealHistoryFields">
+      <dt>提交时间</dt><dd>${esc(appealDate(item.created_at))}</dd>
+      <dt>问题订单号</dt><dd>${esc(item.order_no||'-')}</dd>
+      <dt>分类</dt><dd><span class="appealReasonTag">${esc(item.reason_category||'其他')}</span></dd>
+      <dt>详细说明</dt><dd><div class="appealHistoryDetails">${esc(item.detail||'暂无详细说明')}</div></dd>
+      <dt>审核结果</dt><dd><span class="appealStatusTag ${appealStatusClass(item.review_result)}">${esc(item.review_result||'待审核')}</span></dd>
+    </dl>
+  </article>`).join('');
+}
+async function openAppealHistory(id,originButton=null){
+  const record=orderAppeals.find(item=>String(item.id)===String(id));
+  if(!record){toast('未找到申诉记录');return}
+  const orderNo=String(record.order_no??'');
+  const modal=byId('appealHistoryModal');
+  const sub=byId('appealHistorySub');
+  const status=byId('appealHistoryStatus');
+  const container=byId('appealHistoryList');
+  if(!modal||!sub||!status||!container)return;
+  appealHistoryFocusOrigin=originButton||document.activeElement;
+  const thisRequest=++appealHistoryRequestSerial;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+  sub.textContent=`订单号：${orderNo.trim()||'暂无订单号'} · 仅查看历史记录（不含当前选中记录）`;
+  status.textContent='正在从后端读取该订单的历史申诉…';
+  container.innerHTML='<div class="appealHistoryEmpty">正在加载历史记录…</div>';
+  byId('closeAppealHistoryBtn')?.focus();
+  if(!orderNo.trim()){
+    status.textContent='该条申诉未填写有效订单号，无法按订单号检索历史。';
+    renderAppealHistoryEntries([]);
+    return;
+  }
+  try{
+    const client=getCloudClient();
+    const pageSize=500;
+    let from=0;
+    let history=[];
+    // Server query must not be restricted by visible list filters or its current page.
+    for(let page=0;page<200;page++){
+      const {data,error}=await client.from(ORDER_APPEALS_TABLE)
+        .select('id,created_at,order_no,reason_category,detail,review_result')
+        .eq('order_no',orderNo)
+        .order('created_at',{ascending:false})
+        .order('id',{ascending:false})
+        .range(from,from+pageSize-1);
+      if(thisRequest!==appealHistoryRequestSerial)return;
+      if(error)throw error;
+      const batch=data||[];
+      history.push(...batch);
+      if(batch.length<pageSize)break;
+      from+=pageSize;
+      if(page===199)throw new Error('历史数据超过单次安全检索上限，请联系系统管理员分批归档。');
+    }
+    if(thisRequest!==appealHistoryRequestSerial)return;
+    // History means other submissions for the same order, excluding the selected row.
+    const past=history.filter(item=>String(item.id)!==String(id)&&String(item.order_no)===orderNo);
+    past.sort((a,b)=>Date.parse(b.created_at||0)-Date.parse(a.created_at||0)||String(b.id).localeCompare(String(a.id)));
+    status.textContent=past.length?`共 ${past.length} 条历史申诉 · 按提交时间倒序 · 只读`:'此订单尚无其他历史申诉记录。';
+    renderAppealHistoryEntries(past);
+  }catch(error){
+    if(thisRequest!==appealHistoryRequestSerial)return;
+    console.warn('订单历史申诉读取失败：',error?.message||error);
+    status.textContent='历史申诉加载失败，请检查网络连接及当前账号的申诉读取权限后重试。';
+    container.innerHTML='<div class="appealHistoryEmpty">加载失败，暂无可展示的历史数据。请稍后重试。</div>';
+  }
+}
+
 function openAppealDetail(id){currentAppealId=id;const x=orderAppeals.find(a=>a.id===id);if(!x){toast('未找到申诉记录');return}const sub=byId('appealDetailSub');if(sub)sub.textContent=`订单号：${x.order_no||'-'} · ${appealDate(x.created_at)}`;const monthCount=appealMonthlyCount(x.phone);const grid=byId('appealDetailGrid');if(grid){grid.innerHTML=`<b>申请提交时间</b><span>${appealDate(x.created_at)}</span><b>区域</b><span>${appealAreaHtml(x.appeal_area)}</span><b>姓名</b><span>${esc(x.applicant_name||'-')}</span><b>手机号</b><span>${esc(x.phone||'-')}</span><b>提交次数</b><span><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${appealTotalCount(x.phone)}</span> <span class="mini">本月次数 / 累积次数，按手机号统计</span></span><b>问题订单号</b><span>${esc(x.order_no||'-')}</span><b>申诉原因分类</b><span><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></span><b>详细说明订单情况</b><span>${esc(x.detail||'-')}</span><b>放餐照片</b><span>${appealImagesHtml(x.meal_photo_urls)}</span><b>通话记录照片</b><span>${appealImagesHtml(x.call_photo_urls)}</span><b>更多照片</b><span>${appealImagesHtml(x.more_photo_urls)}</span><b>备注</b><span>${esc(x.remark||'-')}</span><b>处理人审核结果</b><span><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span></span><b>处理人备注</b><span>${esc(x.review_note||'-')}</span>`}const sel=byId('appealReviewResultSel');if(sel)sel.value=x.review_result||'待审核';const note=byId('appealReviewNoteInp');if(note)note.value=x.review_note||'';byId('appealDetailModal')?.classList.add('show')}
 async function saveAppealReview(id=currentAppealId,result=null){const x=orderAppeals.find(a=>a.id===id);if(!x)return;const reviewResult=result||byId('appealReviewResultSel')?.value||'待审核';const reviewNote=byId('appealReviewNoteInp')?.value||x.review_note||'';try{const client=getCloudClient();const payload={review_result:reviewResult,review_note:reviewNote,reviewer_id:cloudUser?.id||null,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()};const {error}=await client.from(ORDER_APPEALS_TABLE).update(payload).eq('id',id);if(error)throw error;Object.assign(x,payload);renderOrderAppeals();openAppealDetail(id);toast('审核结果已保存')}catch(e){alert('保存失败：'+(e.message||e))}}
 
@@ -3127,7 +3246,7 @@ async function deleteOrderAppeal(id){
   }
 }
 function exportOrderAppeals(){const items=filteredOrderAppeals();if(!items.length){toast('暂无可导出的申诉记录');return}const header=['提交时间','区域','姓名','手机号','本月/累积提交次数','问题订单号','申诉原因分类','详细说明','放餐照片','通话记录照片','更多照片','备注','处理人审核结果','处理备注','更新时间'];const lines=[header,...items.map(x=>[appealDate(x.created_at),appealAreaLabel(x.appeal_area),x.applicant_name,x.phone,appealMonthlyCount(x.phone)+'/'+appealTotalCount(x.phone),x.order_no,x.reason_category,x.detail,normalizePhotoList(x.meal_photo_urls).join('|'),normalizePhotoList(x.call_photo_urls).join('|'),normalizePhotoList(x.more_photo_urls).join('|'),x.remark,x.review_result||'待审核',x.review_note||'',appealDate(x.updated_at||x.reviewed_at||x.created_at)])];downloadBlob('\ufeff'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),'订单申诉管理.csv')}
-function bindOrderAppealControls(){const refresh=byId('refreshAppealsBtn');if(refresh)refresh.onclick=async()=>{await loadOrderAppeals();renderOrderAppeals();toast('申诉订单已刷新')};const copy=byId('copyAppealFormLinkBtn');if(copy)copy.onclick=async()=>{const u=location.origin+'/appeal.html';try{await navigator.clipboard.writeText(u);toast('已复制填写表链接')}catch(e){prompt('复制填写表链接',u)}};const search=byId('appealSearchInp');if(search)search.oninput=()=>{appealPage=1;renderOrderAppeals()};['appealStatusFilter','appealAreaFilter','appealReasonFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=()=>{appealPage=1;renderOrderAppeals()}});const exp=byId('exportAppealsBtn');if(exp)exp.onclick=exportOrderAppeals;const close=byId('closeAppealDetailBtn');if(close)close.onclick=()=>byId('appealDetailModal')?.classList.remove('show');const modal=byId('appealDetailModal');if(modal)modal.addEventListener('click',e=>{if(e.target?.id==='appealDetailModal')modal.classList.remove('show')});const save=byId('saveAppealReviewBtn');if(save)save.onclick=()=>saveAppealReview();if(!window.__appealDocBound){window.__appealDocBound=true;document.addEventListener('click',e=>{const detail=e.target.closest?.('[data-appeal-detail]');if(detail){openAppealDetail(detail.dataset.appealDetail);return}const quick=e.target.closest?.('[data-appeal-result]');if(quick){saveAppealReview(quick.dataset.appealId,quick.dataset.appealResult);return}const del=e.target.closest?.('[data-appeal-delete]');if(del){deleteOrderAppeal(del.dataset.appealDelete);return}})}}
+function bindOrderAppealControls(){const refresh=byId('refreshAppealsBtn');if(refresh)refresh.onclick=async()=>{await loadOrderAppeals();renderOrderAppeals();toast('申诉订单已刷新')};const copy=byId('copyAppealFormLinkBtn');if(copy)copy.onclick=async()=>{const u=location.origin+'/appeal.html';try{await navigator.clipboard.writeText(u);toast('已复制填写表链接')}catch(e){prompt('复制填写表链接',u)}};const search=byId('appealSearchInp');if(search)search.oninput=()=>{appealPage=1;renderOrderAppeals()};['appealStatusFilter','appealAreaFilter','appealReasonFilter'].forEach(id=>{const el=byId(id);if(el)el.onchange=()=>{appealPage=1;renderOrderAppeals()}});const exp=byId('exportAppealsBtn');if(exp)exp.onclick=exportOrderAppeals;const close=byId('closeAppealDetailBtn');if(close)close.onclick=()=>byId('appealDetailModal')?.classList.remove('show');const modal=byId('appealDetailModal');if(modal)modal.addEventListener('click',e=>{if(e.target?.id==='appealDetailModal')modal.classList.remove('show')});const historyClose=byId('closeAppealHistoryBtn');if(historyClose)historyClose.onclick=closeAppealHistory;const historyFoot=byId('closeAppealHistoryFootBtn');if(historyFoot)historyFoot.onclick=closeAppealHistory;const historyModal=byId('appealHistoryModal');if(historyModal)historyModal.addEventListener('click',e=>{if(e.target===historyModal)closeAppealHistory()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&byId('appealHistoryModal')?.classList.contains('show')){e.preventDefault();closeAppealHistory()}});const save=byId('saveAppealReviewBtn');if(save)save.onclick=()=>saveAppealReview();if(!window.__appealDocBound){window.__appealDocBound=true;document.addEventListener('click',e=>{const history=e.target.closest?.('[data-appeal-history]');if(history){openAppealHistory(history.dataset.appealHistory,history);return}const detail=e.target.closest?.('[data-appeal-detail]');if(detail){openAppealDetail(detail.dataset.appealDetail);return}const quick=e.target.closest?.('[data-appeal-result]');if(quick){saveAppealReview(quick.dataset.appealId,quick.dataset.appealResult);return}const del=e.target.closest?.('[data-appeal-delete]');if(del){deleteOrderAppeal(del.dataset.appealDelete);return}})}}
 function initOrderAppealFeature(){bindOrderAppealControls()}
 
 function profileBackName(tab){return {followup:'问题跟进闭环',ownerFollowup:'重点专人跟进',problems:'问题骑手管理',returnPotential:'潜力骑手运营',compare:'骑手多人对比',diagnosis:'数据趋势诊断',overview:'运营数据总览',todoList:'待办事项管理',communicationManual:'沟通手册',riderContacts:'骑手通讯录',oldInviteRegistry:'老邀老登记表',weeklyReport:'站长周报',orderAppeals:'订单申诉管理',newRiderProcess:'新骑手流程表',newRiderQueue:'新骑手排队表',systemManagement:'系统权限管理',growthCenter:'成长中心'}[tab]||'上一页'}
@@ -4256,7 +4375,7 @@ ${qualityReturnText}
     table.innerHTML=table.innerHTML.replace(/本月提交次数/g,'提交次数').replace(/本月 (\d+) 次/g,(m,n)=>n).replace(/按手机号统计/g,'本月/累计');
     // Re-render with accurate combined counts when rows are available.
     const allItems=filteredOrderAppeals();if(!allItems.length)return;const total=allItems.length;const totalPages=Math.max(1,Math.ceil(total/appealPageSize));if(appealPage>totalPages)appealPage=totalPages;if(appealPage<1)appealPage=1;const start=(appealPage-1)*appealPageSize;const items=allItems.slice(start,start+appealPageSize);
-    table.innerHTML='<thead><tr><th>提交时间</th><th>区域</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>备注</th><th>审核结果</th><th>操作</th></tr></thead><tbody>'+items.map(x=>{const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);return `<tr><td>${appealDate(x.created_at)}</td><td>${appealAreaHtml(x.appeal_area)}</td><td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td><td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td><td><b>${esc(x.order_no||'-')}</b></td><td><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></td><td>${esc((x.detail||'').slice(0,80))}${(x.detail||'').length>80?'…':''}</td><td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td><td>${esc(x.remark||'-')}</td><td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td><td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-result="通过" data-appeal-id="${esc(x.id)}">通过</button><button class="btn small danger" data-appeal-result="拒绝" data-appeal-id="${esc(x.id)}">拒绝</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td></tr>`}).join('')+'</tbody>';renderAppealPagination(total);table.querySelectorAll('[data-appeal-detail]').forEach(b=>b.onclick=()=>openAppealDetail(b.dataset.appealDetail));table.querySelectorAll('[data-appeal-result]').forEach(b=>b.onclick=()=>saveAppealReview(b.dataset.appealId,b.dataset.appealResult));table.querySelectorAll('[data-appeal-delete]').forEach(b=>b.onclick=()=>deleteOrderAppeal(b.dataset.appealDelete));
+    table.innerHTML='<thead><tr><th>提交时间</th><th>区域</th><th>姓名 / 手机号</th><th>提交次数</th><th>问题订单号</th><th>分类</th><th>详细说明</th><th>照片</th><th>备注</th><th>审核结果</th><th>操作</th></tr></thead><tbody>'+items.map(x=>{const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);return `<tr><td>${appealDate(x.created_at)}</td><td>${appealAreaHtml(x.appeal_area)}</td><td><b>${esc(x.applicant_name||'-')}</b><div class="mini">${esc(x.phone||'-')}</div></td><td><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span><div class="mini">本月/累计</div></td><td><b>${esc(x.order_no||'-')}</b></td><td><span class="appealReasonTag">${esc(x.reason_category||'其他')}</span></td><td>${esc((x.detail||'').slice(0,80))}${(x.detail||'').length>80?'…':''}</td><td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td><td>${esc(x.remark||'-')}</td><td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td><td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-history="${esc(x.id)}">历史申诉</button><button class="btn small" data-appeal-result="通过" data-appeal-id="${esc(x.id)}">通过</button><button class="btn small danger" data-appeal-result="拒绝" data-appeal-id="${esc(x.id)}">拒绝</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td></tr>`}).join('')+'</tbody>';renderAppealPagination(total);table.querySelectorAll('[data-appeal-detail]').forEach(b=>b.onclick=()=>openAppealDetail(b.dataset.appealDetail));table.querySelectorAll('[data-appeal-result]').forEach(b=>b.onclick=()=>saveAppealReview(b.dataset.appealId,b.dataset.appealResult));table.querySelectorAll('[data-appeal-delete]').forEach(b=>b.onclick=()=>deleteOrderAppeal(b.dataset.appealDelete));
   };
   const oldOpenAppealDetailFinal=openAppealDetail;
   openAppealDetail=function(id){oldOpenAppealDetailFinal(id);const x=orderAppeals.find(a=>a.id===id);const grid=byId('appealDetailGrid');if(grid&&x){const monthCount=appealMonthlyCount(x.phone),totalCount=appealTotalCount(x.phone);grid.innerHTML=grid.innerHTML.replace(/<b>本月提交次数<\/b><span>[\s\S]*?<\/span>/,`<b>提交次数</b><span><span class="pill ${monthCount>=3?'amber':'blue'}">${monthCount}/${totalCount}</span> <span class="mini">本月/累计</span></span>`);}}
@@ -4386,7 +4505,7 @@ ${qualityReturnText}
           <td>${appealPhotosHtml(x.meal_photo_urls,'放餐')}${appealPhotosHtml(x.call_photo_urls,'通话')}${appealPhotosHtml(x.more_photo_urls,'更多')}</td>
           <td><span class="appealStatusTag ${appealStatusClass(x.review_result)}">${esc(x.review_result||'待审核')}</span><div class="mini">${esc(x.review_note||'')}</div></td>
           <td>${appealDate(updatedTime)}</td>
-          <td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td>
+          <td><div class="inlineActions"><button class="btn small" data-appeal-detail="${esc(x.id)}">查看</button><button class="btn small" data-appeal-history="${esc(x.id)}">历史申诉</button><button class="btn small danger" data-appeal-delete="${esc(x.id)}">删除</button></div></td>
         </tr>`
       }).join('')+'</tbody>';
     renderAppealPagination(total);
