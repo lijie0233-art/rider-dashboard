@@ -424,7 +424,7 @@ body.auth-locked .donateDetailLayer{display:none!important}.donateDetailLayer{di
 @media(max-width:900px){.todoFormGrid{grid-template-columns:1fr!important}.todoReminderItemTop{display:block}}
 
 
-.menuTestTag.contactTestTag{background:rgba(255,212,0,.16);color:#ffd400;border:1px solid rgba(255,212,0,.28);border-radius:999px;padding:2px 7px;font-size:9px;font-weight:950;margin-left:auto;white-space:nowrap}
+
 .onlineContactShell{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow2);min-height:calc(100vh - 120px)}
 .onlineContactFrame{display:block;width:100%;height:calc(100vh - 104px);min-height:780px;border:0;background:#f6f7f9}
 body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
@@ -642,8 +642,8 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
     <nav class="sideNav nav" aria-label="主菜单">
       <button class="active" data-tab="overview"><span class="menuIcon">📊</span><span class="menuLabel">运营数据总览</span></button>
       <button data-tab="orderAppeals"><span class="menuIcon">🧾</span><span class="menuLabel">订单申诉管理</span><span class="todoMenuBadge appealMenuBadge" id="orderAppealMenuBadge" aria-label="待审核申诉数量"></span></button>
-      <button data-tab="liquorLicenseReview"><span class="menuIcon">🍷</span><span class="menuLabel">酒牌问题核查</span></button>
-      <button data-tab="newRiderProcess"><span class="menuIcon">🆕</span><span class="menuLabel">新骑手流程表</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="liquorLicenseReview"><span class="menuIcon">🍷</span><span class="menuLabel">酒牌问题核查</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="newRiderProcess"><span class="menuIcon">🆕</span><span class="menuLabel">新骑手流程表</span></button>
       <button data-tab="newRiderQueue"><span class="menuIcon">🧭</span><span class="menuLabel">新骑手排队表</span><span class="menuTestTag">新上线</span></button>
       <button data-tab="falseAccounts"><span class="menuIcon">🚫</span><span class="menuLabel">虚假账户记录表</span></button>
       <button data-tab="todoList"><span class="menuIcon">📝</span><span class="menuLabel">待办事项管理</span><span class="todoMenuBadge" id="todoMenuBadge" aria-label="未完成待办数量"></span></button>
@@ -658,9 +658,9 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
       <button data-tab="profile"><span class="menuIcon">👤</span><span class="menuLabel">单骑手跟踪</span></button>
       <button data-tab="communicationManual"><span class="menuIcon">💬</span><span class="menuLabel">沟通手册</span></button>
       <button data-tab="riderContacts"><span class="menuIcon">☎️</span><span class="menuLabel">骑手通讯录</span></button>
-      <button data-tab="onlineContactCenter"><span class="menuIcon">📞</span><span class="menuLabel">上线电联中心</span><span class="menuTestTag contactTestTag">测试中</span></button>
-      <button data-tab="oldInviteRegistry"><span class="menuIcon">🤝</span><span class="menuLabel">老邀老登记表</span></button>
-      <button data-tab="pandaAiAssistant"><span class="menuIcon">🐼</span><span class="menuLabel">熊猫AI助手</span><span class="menuTestTag">AI</span></button>
+      <button data-tab="onlineContactCenter"><span class="menuIcon">📞</span><span class="menuLabel">上线电联中心</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="oldInviteRegistry"><span class="menuIcon">🤝</span><span class="menuLabel">老邀老登记表</span><span class="menuTestTag">新上线</span></button>
+      <button data-tab="pandaAiAssistant"><span class="menuIcon">🐼</span><span class="menuLabel">熊猫AI助手</span></button>
       <button data-tab="weeklyReport"><span class="menuIcon">🗞️</span><span class="menuLabel">站长周报</span></button>
       <button data-tab="systemManagement"><span class="menuIcon">⚙️</span><span class="menuLabel">系统权限管理</span></button>
       <button data-tab="growthCenter"><span class="menuIcon">🏅</span><span class="menuLabel">成长中心</span></button>
@@ -7495,7 +7495,7 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
       const diagnosis=nav.querySelector('button[data-tab="diagnosis"]');
       if(diagnosis&&diagnosis.nextSibling)nav.insertBefore(btn,diagnosis.nextSibling);else nav.appendChild(btn);
     }
-    btn.innerHTML='<span class="menuIcon">🏷️</span><span class="menuLabel">时薪法案骑手分层</span><span class="menuTestTag">新上线</span>';
+    btn.innerHTML='<span class="menuIcon">🏷️</span><span class="menuLabel">时薪法案骑手分层</span>';
     btn.onclick=()=>{try{selectTab(TAB)}catch(_){document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===TAB));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.id===TAB));renderTagCalc();}};
   }
   function ensureUI(){installStyle();installSection();installMenu();bindControls();}
