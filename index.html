@@ -523,6 +523,37 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 @media(max-width:900px){.oldInviteProfileMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.oldInviteProfileDialog{width:98vw;max-height:95vh}.oldInviteProfileHeader,.oldInviteProfileBody{padding-left:18px;padding-right:18px}.oldInviteProfileTitleLine h2{font-size:21px}}
 @media(max-width:560px){.oldInviteProfileMetrics{grid-template-columns:1fr}.oldInviteProfileFacts{gap:4px 14px}.oldInviteProfileFact{font-size:11px}.oldInviteProfileModal{padding:8px}.oldInviteProfileHeader{padding-top:16px}.oldInviteProfileAvatar{width:50px;height:50px;font-size:25px}}
 </style>
+
+<style id="oldInviteFollowupNoteStyles">
+/* V4.8.7: old-invite registration-scoped follow-up remarks. No change to legacy forms. */
+#oldInviteRegistry .oldInviteFollowNoteBtn{border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;font-weight:850;white-space:nowrap}
+#oldInviteRegistry .oldInviteFollowNoteBtn:hover{background:#ffedd5;border-color:#fdba74}
+.oiNoteBackdrop{position:fixed;inset:0;z-index:13000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.49);backdrop-filter:blur(5px)}
+.oiNoteBackdrop.is-open{display:flex}
+.oiNoteDialog{font-family:system-ui,-apple-system,"Segoe UI",Arial,"Microsoft YaHei",sans-serif;display:flex;flex-direction:column;width:min(860px,96vw);max-height:min(90vh,830px);min-height:390px;overflow:hidden;background:#f9fafb;border-radius:22px;border:1px solid #e2e8f0;box-shadow:0 24px 78px rgba(15,23,42,.25)}
+.oiNoteHeader{background:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:22px 25px 18px;border-bottom:1px solid #e5e7eb}
+.oiNoteHeader h2{margin:0 0 5px;font-size:20px;font-weight:900;color:#172033}.oiNoteSubtitle{color:#64748b;font-size:12px;line-height:1.6;word-break:break-word}
+.oiNoteClose{border:0;background:transparent;color:#64748b;font-size:27px;cursor:pointer;line-height:1;border-radius:10px;width:34px;height:34px}.oiNoteClose:hover{background:#f1f5f9}
+.oiNoteContent{overflow:auto;padding:20px 25px 24px;flex:1;min-height:0}
+.oiNoteLabel{display:block;font-size:15px;font-weight:900;color:#475569;margin-bottom:10px}.oiNoteLabel .required{color:#ef4444}
+.oiNoteTextarea{display:block;width:100%;min-height:122px;resize:vertical;border:1px solid #d1d5db!important;border-radius:12px!important;padding:16px 18px!important;background:#fff!important;color:#1e293b!important;box-shadow:0 2px 7px rgba(15,23,42,.045);font-size:15px!important;line-height:1.6!important}
+.oiNoteTextarea:focus{border-color:#fb923c!important;box-shadow:0 0 0 3px rgba(251,146,60,.16)!important;outline:none}
+.oiNoteHint{font-size:12px;color:#94a3b8;margin-top:8px;min-height:17px}
+.oiNoteHistoryHeading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:22px 0 11px}
+.oiNoteHistoryHeading h3{font-size:15px;margin:0;color:#334155}
+.oiNoteRefresh{font-size:12px;border:1px solid #dbe3ec;border-radius:9px;background:#fff;color:#475569;padding:7px 12px;cursor:pointer;font-weight:800}
+.oiNoteHistory{display:grid;gap:10px}
+.oiNoteEmpty{border:1px dashed #cbd5e1;border-radius:12px;text-align:center;padding:30px 18px;color:#94a3b8;font-size:13px;background:#fff}
+.oiNoteHistoryItem{padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:13px;overflow-wrap:anywhere}
+.oiNoteHistoryTop{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;align-items:center;font-size:12px;color:#64748b;margin-bottom:8px}
+.oiNoteHistoryTop strong{color:#334155;font-weight:850}.oiNoteRevision{display:inline-block;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:100px;padding:2px 8px;font-size:11px;font-weight:850}
+.oiNoteHistoryText{white-space:pre-wrap;color:#1e293b;font-size:13px;line-height:1.7}
+.oiNoteRevise{border:0;color:#2563eb;background:transparent;padding:3px 0;font-size:12px;font-weight:850;cursor:pointer}.oiNoteRevise:hover{text-decoration:underline}
+.oiNoteFooter{padding:15px 24px;display:flex;align-items:center;justify-content:flex-end;gap:10px;background:#fff;border-top:1px solid #e5e7eb;flex-shrink:0}
+.oiNoteFooter button{border-radius:11px;padding:12px 25px;font-size:15px;font-weight:900;cursor:pointer}
+.oiNoteCancel{background:#fff;border:1px solid #d1d5db;color:#1f2937}.oiNoteSave{background:#ff7300;color:#fff;border:1px solid #ff7300;min-width:132px}.oiNoteSave:disabled{opacity:.65;cursor:wait}
+@media(max-width:650px){.oiNoteBackdrop{padding:6px}.oiNoteDialog{width:100%;max-height:96vh;border-radius:17px}.oiNoteHeader,.oiNoteContent{padding-left:16px;padding-right:16px}.oiNoteFooter{padding:12px 16px}.oiNoteFooter button{padding:11px 16px}}
+</style>
 </head>
 <body class="auth-locked">
 <div class="authScreen" id="authScreen">
@@ -1497,6 +1528,28 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
       <div class="oldInviteProfileLoading">正在读取骑手档案…</div>
     </div>
   </div>
+</div>
+
+
+<!-- Registration-level follow-up notes; independent from rider-wide notes. -->
+<div class="oiNoteBackdrop" id="oldInviteNoteModal" aria-hidden="true">
+  <section class="oiNoteDialog" role="dialog" aria-modal="true" aria-labelledby="oiNoteTitle">
+    <header class="oiNoteHeader">
+      <div><h2 id="oiNoteTitle">跟进备注</h2><div class="oiNoteSubtitle" id="oiNoteTarget">当前邀请登记记录</div></div>
+      <button type="button" class="oiNoteClose" id="oiNoteClose" aria-label="关闭备注弹窗">×</button>
+    </header>
+    <div class="oiNoteContent">
+      <label class="oiNoteLabel" for="oiNoteInput">跟进备注 <span class="required">*</span></label>
+      <textarea class="oiNoteTextarea" id="oiNoteInput" maxlength="4000" placeholder="其他补充…" rows="4"></textarea>
+      <div class="oiNoteHint" id="oiNoteHint">每次保存产生一条独立历史记录，修改旧记录会追加修订，不覆盖原文。</div>
+      <div class="oiNoteHistoryHeading"><h3 id="oiNoteHistoryTitle">历史跟进记录</h3><button type="button" class="oiNoteRefresh" id="oiNoteRefresh">刷新历史</button></div>
+      <div class="oiNoteHistory" id="oiNoteHistory"><div class="oiNoteEmpty">暂无跟进备注</div></div>
+    </div>
+    <footer class="oiNoteFooter">
+      <button type="button" class="oiNoteCancel" id="oiNoteCancel">取消</button>
+      <button type="button" class="oiNoteSave" id="oiNoteSave">保存记录</button>
+    </footer>
+  </section>
 </div>
 
 <section id="pandaAiAssistant" class="tab">
@@ -5671,7 +5724,7 @@ function normalizeOldInviteRecord(x={}){return {id:String(x.id||''),inviter_id:o
 function oldInviteFiltered(){const q=String(byId('oldInviteSearch')?.value||'').trim().toLowerCase(),st=byId('oldInviteStatusFilter')?.value||'all';return oldInviteRecords.filter(x=>{if(st!=='all'&&x.progress_status!==st)return false;if(!q)return true;const a=oldInviteMatchRider(x.inviter_id),b=oldInviteMatchRider(x.invitee_id);return [x.inviter_id,x.inviter_phone,x.invitee_id,x.invitee_phone,x.progress_status,a?.name,b?.name].some(v=>String(v||'').toLowerCase().includes(q))})}
 function renderOldInviteStats(){const box=byId('oldInviteStats');if(!box)return;const all=oldInviteRecords;box.innerHTML=`<div class="oldInviteStat total"><b>全部登记</b><div class="n">${all.length}</div></div><div class="oldInviteStat todo"><b>未开始</b><div class="n">${all.filter(x=>x.progress_status==='未开始').length}</div></div><div class="oldInviteStat doing"><b>已开始</b><div class="n">${all.filter(x=>x.progress_status==='已开始').length}</div></div><div class="oldInviteStat done"><b>已结算</b><div class="n">${all.filter(x=>x.progress_status==='已结算').length}</div></div>`}
 function oldInviteRiderCell(id){const r=oldInviteMatchRider(id);return `<div class="oldInviteRiderCell"><b>${esc(id||'-')}</b><small>${r?esc(r.name||'已匹配'):'<span class="oldInviteNoData">暂无数据</span>'}</small></div>`}
-function renderOldInviteRegistry(){const hint=byId('oldInviteRiderBaseHint');if(hint)hint.textContent=`已同步 ${oldInviteRiderIndex().size} 名骑手`;renderOldInviteStats();oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch');const table=byId('oldInviteTable');if(!table)return;const items=oldInviteFiltered();if(!items.length){table.innerHTML='<tr><td class="empty">暂无符合条件的老邀老登记记录。</td></tr>';return}table.innerHTML='<thead><tr><th>邀请人</th><th>邀请人手机号</th><th>被邀请人</th><th>被邀请人手机号</th><th>进度状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'+items.map(x=>`<tr><td>${oldInviteRiderCell(x.inviter_id)}</td><td class="oldInvitePhone">${esc(x.inviter_phone||'-')}</td><td>${oldInviteRiderCell(x.invitee_id)}</td><td class="oldInvitePhone">${esc(x.invitee_phone||'-')}</td><td><select class="oldInviteStatusSelect ${x.progress_status==='未开始'?'status-todo':x.progress_status==='已开始'?'status-doing':'status-done'}" data-old-invite-status="${esc(x.id)}" aria-label="进度状态：${esc(x.progress_status)}">${OLD_INVITE_STATUSES.map(st=>`<option value="${st}" ${x.progress_status===st?'selected':''}>${st}</option>`).join('')}</select></td><td class="oldInviteUpdated">${esc(oldInviteFormatTime(x.updated_at||x.created_at))}</td><td><div class="inlineActions"><button class="btn small" data-old-invite-profile="${esc(x.inviter_id)}">邀请人档案</button><button class="btn small" data-old-invite-profile="${esc(x.invitee_id)}">被邀请人档案</button><button class="btn small danger" data-old-invite-delete="${esc(x.id)}">删除</button></div></td></tr>`).join('')+'</tbody>';table.querySelectorAll('[data-old-invite-status]').forEach(el=>el.onchange=()=>{el.classList.remove('status-todo','status-doing','status-done');el.classList.add(el.value==='未开始'?'status-todo':el.value==='已开始'?'status-doing':'status-done');updateOldInviteStatus(el.dataset.oldInviteStatus,el.value)});table.querySelectorAll('[data-old-invite-delete]').forEach(el=>el.onclick=()=>deleteOldInviteRecord(el.dataset.oldInviteDelete));table.querySelectorAll('[data-old-invite-profile]').forEach(el=>el.onclick=()=>{const id=oldInviteNormId(el.dataset.oldInviteProfile);openOldInviteRiderProfileModal(id)})}
+function renderOldInviteRegistry(){const hint=byId('oldInviteRiderBaseHint');if(hint)hint.textContent=`已同步 ${oldInviteRiderIndex().size} 名骑手`;renderOldInviteStats();oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch');const table=byId('oldInviteTable');if(!table)return;const items=oldInviteFiltered();if(!items.length){table.innerHTML='<tr><td class="empty">暂无符合条件的老邀老登记记录。</td></tr>';return}table.innerHTML='<thead><tr><th>邀请人</th><th>邀请人手机号</th><th>被邀请人</th><th>被邀请人手机号</th><th>进度状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'+items.map(x=>`<tr><td>${oldInviteRiderCell(x.inviter_id)}</td><td class="oldInvitePhone">${esc(x.inviter_phone||'-')}</td><td>${oldInviteRiderCell(x.invitee_id)}</td><td class="oldInvitePhone">${esc(x.invitee_phone||'-')}</td><td><select class="oldInviteStatusSelect ${x.progress_status==='未开始'?'status-todo':x.progress_status==='已开始'?'status-doing':'status-done'}" data-old-invite-status="${esc(x.id)}" aria-label="进度状态：${esc(x.progress_status)}">${OLD_INVITE_STATUSES.map(st=>`<option value="${st}" ${x.progress_status===st?'selected':''}>${st}</option>`).join('')}</select></td><td class="oldInviteUpdated">${esc(oldInviteFormatTime(x.updated_at||x.created_at))}</td><td><div class="inlineActions"><button class="btn small" data-old-invite-profile="${esc(x.inviter_id)}">邀请人档案</button><button class="btn small" data-old-invite-profile="${esc(x.invitee_id)}">被邀请人档案</button><button class="btn small oldInviteFollowNoteBtn" type="button" data-old-invite-note="${esc(x.id)}">跟进备注</button><button class="btn small danger" data-old-invite-delete="${esc(x.id)}">删除</button></div></td></tr>`).join('')+'</tbody>';table.querySelectorAll('[data-old-invite-status]').forEach(el=>el.onchange=()=>{el.classList.remove('status-todo','status-doing','status-done');el.classList.add(el.value==='未开始'?'status-todo':el.value==='已开始'?'status-doing':'status-done');updateOldInviteStatus(el.dataset.oldInviteStatus,el.value)});table.querySelectorAll('[data-old-invite-delete]').forEach(el=>el.onclick=()=>deleteOldInviteRecord(el.dataset.oldInviteDelete));table.querySelectorAll('[data-old-invite-profile]').forEach(el=>el.onclick=()=>{const id=oldInviteNormId(el.dataset.oldInviteProfile);openOldInviteRiderProfileModal(id)})}
 function oldInviteLatestFromRows(inviteeIds=[]){const wanted=new Set(inviteeIds.map(oldInviteNormId).filter(Boolean)),latest=new Map();try{(rows||[]).forEach(r=>{const id=oldInviteNormId(r?.id);if(!wanted.has(id))return;const cycle=String(r?.cycle||''),n=cycleNo(cycle),orders=Number(r?.orders)||0,cur=latest.get(id);if(!cur||n>cur.cycleNum||(n===cur.cycleNum&&cycle.localeCompare(cur.cycle,'zh-CN')>0))latest.set(id,{id,cycle,cycleNum:n,orders});else if(cur&&n===cur.cycleNum)cur.orders+=orders})}catch(_){ }return latest}
 async function oldInviteLatestWeeklySnapshot(inviteeIds=[]){const ids=[...new Set(inviteeIds.map(oldInviteNormId).filter(Boolean))];if(!ids.length)return new Map();const latest=new Map();try{const client=getCloudClient();for(let i=0;i<ids.length;i+=80){const part=ids.slice(i,i+80);const {data,error}=await client.from(CLOUD_CONFIG.table).select('*').in('rider_id',part);if(error)throw error;(data||[]).forEach(row=>{const mapped=mapCloudRow(row),id=oldInviteNormId(mapped[0]);if(!id||!part.includes(id))return;const cycle=String(mapped[10]||''),n=cycleNo(cycle),orders=Number(mapped[2])||0,cur=latest.get(id);if(!cur||n>cur.cycleNum||(n===cur.cycleNum&&cycle.localeCompare(cur.cycle,'zh-CN')>0))latest.set(id,{id,cycle,cycleNum:n,orders});else if(cur&&n===cur.cycleNum)cur.orders+=orders})}}
   catch(e){console.warn('老邀老最新周跑单云端检测失败，回退当前站内周数据：',e?.message||e);return oldInviteLatestFromRows(ids)}
@@ -8900,6 +8953,134 @@ try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();in
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindModal);else bindModal();setTimeout(bindModal,900);
 })();
 </script>
+
+<script id="oldInviteFollowupNoteScript">
+/* V4.8.7: per-registration append-only history; editing adds a correction row. */
+(function(){
+  'use strict';
+  const TABLE='old_invite_followup_notes';
+  const by=id=>document.getElementById(id);
+  const state={registrationId:'',items:[],editOf:null,loading:false,saving:false,requestSeq:0,focusReturn:null};
+  const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const showTime=v=>{try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(_){return String(v||'')}};
+  const modal=()=>by('oldInviteNoteModal');
+  const displayHint=s=>{const el=by('oiNoteHint');if(el)el.textContent=s};
+  function close(){
+    if(state.saving)return;
+    if(!modal()?.classList.contains('is-open'))return;
+    modal().classList.remove('is-open');modal().setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+    state.registrationId='';state.editOf=null;state.requestSeq++;
+    by('oiNoteInput').value='';
+    if(state.focusReturn?.isConnected)state.focusReturn.focus();
+  }
+  function renderHistory(){
+    const box=by('oiNoteHistory'),title=by('oiNoteHistoryTitle');
+    if(!box)return;
+    if(title)title.textContent=`历史跟进记录（${state.items.length}）`;
+    if(!state.items.length){box.innerHTML='<div class="oiNoteEmpty">暂无跟进备注，可在上方填写后保存。</div>';return}
+    box.innerHTML=state.items.map(note=>`
+      <article class="oiNoteHistoryItem">
+        <div class="oiNoteHistoryTop">
+          <span><strong>${E(note.created_by_email||'内部操作人')}</strong> · ${E(showTime(note.created_at))} ${note.revises_note_id?'<span class="oiNoteRevision">修订记录</span>':''}</span>
+          <button type="button" class="oiNoteRevise" data-oi-note-revise="${E(note.id)}">修订</button>
+        </div>
+        <div class="oiNoteHistoryText">${E(note.note_text)}</div>
+      </article>`).join('');
+  }
+  async function loadHistory(){
+    const id=state.registrationId,seq=++state.requestSeq;
+    const box=by('oiNoteHistory');
+    if(!id||!box)return;
+    box.innerHTML='<div class="oiNoteEmpty">正在读取历史备注…</div>';
+    try{
+      const all=[];
+      const pageSize=500;
+      for(let offset=0;;offset+=pageSize){
+        const {data,error}=await getCloudClient().from(TABLE)
+          .select('id,registration_id,note_text,revises_note_id,created_by_email,created_at')
+          .eq('registration_id',id).order('created_at',{ascending:false}).order('id',{ascending:false})
+          .range(offset,offset+pageSize-1);
+        if(error)throw error;
+        if(seq!==state.requestSeq||id!==state.registrationId)return;
+        const batch=Array.isArray(data)?data:[];
+        all.push(...batch);
+        if(batch.length<pageSize)break;
+      }
+      state.items=all;
+      renderHistory();
+    }catch(err){
+      if(seq!==state.requestSeq||id!==state.registrationId)return;
+      box.innerHTML='<div class="oiNoteEmpty">读取失败，请确认已执行 V4.8.7 备注表 SQL，并检查访问权限。<br>点击「刷新历史」重试。</div>';
+      console.warn('老邀老跟进备注读取失败',err?.message||err);
+    }
+  }
+  function open(id,from){
+    const rec=(typeof oldInviteRecords!=='undefined'?oldInviteRecords:[]).find(r=>String(r.id)===String(id));
+    if(!rec){if(typeof toast==='function')toast('登记记录已不存在，请刷新后重试');return}
+    state.registrationId=String(id);state.focusReturn=from||document.activeElement;
+    state.items=[];state.editOf=null;state.saving=false;
+    by('oiNoteTarget').textContent=`邀请人 ${rec.inviter_id}  →  被邀请人 ${rec.invitee_id}`;
+    by('oiNoteTitle').textContent='跟进备注';
+    by('oiNoteInput').value='';
+    by('oiNoteSave').textContent='保存记录';
+    displayHint('每次保存独立留存一条历史记录，修订旧记录不会覆盖原文。');
+    modal().classList.add('is-open');modal().setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    by('oiNoteInput').focus();
+    loadHistory();
+  }
+  async function save(){
+    if(state.saving||!state.registrationId)return;
+    const text=by('oiNoteInput').value.trim();
+    if(!text){displayHint('请先填写跟进备注内容。');by('oiNoteInput').focus();return}
+    if(text.length>4000){displayHint('最多填写 4000 个字符。');return}
+    if(!cloudUser?.id){displayHint('登录状态已失效，请重新登录后再保存。');return}
+    const payload={registration_id:state.registrationId,note_text:text,created_by:cloudUser.id,created_by_email:String(cloudUser.email||''),revises_note_id:state.editOf||null};
+    const target=state.registrationId,btn=by('oiNoteSave');
+    state.saving=true;btn.disabled=true;btn.textContent='保存中…';
+    try{
+      const {error}=await getCloudClient().from(TABLE).insert(payload);
+      if(error)throw error;
+      if(target!==state.registrationId)return;
+      state.editOf=null;by('oiNoteInput').value='';by('oiNoteSave').textContent='保存记录';
+      displayHint('保存成功。备注已写入云端，历史记录不会被覆盖。');
+      await loadHistory();
+      if(typeof toast==='function')toast('跟进备注已保存');
+    }catch(err){
+      console.warn('老邀老跟进备注保存失败',err?.message||err);
+      displayHint(`保存失败：${String(err?.message||'请确认 SQL 与权限设置')}`);
+    }finally{state.saving=false;btn.disabled=false;if(btn.textContent==='保存中…')btn.textContent=state.editOf?'保存修订':'保存记录'}
+  }
+  function beginRevision(id){
+    const x=state.items.find(n=>n.id===id);if(!x)return;
+    state.editOf=x.id;
+    by('oiNoteInput').value=x.note_text;
+    by('oiNoteSave').textContent='保存修订';
+    displayHint('正在修订历史备注：保存后会新增一条修订记录，原备注仍完整保留。');
+    by('oiNoteInput').focus();
+    by('oiNoteInput').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  function bind(){
+    if(window.__oldInviteFollowupNoteBound)return;
+    window.__oldInviteFollowupNoteBound=true;
+    document.addEventListener('click',event=>{
+      const button=event.target.closest('[data-old-invite-note]');
+      if(button){event.preventDefault();open(button.dataset.oldInviteNote,button);return}
+      const revise=event.target.closest('[data-oi-note-revise]');
+      if(revise&&modal()?.classList.contains('is-open')){beginRevision(revise.dataset.oiNoteRevise)}
+    });
+    by('oiNoteCancel')?.addEventListener('click',close);
+    by('oiNoteClose')?.addEventListener('click',close);
+    by('oiNoteSave')?.addEventListener('click',save);
+    by('oiNoteRefresh')?.addEventListener('click',loadHistory);
+    modal()?.addEventListener('click',e=>{if(e.target===modal())close()});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal()?.classList.contains('is-open')){e.stopPropagation();close()}});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
+</script>
+
 </body>
 </html>
 
