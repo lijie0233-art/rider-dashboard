@@ -528,6 +528,30 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
 
 </style>
 
+<style id="oldInviteEntryModalStyles">
+/* V4.9.5: 只改变录入展示位置，独立于现有列表/骑手档案弹窗。 */
+#oldInviteRegistry .oldInviteTopActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.oldInviteEntryBackdrop{position:fixed;inset:0;z-index:11500;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.52);backdrop-filter:blur(5px)}
+.oldInviteEntryBackdrop.show{display:flex}
+.oldInviteEntryDialog{width:min(570px,100%);max-height:min(90vh,830px);min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #d6e0eb;border-radius:23px;box-shadow:0 28px 85px rgba(15,23,42,.26);color:#182230}
+.oldInviteEntryHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;background:linear-gradient(135deg,#fff,#f8fafc);border-bottom:1px solid #e5eaf1;padding:17px 22px 14px}
+.oldInviteEntryHeader h2{margin:0;font-size:21px;font-weight:950;letter-spacing:-.03em}
+.oldInviteEntryHeader p{font-size:12px;color:#667085;line-height:1.55;margin:5px 0 0}
+.oldInviteEntryClose{flex-shrink:0;display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:10px;background:#f2f4f7;color:#475467;font-size:26px;font-weight:600;cursor:pointer;line-height:1}
+.oldInviteEntryClose:hover{background:#e9eef5;color:#101828}
+.oldInviteEntryScroll{overflow-y:auto;min-height:0;padding:16px 22px}
+.oldInviteEntryBackdrop .oldInviteFormGrid{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:10px;padding:0!important;align-items:stretch}
+.oldInviteEntryBackdrop .oldInviteFormGrid .field{display:flex;flex-direction:column;gap:7px;background:#fbfcfe;color:#182230;border:1px solid #e0e7f0;border-radius:13px;padding:10px 12px;min-width:0}
+.oldInviteEntryBackdrop .oldInviteFormGrid .field>span{color:#485b71;font-size:12px;font-weight:850}
+.oldInviteEntryBackdrop .oldInviteFormGrid .field input,.oldInviteEntryBackdrop .oldInviteFormGrid .field select{display:block;width:100%;min-width:0;min-height:30px;color:#182230;background:transparent;font-size:14px;font-weight:700;padding:3px 0}
+.oldInviteEntryBackdrop .oldInviteFormGrid .field input::placeholder{color:#a4b0c1}
+.oldInviteEntryBackdrop .oldInviteFormGrid .field:focus-within{border-color:#94b7ef;box-shadow:0 0 0 3px rgba(37,99,235,.07)}
+.oldInviteEntryBackdrop .oldInviteMatch,.oldInviteEntryBackdrop .oldInviteTimeHelp{margin-top:0}
+.oldInviteEntryFooter{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 22px;border-top:1px solid #e5eaf1;background:#fff;flex-shrink:0}
+.oldInviteEntryFooter .btn{min-width:98px}
+@media(max-width:640px){.oldInviteEntryBackdrop{padding:8px}.oldInviteEntryDialog{max-height:95vh;border-radius:18px}.oldInviteEntryHeader{padding:16px}.oldInviteEntryScroll{padding:15px}.oldInviteEntryFooter{padding:13px 15px}.oldInviteEntryFooter .btn{min-width:0;flex:1}#oldInviteRegistry .oldInviteTopActions{justify-content:flex-start}}
+</style>
+
 <style id="oldInviteRiderProfileModalStyles">
 .oldInviteProfileModal{position:fixed;inset:0;z-index:12000;background:rgba(15,23,42,.48);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:22px}
 .oldInviteProfileModal.show{display:flex}.oldInviteProfileDialog{width:min(1180px,96vw);max-height:92vh;background:#f8fafc;border:1px solid #d7dee8;border-radius:28px;box-shadow:0 28px 90px rgba(15,23,42,.25);overflow:hidden;display:flex;flex-direction:column}
@@ -1536,22 +1560,9 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
   <div class="panel oldInviteHero">
     <div class="panelHead">
       <div><h2>老邀老登记表</h2><div class="sub">统一登记老带新邀请信息 · 骑手 ID 与全站 rider_weekly_data 基准实时校验 · 数据仅保存至 Supabase 后端</div></div>
-      <div class="inlineActions"><button class="btn small" id="oldInviteRefreshBtn" type="button">刷新登记数据</button></div>
+      <div class="inlineActions oldInviteTopActions"><button class="btn small" id="oldInviteRefreshBtn" type="button">刷新登记数据</button><button class="btn primary small" id="oldInviteOpenEntryBtn" type="button" aria-haspopup="dialog" aria-controls="oldInviteEntryModal">＋ 新增登记</button></div>
     </div>
     <div class="oldInviteStats" id="oldInviteStats"></div>
-  </div>
-
-  <div class="panel oldInviteSectionCard">
-    <div class="panelHead"><div><h2>新增登记</h2><div class="sub">输入 ID 后即时显示站内匹配结果；未匹配时显示“暂无数据”，仍可正常登记。</div></div></div>
-    <div class="oldInviteFormGrid">
-      <label class="field"><span>邀请人 ID</span><input id="oldInviteInviterId" inputmode="numeric" autocomplete="off" placeholder="输入邀请人骑手 ID" /><small class="oldInviteMatch" id="oldInviteInviterMatch">等待输入</small></label>
-      <label class="field"><span>邀请人手机号</span><input id="oldInviteInviterPhone" autocomplete="off" placeholder="输入邀请人手机号" /></label>
-      <label class="field"><span>被邀请人 ID</span><input id="oldInviteInviteeId" inputmode="numeric" autocomplete="off" placeholder="输入被邀请人骑手 ID" /><small class="oldInviteMatch" id="oldInviteInviteeMatch">等待输入</small></label>
-      <label class="field"><span>被邀请人手机号</span><input id="oldInviteInviteePhone" autocomplete="off" placeholder="输入被邀请人手机号" /></label>
-      <label class="field"><span>开始时间 <em class="oldInviteRequired" aria-hidden="true">*</em></span><input id="oldInviteStartTime" type="datetime-local" step="60" required aria-required="true" aria-label="开始时间（必填）" /><small class="oldInviteTimeHelp">必填 · 选择年月日与时分</small></label>
-      <label class="field"><span>进度状态</span><select id="oldInviteProgress"><option value="未开始">未开始</option><option value="已开始">已开始</option><option value="已结算">已结算</option></select></label>
-      <div class="oldInviteFormActions"><button class="btn primary" id="oldInviteSaveBtn" type="button">保存登记</button><button class="btn" id="oldInviteResetBtn" type="button">清空</button></div>
-    </div>
   </div>
 
   <div class="panel oldInviteSectionCard">
@@ -1566,6 +1577,30 @@ body.sidebar-collapsed .onlineContactFrame{height:calc(100vh - 104px)}
   </div>
 </section>
 
+
+<!-- V4.9.5 新增登记改为按钮唤起的弹窗；表单 ID 与原有保存逻辑一致 -->
+<div class="oldInviteEntryBackdrop" id="oldInviteEntryModal" aria-hidden="true">
+  <div class="oldInviteEntryDialog" role="dialog" aria-modal="true" aria-labelledby="oldInviteEntryTitle" aria-describedby="oldInviteEntryHint" tabindex="-1">
+    <div class="oldInviteEntryHeader">
+      <div><h2 id="oldInviteEntryTitle">新增登记</h2><p id="oldInviteEntryHint">填写老带新邀请信息，保存后同步到 Supabase 云端。</p></div>
+      <button class="oldInviteEntryClose" id="oldInviteEntryCloseBtn" type="button" aria-label="关闭新增登记弹窗">×</button>
+    </div>
+    <div class="oldInviteEntryScroll">
+      <div class="oldInviteFormGrid">
+        <label class="field"><span>邀请人 ID</span><input id="oldInviteInviterId" inputmode="numeric" autocomplete="off" placeholder="输入邀请人骑手 ID" /><small class="oldInviteMatch" id="oldInviteInviterMatch">等待输入</small></label>
+        <label class="field"><span>邀请人手机号</span><input id="oldInviteInviterPhone" autocomplete="off" placeholder="输入邀请人手机号" /></label>
+        <label class="field"><span>被邀请人 ID</span><input id="oldInviteInviteeId" inputmode="numeric" autocomplete="off" placeholder="输入被邀请人骑手 ID" /><small class="oldInviteMatch" id="oldInviteInviteeMatch">等待输入</small></label>
+        <label class="field"><span>被邀请人手机号</span><input id="oldInviteInviteePhone" autocomplete="off" placeholder="输入被邀请人手机号" /></label>
+        <label class="field"><span>开始时间 <em class="oldInviteRequired" aria-hidden="true">*</em></span><input id="oldInviteStartTime" type="datetime-local" step="60" required aria-required="true" aria-label="开始时间（必填）" /><small class="oldInviteTimeHelp">必填 · 选择年月日与时分</small></label>
+        <label class="field"><span>进度状态</span><select id="oldInviteProgress"><option value="未开始">未开始</option><option value="已开始">已开始</option><option value="已结算">已结算</option></select></label>
+      </div>
+    </div>
+    <div class="oldInviteEntryFooter oldInviteFormActions">
+      <button class="btn primary" id="oldInviteSaveBtn" type="button">保存登记</button>
+      <button class="btn" id="oldInviteResetBtn" type="button">清空</button>
+    </div>
+  </div>
+</div>
 
 <div class="oldInviteProfileModal" id="oldInviteProfileModal" aria-hidden="true">
   <div class="oldInviteProfileDialog" role="dialog" aria-modal="true" aria-labelledby="oldInviteProfileName">
@@ -5892,13 +5927,18 @@ async function syncOldInviteProgressFromWeeklyData({silent=true}={}){if(oldInvit
 async function loadOldInviteRecords(){if(oldInviteLoading)return oldInviteRecords;oldInviteLoading=true;try{const {data,error}=await getCloudClient().from(OLD_INVITE_TABLE).select('*').order('created_at',{ascending:false});if(error)throw error;oldInviteRecords=(data||[]).map(normalizeOldInviteRecord);oldInviteLoaded=true}catch(e){console.error('老邀老登记表读取失败',e);toast('老邀老登记表读取失败：请确认已执行最新 SQL')}finally{oldInviteLoading=false}renderOldInviteRegistry();if(oldInviteLoaded)await syncOldInviteProgressFromWeeklyData({silent:true});return oldInviteRecords}
 async function refreshOldInviteRegistry({silent=false}={}){if(!oldInviteRealtimeChannel)subscribeOldInviteRealtime();await loadOldInviteRecords();if(!silent)toast('老邀老登记数据已刷新')}
 function resetOldInviteForm(){['oldInviteInviterId','oldInviteInviterPhone','oldInviteInviteeId','oldInviteInviteePhone'].forEach(id=>{const el=byId(id);if(el)el.value=''});const st=byId('oldInviteProgress');if(st)st.value='未开始';const start=byId('oldInviteStartTime');if(start){start.value='';start.setCustomValidity('')}oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch')}
-async function saveOldInviteRecord(){const inviterId=oldInviteNormId(byId('oldInviteInviterId')?.value),inviteeId=oldInviteNormId(byId('oldInviteInviteeId')?.value),inviter=oldInviteMatchRider(inviterId),invitee=oldInviteMatchRider(inviteeId);oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch');if(!inviterId){toast('请填写邀请人ID');return}if(!inviteeId){toast('请填写被邀请人ID');return}const startInput=byId('oldInviteStartTime');const startTime=oldInviteParseStartTime(startInput?.value);if(!startTime){toast('请填写有效的开始时间（年月日 时:分）');startInput?.focus();return}const status=byId('oldInviteProgress')?.value||'未开始';if(!OLD_INVITE_STATUSES.includes(status)){toast('请选择正确的进度状态');return}const payload={inviter_id:inviter?.id||inviterId,inviter_phone:String(byId('oldInviteInviterPhone')?.value||'').trim(),invitee_id:invitee?.id||inviteeId,invitee_phone:String(byId('oldInviteInviteePhone')?.value||'').trim(),progress_status:status,start_time:startTime,created_by:cloudUser?.id||null,created_by_email:cloudUser?.email||'',updated_at:new Date().toISOString()};const btn=byId('oldInviteSaveBtn');if(btn){btn.disabled=true;btn.textContent='保存中…'}try{const {data,error}=await getCloudClient().from(OLD_INVITE_TABLE).insert(payload).select('*').single();if(error)throw error;oldInviteRecords=[normalizeOldInviteRecord(data||payload),...oldInviteRecords];resetOldInviteForm();renderOldInviteRegistry();toast(inviter&&invitee?'老邀老登记已保存':'老邀老登记已保存；未匹配ID已按原值登记')}catch(e){console.error(e);toast('保存失败：'+(e?.message||'请确认 Supabase SQL 与权限配置'))}finally{if(btn){btn.disabled=false;btn.textContent='保存登记'}}}
+/* V4.9.5：弹窗交互，不修改现有登记字段和 Supabase 保存逻辑。 */
+let oldInviteEntryLastFocus=null;
+function openOldInviteEntryModal(){const modal=byId('oldInviteEntryModal');if(!modal)return;oldInviteEntryLastFocus=document.activeElement;modal.classList.add('show');modal.setAttribute('aria-hidden','false');oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch');byId('oldInviteInviterId')?.focus()}
+function closeOldInviteEntryModal(){const modal=byId('oldInviteEntryModal');if(!modal||byId('oldInviteSaveBtn')?.disabled)return;modal.classList.remove('show');modal.setAttribute('aria-hidden','true');if(oldInviteEntryLastFocus?.isConnected)oldInviteEntryLastFocus.focus();else byId('oldInviteOpenEntryBtn')?.focus()}
+function bindOldInviteEntryModal(){const open=byId('oldInviteOpenEntryBtn'),close=byId('oldInviteEntryCloseBtn'),modal=byId('oldInviteEntryModal');if(open)open.onclick=openOldInviteEntryModal;if(close)close.onclick=closeOldInviteEntryModal;if(modal&&!modal.dataset.bound){modal.dataset.bound='true';modal.addEventListener('click',e=>{if(e.target===modal)closeOldInviteEntryModal()});modal.addEventListener('keydown',e=>{if(e.key==='Escape'){if(byId('oldInviteProfileModal')?.classList.contains('show'))return;e.preventDefault();closeOldInviteEntryModal()}if(e.key==='Tab'&&!byId('oldInviteProfileModal')?.classList.contains('show')){const focusables=[...modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')].filter(x=>x.getClientRects().length);if(!focusables.length)return;const a=focusables[0],b=focusables[focusables.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();b.focus()}else if(!e.shiftKey&&document.activeElement===b){e.preventDefault();a.focus()}}})}}
+async function saveOldInviteRecord(){const inviterId=oldInviteNormId(byId('oldInviteInviterId')?.value),inviteeId=oldInviteNormId(byId('oldInviteInviteeId')?.value),inviter=oldInviteMatchRider(inviterId),invitee=oldInviteMatchRider(inviteeId);oldInviteMatchText('oldInviteInviterId','oldInviteInviterMatch');oldInviteMatchText('oldInviteInviteeId','oldInviteInviteeMatch');if(!inviterId){toast('请填写邀请人ID');return}if(!inviteeId){toast('请填写被邀请人ID');return}const startInput=byId('oldInviteStartTime');const startTime=oldInviteParseStartTime(startInput?.value);if(!startTime){toast('请填写有效的开始时间（年月日 时:分）');startInput?.focus();return}const status=byId('oldInviteProgress')?.value||'未开始';if(!OLD_INVITE_STATUSES.includes(status)){toast('请选择正确的进度状态');return}const payload={inviter_id:inviter?.id||inviterId,inviter_phone:String(byId('oldInviteInviterPhone')?.value||'').trim(),invitee_id:invitee?.id||inviteeId,invitee_phone:String(byId('oldInviteInviteePhone')?.value||'').trim(),progress_status:status,start_time:startTime,created_by:cloudUser?.id||null,created_by_email:cloudUser?.email||'',updated_at:new Date().toISOString()};const btn=byId('oldInviteSaveBtn');let saved=false;if(btn){btn.disabled=true;btn.textContent='保存中…'}try{const {data,error}=await getCloudClient().from(OLD_INVITE_TABLE).insert(payload).select('*').single();if(error)throw error;oldInviteRecords=[normalizeOldInviteRecord(data||payload),...oldInviteRecords];saved=true;resetOldInviteForm();renderOldInviteRegistry();toast(inviter&&invitee?'老邀老登记已保存':'老邀老登记已保存；未匹配ID已按原值登记')}catch(e){console.error(e);toast('保存失败：'+(e?.message||'请确认 Supabase SQL 与权限配置'))}finally{if(btn){btn.disabled=false;btn.textContent='保存登记'}if(saved)closeOldInviteEntryModal()}}
 async function updateOldInviteStatus(id,status){if(!OLD_INVITE_STATUSES.includes(status))return;try{const {data,error}=await getCloudClient().from(OLD_INVITE_TABLE).update({progress_status:status,updated_at:new Date().toISOString()}).eq('id',id).select('*').single();if(error)throw error;const i=oldInviteRecords.findIndex(x=>x.id===id);if(i>=0)oldInviteRecords[i]=normalizeOldInviteRecord(data||{...oldInviteRecords[i],progress_status:status});renderOldInviteRegistry();toast(status==='已结算'?'进度状态已更新为“已结算”，自动联动不会覆盖':'进度状态已更新')}catch(e){toast('状态更新失败：'+(e?.message||e));await loadOldInviteRecords()}}
 async function deleteOldInviteRecord(id){const x=oldInviteRecords.find(r=>r.id===id);if(!x)return;if(!confirm(`确认删除 ${x.inviter_id} → ${x.invitee_id} 的老邀老登记记录？`))return;try{const {error}=await getCloudClient().from(OLD_INVITE_TABLE).delete().eq('id',id);if(error)throw error;oldInviteRecords=oldInviteRecords.filter(r=>r.id!==id);renderOldInviteRegistry();toast('登记记录已删除')}catch(e){toast('删除失败：'+(e?.message||e))}}
 function subscribeOldInviteRealtime(){try{if(oldInviteRealtimeChannel){getCloudClient().removeChannel(oldInviteRealtimeChannel);oldInviteRealtimeChannel=null}oldInviteRealtimeChannel=getCloudClient().channel('old-invite-registry-sync').on('postgres_changes',{event:'*',schema:'public',table:OLD_INVITE_TABLE},()=>{clearTimeout(window.__oldInviteRealtimeTimer);window.__oldInviteRealtimeTimer=setTimeout(()=>loadOldInviteRecords(),220)}).subscribe()}catch(e){console.warn('老邀老登记 Realtime 订阅失败',e?.message||e)}}
 function startOldInviteAutoSync(){if(oldInviteAutoSyncTimer)clearInterval(oldInviteAutoSyncTimer);oldInviteAutoSyncTimer=setInterval(()=>{if(cloudUser&&oldInviteLoaded)syncOldInviteProgressFromWeeklyData({silent:true})},OLD_INVITE_AUTO_SYNC_MS)}
 function bindOldInviteControls(){const save=byId('oldInviteSaveBtn');if(save)save.onclick=saveOldInviteRecord;const reset=byId('oldInviteResetBtn');if(reset)reset.onclick=resetOldInviteForm;const refresh=byId('oldInviteRefreshBtn');if(refresh)refresh.onclick=()=>refreshOldInviteRegistry({silent:false});['oldInviteInviterId','oldInviteInviteeId'].forEach(id=>{const el=byId(id);if(el)el.oninput=()=>oldInviteMatchText(id,id==='oldInviteInviterId'?'oldInviteInviterMatch':'oldInviteInviteeMatch')});const search=byId('oldInviteSearch');if(search)search.oninput=renderOldInviteRegistry;const st=byId('oldInviteStatusFilter');if(st)st.onchange=renderOldInviteRegistry;const sort=byId('oldInviteSort');if(sort)sort.onchange=renderOldInviteRegistry}
-function initOldInviteRegistryFeature(){bindOldInviteControls();resetOldInviteForm();startOldInviteAutoSync()}
+function initOldInviteRegistryFeature(){bindOldInviteControls();bindOldInviteEntryModal();resetOldInviteForm();startOldInviteAutoSync()}
 
 try{rebuildData(false);refreshControls();bind();renderAll();initSydneyClock();initDonationFeature();initOrderAppealFeature();initNewRiderProcessFeature();initNewRiderQueueFeature();initFalseAccountFeature();initOldInviteRegistryFeature();}catch(e){console.error('页面初始化非登录模块失败：',e);try{bind()}catch(_){}}initAuth();
 
