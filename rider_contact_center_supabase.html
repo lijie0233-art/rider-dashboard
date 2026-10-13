@@ -740,6 +740,15 @@ body:before{
 .ccTrendWrap{height:310px;position:relative;border-radius:12px;background:linear-gradient(180deg,#fff 0%,#fffdf2 100%);overflow:hidden}.ccTrendSvg{width:100%;height:100%;display:block}.ccTrendGrid{stroke:#ececec;stroke-width:1}.ccTrendLine{fill:none;stroke:#171717;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.ccTrendArea{fill:rgba(255,214,0,.16)}.ccTrendDot{fill:#ffd600;stroke:#171717;stroke-width:2}.ccTrendAxis{font-size:9px;fill:#7b7b7b}.ccTrendValue{font-size:9px;fill:#111;font-weight:800}.ccWeeklySync{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.ccWeeklySync span{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f5f5f5;color:#666;font-size:10px;font-weight:800}.ccWeeklySync .ok{background:#ecfdf3;color:#067647}.ccWeeklySync .warn{background:#fffaeb;color:#b54708}
 @media(max-width:760px){.ccWeeklyCore,.ccWeeklyGrid{grid-template-columns:1fr}.ccWeeklyRow{grid-template-columns:70px 1fr 58px}.ccTrendWrap{height:260px}}
 
+  /* Dropdown edits remain in place while awaiting Supabase confirmation. */
+  #contactTableWrap [data-field][data-cloud-state="saving"],
+  #followupList [data-followup-field][data-cloud-state="saving"]{
+    outline:2px solid rgba(37,99,235,.30);outline-offset:1px;background-color:#f4f8ff;
+  }
+  #contactTableWrap [data-field][data-cloud-state="failed"],
+  #followupList [data-followup-field][data-cloud-state="failed"]{
+    outline:2px solid #ef4444;outline-offset:1px;background-color:#fff5f5;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1060,6 +1069,29 @@ let weatherDraftConfirmed=false, weatherDraftKey='';
 
 function clone(o){return JSON.parse(JSON.stringify(o))}
 let cloudClient=null, cloudSaveTimer=null, cloudSaving=false, cloudSaveQueued=false, cloudLoaded=false, cloudRealtimeChannel=null, cloudReloading=false, cloudLastLoadedAt=0;
+// V4.9.6: a local dropdown edit must never be replaced by an older Realtime/focus response.
+let cloudRemoteUpdatedAt=null, cloudRowExists=false, cloudEditSerial=0, cloudAckSerial=0, cloudRetryTimer=null, cloudRetryCount=0;
+const cloudPendingContacts=new Map(); // run key + rider id -> latest contact value, with edit serial
+function cloudHasPendingEdits(){return cloudEditSerial>cloudAckSerial||cloudSaving||!!cloudSaveTimer}
+function markContactDirty(run,id,field='*'){
+  const key=String(run?.key||'')+'\u0000'+String(id||'');
+  const c=run?.contacts?.[riderContactKey(id)];
+  if(!run?.key||!id||!c)return;
+  // Track changed fields, not an entire rider row: two operators can edit different columns safely.
+  const prev=cloudPendingContacts.get(key);
+  const fields={...(prev?.fields||{})};
+  if(field==='*')Object.assign(fields,clone(c));
+  else{
+    fields[field]=c[field];fields.updatedAt=c.updatedAt;
+    if(field==='action'){fields.followupStatus=c.followupStatus;fields.followUpDate=c.followUpDate}
+  }
+  cloudPendingContacts.set(key,{runKey:run.key,id:String(id),fields,serial:cloudEditSerial+1});
+}
+function markContactEditor(el){if(el?.dataset){el.dataset.cloudState='saving';el.title='已选择，正在保存至 Supabase'}}
+function markContactEditorsSaved(){document.querySelectorAll('[data-cloud-state="saving"],[data-cloud-state="failed"]').forEach(el=>{delete el.dataset.cloudState;if(el.title==='已选择，正在保存至 Supabase'||el.title==='云端保存失败，请重试')el.removeAttribute('title')})}
+function markContactEditorsFailed(){document.querySelectorAll('[data-cloud-state="saving"]').forEach(el=>{el.dataset.cloudState='failed';el.title='云端保存失败，请重试'})}
+function cloudIsNewer(timestamp,baseline){return !!timestamp&&(!baseline||Date.parse(timestamp)>Date.parse(baseline))}
+
 function normalizeCloudState(x){
   if(!x||!Array.isArray(x.roster)||!Array.isArray(x.runs))return clone(defaultState);
   const y=Object.assign(clone(defaultState),x);y.version=4.2;
@@ -1082,6 +1114,8 @@ function setCloudStatus(text,ok=true){
   const foot=document.querySelector('.side-foot');if(foot)foot.innerHTML=`<span class="status-dot ${ok?'dot-ok':'dot-warn'}"></span> ${ok?'Supabase 云端模式':'云端同步异常'}<br>${text}`;
 }
 async function loadCloudState(options={}){
+  // A pending local edit has priority over a late network response and tab-focus reload.
+  if(cloudHasPendingEdits())return false;
   if(cloudReloading)return false;
   cloudReloading=true;
   const silent=!!options.silent;
@@ -1090,6 +1124,9 @@ async function loadCloudState(options={}){
     const client=getCloudClient();
     const {data,error}=await client.from(CLOUD_CONFIG.table).select('payload,updated_at').eq('workspace',CLOUD_CONFIG.workspace).maybeSingle();
     if(error)throw error;
+    // The user might select a dropdown while this request is still in flight.
+    if(cloudHasPendingEdits())return false;
+    cloudRowExists=!!data;cloudRemoteUpdatedAt=data?.updated_at||null;
     if(data&&data.payload){
       state=normalizeCloudState(data.payload);cloudLoaded=true;cloudLastLoadedAt=Date.now();
       setCloudStatus(`云端已同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
@@ -1116,6 +1153,9 @@ async function loadCloudState(options={}){
 }
 function applyRemotePayload(payload){
   if(!payload||!payload.payload)return;
+  if(cloudHasPendingEdits())return; // never overwrite an unsaved dropdown choice
+  if(cloudRemoteUpdatedAt&&!cloudIsNewer(payload.updated_at,cloudRemoteUpdatedAt))return;
+  cloudRowExists=true;cloudRemoteUpdatedAt=payload.updated_at||cloudRemoteUpdatedAt;
   state=normalizeCloudState(payload.payload);cloudLoaded=true;cloudLastLoadedAt=Date.now();
   const idChanged=alignStateRiderIdsToMaster(),vehicleChanged=syncVehicleDataFromRoster();if(idChanged||vehicleChanged)queueCloudSave();
   setCloudStatus(`云端实时同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
@@ -1138,21 +1178,100 @@ window.addEventListener('focus',()=>{if(!cloudLastLoadedAt||Date.now()-cloudLast
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!cloudLastLoadedAt||Date.now()-cloudLastLoadedAt>15000))requestFreshCloudState()});
 try{getCloudClient().auth.onAuthStateChange((event,session)=>{if(session&&['SIGNED_IN','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(()=>requestFreshCloudState(),0)})}catch(_){ }
 function queueCloudSave(){
-  clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>persistCloudState(false),250);
+  cloudEditSerial++;
+  cloudSaveQueued=true;
+  clearTimeout(cloudRetryTimer);cloudRetryTimer=null;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(()=>{cloudSaveTimer=null;persistCloudState(false)},80);
+  setCloudStatus('有待同步的修改 · 正在保存…');
+}
+function mergePendingContactsInto(remote){
+  let applied=0,missing=[];
+  for(const change of cloudPendingContacts.values()){
+    const run=(remote.runs||[]).find(x=>x.key===change.runKey);
+    if(!run){missing.push(change.runKey);continue}
+    run.contacts=run.contacts||{};
+    const contactKey=riderContactKey(change.id);
+    run.contacts[contactKey]={...(run.contacts[contactKey]||{}),...clone(change.fields)};
+    applied++;
+  }
+  return {applied,missing};
+}
+function retryCloudSave(){
+  if(!cloudHasPendingEdits())return;
+  clearTimeout(cloudRetryTimer);
+  const delay=Math.min(30000,1500*Math.pow(2,Math.min(4,cloudRetryCount++)));
+  cloudRetryTimer=setTimeout(()=>{cloudRetryTimer=null;persistCloudState(false)},delay);
 }
 async function persistCloudState(silent=false){
-  if(cloudSaving){cloudSaveQueued=true;return}
+  if(cloudSaving){cloudSaveQueued=true;return false}
+  clearTimeout(cloudSaveTimer);cloudSaveTimer=null;
   cloudSaving=true;cloudSaveQueued=false;
+  const savingSerial=cloudEditSerial;
+  const payload=clone(state);
   try{
     const client=getCloudClient();
-    const payload=clone(state);
-    const {error}=await client.from(CLOUD_CONFIG.table).upsert({workspace:CLOUD_CONFIG.workspace,payload,updated_at:new Date().toISOString()},{onConflict:'workspace'});
-    if(error)throw error;
-    cloudLoaded=true;setCloudStatus(`云端已保存 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
-  }catch(err){console.error('Supabase save failed',err);setCloudStatus('保存失败：'+(err?.message||err),false);if(!silent)toast('云端保存失败：'+(err?.message||err),'warn')}
-  finally{cloudSaving=false;if(cloudSaveQueued)queueCloudSave()}
+    let result;
+    if(!cloudRowExists){
+      // Initialization only. All subsequent saves must use optimistic concurrency.
+      result=await client.from(CLOUD_CONFIG.table).upsert({workspace:CLOUD_CONFIG.workspace,payload,updated_at:new Date().toISOString()},{onConflict:'workspace'}).select('updated_at').single();
+    }else{
+      if(!cloudRemoteUpdatedAt)throw new Error('缺少云端版本号，请刷新页面后重试');
+      result=await client.from(CLOUD_CONFIG.table)
+        .update({payload,updated_at:new Date().toISOString()})
+        .eq('workspace',CLOUD_CONFIG.workspace).eq('updated_at',cloudRemoteUpdatedAt)
+        .select('updated_at').maybeSingle();
+    }
+    if(result.error)throw result.error;
+    if(!result.data){
+      // Another device saved first. Merge ONLY this device's unsaved contact edits.
+      const {data:latest,error:fetchError}=await client.from(CLOUD_CONFIG.table)
+        .select('payload,updated_at').eq('workspace',CLOUD_CONFIG.workspace).maybeSingle();
+      if(fetchError)throw fetchError;
+      if(!latest?.payload)throw new Error('云端版本已变化，但重新读取失败');
+      if(!cloudPendingContacts.size){
+        setCloudStatus('其他设备已更新云端，请刷新后重新提交本次操作',false);
+        toast('有其他账号同时修改，已停止覆盖云端数据；请核对后刷新再操作','warn');
+        return false;
+      }
+      const next=normalizeCloudState(latest.payload),merged=mergePendingContactsInto(next);
+      if(merged.missing.length)throw new Error('原电联批次已被其他账号移除或更新，自动合并被阻止，请人工核对');
+      // Preserve contact mutations made while the fetch was in flight as well.
+      state=next;
+      cloudRemoteUpdatedAt=latest.updated_at;cloudRowExists=true;
+      cloudSaveQueued=true;
+      setCloudStatus('云端有新版本，正在合并本机电联修改…');
+      return false;
+    }
+    cloudRemoteUpdatedAt=result.data.updated_at;cloudRowExists=true;cloudLastLoadedAt=Date.now();
+    cloudAckSerial=Math.max(cloudAckSerial,savingSerial);
+    for(const [key,val] of cloudPendingContacts)if(val.serial<=savingSerial)cloudPendingContacts.delete(key);
+    cloudRetryCount=0;clearTimeout(cloudRetryTimer);cloudRetryTimer=null;
+    cloudLoaded=true;
+    if(cloudEditSerial===cloudAckSerial){
+      setCloudStatus(`云端已保存 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`);
+      markContactEditorsSaved();
+    }
+    return true;
+  }catch(err){
+    console.error('Supabase save failed',err);
+    setCloudStatus('保存失败，保留当前选项待重试：'+(err?.message||err),false);
+    markContactEditorsFailed();
+    if(!silent)toast('电联修改暂未保存到 Supabase：'+(err?.message||err),'warn');
+    retryCloudSave();
+    return false;
+  }finally{
+    cloudSaving=false;
+    if(cloudSaveQueued&&cloudEditSerial>cloudAckSerial){
+      // No older Realtime payload may be applied between the two serialized writes.
+      clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>{cloudSaveTimer=null;persistCloudState(false)},90);
+    }
+  }
 }
-function saveState(render=true){state.version=4.2;state.meta=state.meta||{};state.meta.updatedAt=new Date().toISOString();queueCloudSave();if(render)renderAll()}
+function saveState(render=true){
+  state.version=4.2;state.meta=state.meta||{};state.meta.updatedAt=new Date().toISOString();
+  queueCloudSave();if(render)renderAll();
+}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function normalize(v){return String(v??'').trim().replace(/\u00a0/g,' ')}
 function normKey(v){return normalize(v).toLowerCase().replace(/[\s_\-（）()\/\\]+/g,'')}
@@ -1438,7 +1557,7 @@ function applySidebarState(){
  }
  $$('.sidebar .navbtn').forEach(n=>{const label=n.querySelector('.label')?.textContent?.trim();if(label)n.title=collapsed?label:''});
 }
-function renderAll(){repairCriticalSelects();populateSelectors();renderRosterQuality();if($('#topToday'))$('#topToday').textContent=new Date().toLocaleDateString('zh-CN',{month:'short',day:'numeric',weekday:'short'});if($('#topDataStatus')&&cloudLoaded)$('#topDataStatus').textContent=`云端已同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`;document.body.classList.toggle('density-compact',(state.settings.density||'comfortable')==='compact');applySidebarState();const active=document.querySelector('.page.active')?.id.replace('page-','')||'overview';renderPage(active)}
+function renderAll(){repairCriticalSelects();populateSelectors();renderRosterQuality();if($('#topToday'))$('#topToday').textContent=new Date().toLocaleDateString('zh-CN',{month:'short',day:'numeric',weekday:'short'});if($('#topDataStatus')&&cloudLoaded&&!cloudHasPendingEdits())$('#topDataStatus').textContent=`云端已同步 · ${state.roster.length} 条花名册 · ${state.runs.length} 个批次`;document.body.classList.toggle('density-compact',(state.settings.density||'comfortable')==='compact');applySidebarState();const active=document.querySelector('.page.active')?.id.replace('page-','')||'overview';renderPage(active)}
 function populateSelectors(){
  const periods=mergeUnique(DEFAULT_PERIODS,uniqueRoster('period').map(normalizePeriodLabel)),routes=mergeUnique(DEFAULT_ROUTES,uniqueRoster('route')),levels=mergeUnique(DEFAULT_LEVELS,uniqueRoster('level'));
  setSelectOptions($('#rosterPeriodFilter'),periods,'全部时段','',true);setSelectOptions($('#rosterRouteFilter'),routes,'全部路线','',true);setSelectOptions($('#rosterLevelFilter'),levels,'全部层级','',true);setSelectOptions($('#rosterVehicleFilter'),[...new Set(state.roster.map(x=>normalizeVehicleLabel(x.vehicle)).filter(Boolean))],'全部车型','',true);
@@ -1612,16 +1731,16 @@ function renderContactV30(){const density=state.settings.density||'comfortable';
  $('#contactTableWrap').innerHTML=rows.length?`<div class="table-wrap"><table class="table" style="min-width:1660px"><thead><tr><th>#</th><th>状态 / 风险</th><th>骑手</th><th>车型</th><th>层级</th><th>路线 / 时段</th><th>手机号 / 快捷操作</th><th>沟通情况</th><th>回复</th><th>具体原因</th><th>今日联系备注</th><th>处置</th><th>跟进日期</th><th>操作</th></tr></thead><tbody>${rows.map((row,i)=>{const c=getContact(run,row),st=contactStatus(c),bc=st==='待联系'?'b-pending':st==='跟进中'?'b-follow':'b-done',h=getH(row.id),ri=riskInfo(h),later=isLaterOnline(run,row.id),contactOnline=later&&c.reply==='马上上线',rowClass=ri.score>=70?'critical-row':ri.score>=35?'priority-row':'';return`<tr class="${rowClass}" data-rowkey="${esc(row.rowKey)}" data-riderid="${esc(row.id)}"><td class="muted">${i+1}</td><td><span class="badge ${bc}">${st}</span>${contactOnline?'<div style="margin-top:5px"><span class="status-contact-online">联系后上线</span></div>':later?'<div style="margin-top:5px"><span class="status-later">后续上线</span></div>':''}<div class="risk-tags" style="margin-top:5px">${ri.tags.slice(0,3).map(t=>`<span class="risk ${t.c}">${esc(t.t)}</span>`).join('')}</div></td><td><button class="profile-link" onclick="window.__openProfile('${esc(row.id)}')"><b>${esc(row.name||'未命名')}</b></button><div class="muted" style="font-size:11px">${esc(row.id)}</div></td><td><span class="badge b-neutral">${esc(riderVehicleForTrend(row.id,row.periodDisplay||run.period,run))}</span></td><td>${esc(row.level||'-')}</td><td><div class="risk-tags">${(row.routes||[]).map(x=>`<span class="reason-chip">${esc(x)}</span>`).join('')||esc(row.routeDisplay||'-')}</div><div class="muted" style="font-size:11px;margin-top:4px">${esc(row.periodDisplay||'-')}${row.sourceRows?.length>1?` · 合并 ${row.sourceRows.length} 条路线记录`:''}</div></td><td>${phoneActions(row)}</td><td><select data-field="communication">${optType('communication',c.communication)}</select></td><td><select data-field="reply">${optType('reply',c.reply)}</select></td><td><select data-field="reasonDetail">${optType('reasonDetail',c.reasonDetail)}</select></td><td><input class="note" data-field="note" value="${esc(c.note)}" placeholder="输入当日联系备注"></td><td><select data-field="action">${optType('action',c.action==='再次跟进'?'今日再次跟进':c.action)}</select></td><td><input type="date" data-field="followUpDate" value="${esc(c.followUpDate||'')}"></td><td class="nowrap-actions"><button class="btn sm" onclick="window.__openProfile('${esc(row.id)}')">档案</button></td></tr>`}).join('')}</tbody></table></div>`:emptyHtml(scopeRows.length?'没有符合筛选的骑手':'当前时段 / 路线没有未上线骑手',scopeRows.length?'调整搜索、状态、回复、风险、时段或路线筛选。':'可切换其他时段或路线查看。');
  $$('#contactTableWrap [data-field]').forEach(el=>{el.addEventListener('change',()=>updateContact(run,el));if(el.tagName==='INPUT'&&el.type!=='date')el.addEventListener('blur',()=>updateContact(run,el))})
 }
-function updateContactV30(run,el){const tr=el.closest('tr'),id=tr.dataset.riderid,rowKey=tr.dataset.rowkey,row=(run.offlineRows||[]).find(x=>x.rowKey===rowKey)||{id};const c=getContact(run,row);c[el.dataset.field]=el.value;if(el.dataset.field==='action'){c.followupStatus='待处理';if(el.value==='今日再次跟进')c.followUpDate=todayLocal();if(el.value==='明日再次跟进')c.followUpDate=addDays(todayLocal(),1)}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c);saveState()}
+function updateContactV30(run,el){run=getRun(run.key)||run;const tr=el.closest('tr'),id=tr.dataset.riderid,rowKey=tr.dataset.rowkey,row=(run.offlineRows||[]).find(x=>x.rowKey===rowKey)||{id};const c=getContact(run,row);c[el.dataset.field]=el.value;if(el.dataset.field==='action'){c.followupStatus='待处理';if(el.value==='今日再次跟进')c.followUpDate=todayLocal();if(el.value==='明日再次跟进')c.followUpDate=addDays(todayLocal(),1)}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c);markContactDirty(run,id,el.dataset.field);markContactEditor(el);saveState(false)}
 window.__copyPhone=phone=>copyText(phone);
 
 function allFollowups(){const out=[];state.runs.forEach(run=>groupRowsByRider(run.offlineRows||[],run).forEach(row=>{const c=getContact(run,row);if(c.action)out.push({run,row,c,status:c.followupStatus||'待处理'})}));return out.sort((a,b)=>((a.c.followUpDate||'9999')+'|'+dateTimeKey(a.run)).localeCompare((b.c.followUpDate||'9999')+'|'+dateTimeKey(b.run)))}
 function followupDisplayStatus(c){if(c.followupStatus==='已完成')return'已完成';if(c.followupCommunication||c.followupResult||c.followupNote)return'跟进中';return'待处理'}
 function followupBadgeClass(st){return st==='已完成'?'b-done':st==='跟进中'?'b-follow':'b-pending'}
 function getRunRiderContact(runKey,id){const run=getRun(runKey);if(!run)return null;const row=groupRowsByRider(run.offlineRows||[],run).find(x=>x.id===id)||{id};return{run,row,c:getContact(run,row)}}
-function persistFollowupCard(card,runKey,id,silent=true){const ctx=getRunRiderContact(runKey,id);if(!ctx)return null;const {run,c}=ctx;card.querySelectorAll('[data-followup-field]').forEach(el=>c[el.dataset.followupField]=el.value);if(c.followupStatus!=='已完成'&&(c.followupCommunication||c.followupResult||c.followupNote))c.followupStatus='跟进中';c.followupUpdatedAt=new Date().toISOString();c.updatedAt=c.followupUpdatedAt;saveRiderContact(run,id,c);saveState(false);if(!silent)toast('二次跟进记录已保存','ok');return c}
+function persistFollowupCard(card,runKey,id,silent=true){const ctx=getRunRiderContact(runKey,id);if(!ctx)return null;const {run,c}=ctx;card.querySelectorAll('[data-followup-field]').forEach(el=>c[el.dataset.followupField]=el.value);if(c.followupStatus!=='已完成'&&(c.followupCommunication||c.followupResult||c.followupNote))c.followupStatus='跟进中';c.followupUpdatedAt=new Date().toISOString();c.updatedAt=c.followupUpdatedAt;saveRiderContact(run,id,c);markContactDirty(run,id);saveState(false);if(!silent)toast('二次跟进记录正在保存','ok');return c}
 function bindFollowupEditors(){
- $$('#followupList .followup-pro-card').forEach(card=>{const runKey=card.dataset.runkey,id=card.dataset.riderid;card.querySelectorAll('[data-followup-field]').forEach(el=>{el.addEventListener('change',()=>persistFollowupCard(card,runKey,id,true));if(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&el.type!=='date'))el.addEventListener('blur',()=>persistFollowupCard(card,runKey,id,true))})})
+ $$('#followupList .followup-pro-card').forEach(card=>{const runKey=card.dataset.runkey,id=card.dataset.riderid;card.querySelectorAll('[data-followup-field]').forEach(el=>{el.addEventListener('change',()=>{markContactEditor(el);persistFollowupCard(card,runKey,id,true)});if(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&el.type!=='date'))el.addEventListener('blur',()=>persistFollowupCard(card,runKey,id,true))})})
 }
 function refreshFollowupScopeFilters(all){
  const pSel=$('#followupPeriodFilter'),rSel=$('#followupRouteFilter');if(!pSel||!rSel)return;
@@ -1845,7 +1964,7 @@ function rawContactSnapshot(run,id){run.contacts=run.contacts||{};const k=riderC
 function recordUndo(changes,desc){undoStack.push({changes,desc});if(undoStack.length>20)undoStack.shift();showUndo(desc)}
 function showUndo(desc){const bar=$('#undoBar');if(!bar)return;$('#undoText').textContent=desc||'操作已保存';bar.classList.add('show');clearTimeout(undoTimer);undoTimer=setTimeout(()=>bar.classList.remove('show'),7000)}
 function undoLast(){const item=undoStack.pop();if(!item)return toast('没有可撤销的操作','warn');for(const ch of item.changes){const run=getRun(ch.runKey);if(!run)continue;run.contacts=run.contacts||{};if(ch.raw===null)delete run.contacts[ch.key];else run.contacts[ch.key]=clone(ch.raw)}logAction('撤销',`撤销：${item.desc}`);saveState();toast('已撤销上一项修改','ok');$('#undoBar')?.classList.remove('show')}
-function updateContact(run,el){const tr=el.closest('tr'),id=tr?.dataset.riderid,rowKey=tr?.dataset.rowkey;if(!id)return;const row=(run.offlineRows||[]).find(x=>x.rowKey===rowKey)||{id};const before=rawContactSnapshot(run,id),c=getContact(run,row),field=el.dataset.field,newValue=el.value;if(String(c[field]??'')===String(newValue??''))return;c[field]=newValue;if(field==='action'){c.followupStatus='待处理';if(newValue==='今日再次跟进')c.followUpDate=todayLocal();if(newValue==='明日再次跟进')c.followUpDate=addDays(todayLocal(),1)}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c);const rider=row.name||id;recordUndo([before],`${rider} · ${field} 已更新`);logAction('电联修改',`${rider}：${field} → ${newValue||'清空'}`,{riderId:id,runKey:run.key});saveState()}
+function updateContact(run,el){run=getRun(run.key)||run;const tr=el.closest('tr'),id=tr?.dataset.riderid,rowKey=tr?.dataset.rowkey;if(!id)return;const row=(run.offlineRows||[]).find(x=>x.rowKey===rowKey)||{id};const before=rawContactSnapshot(run,id),c=getContact(run,row),field=el.dataset.field,newValue=el.value;if(String(c[field]??'')===String(newValue??''))return;c[field]=newValue;if(field==='action'){c.followupStatus='待处理';if(newValue==='今日再次跟进')c.followUpDate=todayLocal();if(newValue==='明日再次跟进')c.followUpDate=addDays(todayLocal(),1)}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c);markContactDirty(run,id,field);markContactEditor(el);const rider=row.name||id;recordUndo([before],`${rider} · ${field} 已选择（待云端同步）`);logAction('电联修改',`${rider}：${field} → ${newValue||'清空'}`,{riderId:id,runKey:run.key});saveState(false);const statusCell=tr?.cells?.[1]?.querySelector('.badge');if(statusCell){const st=contactStatus(c);statusCell.textContent=st;statusCell.className='badge '+(st==='待联系'?'b-pending':st==='跟进中'?'b-follow':'b-done')}}
 
 function todayRuns(date=todayLocal()){return state.runs.filter(r=>r.date===date)}
 function contactCoverageForRuns(runs){let total=0,done=0;for(const r of runs){for(const row of groupRowsByRider(r.offlineRows||[],r)){total++;if(contactStatus(getContact(r,row))!=='待联系')done++}}return{total,done}}
@@ -1926,7 +2045,7 @@ function deleteSavedView(){const id=$('#savedViewSelect').value;if(!id)return to
 
 function enhanceContactWorkspace(){renderSavedViews();const wrap=$('#contactTableWrap'),table=wrap?.querySelector('table');if(!table){updateBulkBar();return}const th=table.querySelector('thead tr');if(th&&!th.querySelector('.select-col'))th.insertAdjacentHTML('afterbegin','<th class="select-col"><input class="row-check" type="checkbox" id="selectAllRows" title="选择当前筛选全部骑手"></th>');wrap.querySelectorAll('tbody tr[data-riderid]').forEach(tr=>{if(!tr.querySelector('.select-col')){const id=tr.dataset.riderid;tr.insertAdjacentHTML('afterbegin',`<td class="select-col"><input class="row-check rider-check" type="checkbox" data-id="${esc(id)}" ${selectedRiders.has(id)?'checked':''}></td>`)}tr.classList.toggle('selected-row',selectedRiders.has(tr.dataset.riderid))});const all=$('#selectAllRows'),checks=[...wrap.querySelectorAll('.rider-check')];if(all){all.checked=checks.length>0&&checks.every(c=>c.checked);all.indeterminate=checks.some(c=>c.checked)&&!all.checked;all.onchange=()=>{checks.forEach(c=>{c.checked=all.checked;if(all.checked)selectedRiders.add(c.dataset.id);else selectedRiders.delete(c.dataset.id);c.closest('tr')?.classList.toggle('selected-row',c.checked)});updateBulkBar()}}checks.forEach(c=>c.onchange=()=>{if(c.checked)selectedRiders.add(c.dataset.id);else selectedRiders.delete(c.dataset.id);c.closest('tr')?.classList.toggle('selected-row',c.checked);updateBulkBar()});updateBulkBar()}
 function updateBulkBar(){const bar=$('#bulkBar');if(!bar)return;const n=selectedRiders.size;bar.classList.toggle('show',n>0);$('#bulkCount').textContent=`已选 ${n} 人`}
-function applyBulkPreset(){const preset=$('#bulkPreset').value;if(!preset)return toast('请选择批量操作','warn');const run=getRun($('#contactRunSelect').value||currentRunKey);if(!run||!selectedRiders.size)return;const changes=[];for(const id of selectedRiders){const row=groupRowsByRider(run.offlineRows||[],run).find(x=>x.id===id)||{id,name:id};changes.push(rawContactSnapshot(run,id));const c=getContact(run,row);if(preset==='noanswer'){c.communication='无人接听';c.reply='未上线原因不明'}if(preset==='leave'){c.communication='已接通';c.reply='请假'}if(preset==='today'){c.action='今日再次跟进';c.followUpDate=todayLocal();c.followupStatus='待处理'}if(preset==='tomorrow'){c.action='明日再次跟进';c.followUpDate=addDays(todayLocal(),1);c.followupStatus='待处理'}if(preset==='churn'){c.communication='已接通';c.reply='不做了';c.reasonDetail='准备退出平台'}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c)}const names={noanswer:'无人接听 / 原因不明',leave:'已接通 / 请假',today:'今日再次跟进',tomorrow:'明日再次跟进',churn:'不做了 / 准备退出'};recordUndo(changes,`批量更新 ${changes.length} 名骑手`);logAction('批量操作',`${names[preset]} · ${changes.length} 名骑手`,{runKey:run.key});selectedRiders.clear();$('#bulkPreset').value='';saveState();toast(`已批量更新 ${changes.length} 名骑手`,'ok')}
+function applyBulkPreset(){const preset=$('#bulkPreset').value;if(!preset)return toast('请选择批量操作','warn');const run=getRun($('#contactRunSelect').value||currentRunKey);if(!run||!selectedRiders.size)return;const changes=[];for(const id of selectedRiders){const row=groupRowsByRider(run.offlineRows||[],run).find(x=>x.id===id)||{id,name:id};changes.push(rawContactSnapshot(run,id));const c=getContact(run,row);if(preset==='noanswer'){c.communication='无人接听';c.reply='未上线原因不明'}if(preset==='leave'){c.communication='已接通';c.reply='请假'}if(preset==='today'){c.action='今日再次跟进';c.followUpDate=todayLocal();c.followupStatus='待处理'}if(preset==='tomorrow'){c.action='明日再次跟进';c.followUpDate=addDays(todayLocal(),1);c.followupStatus='待处理'}if(preset==='churn'){c.communication='已接通';c.reply='不做了';c.reasonDetail='准备退出平台'}c.updatedAt=new Date().toISOString();saveRiderContact(run,id,c);markContactDirty(run,id)}const names={noanswer:'无人接听 / 原因不明',leave:'已接通 / 请假',today:'今日再次跟进',tomorrow:'明日再次跟进',churn:'不做了 / 准备退出'};recordUndo(changes,`批量更新 ${changes.length} 名骑手`);logAction('批量操作',`${names[preset]} · ${changes.length} 名骑手`,{runKey:run.key});selectedRiders.clear();$('#bulkPreset').value='';saveState();toast(`已批量更新 ${changes.length} 名骑手`,'ok')}
 function renderContact(){renderContactV30();enhanceContactWorkspace();updateNavBadges()}
 
 function riderDayWeather(id,date){const rs=state.runs.filter(r=>r.date===date&&expectedInRun(r,id)&&r.weather?.confirmed);const byPeriod=new Map();for(const r of rs){const p=normalizePeriodLabel(r.period)||r.weather.period||'时段',prev=byPeriod.get(p);if(!prev||(r.savedAt||'')>(prev.savedAt||''))byPeriod.set(p,{...r.weather,period:p,savedAt:r.savedAt||''})}return [...byPeriod.values()]}
