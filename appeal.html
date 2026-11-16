@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex,nofollow" />
 <title>订单申诉填写表｜Order Appeal Submission Center</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,6 +11,106 @@
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#fff7cc 0,#fff 32%,#f6f7fb 100%);color:var(--ink)}.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(820px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:24px}.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.logo{width:68px;height:68px;border-radius:16px;background:var(--yellow);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(17,24,39,.12);overflow:hidden;flex:0 0 auto}.logo img{width:100%;height:100%;object-fit:cover;display:block}h1{font-size:24px;margin:0;letter-spacing:-.03em}.sub{font-size:13px;color:var(--muted);line-height:1.6;margin:5px 0 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}.field.full{grid-column:1/-1}.field span{font-size:13px;font-weight:900;color:#344054}.en{font-weight:800;color:#667085}.field input,.field select,.field textarea{font:inherit;border:1px solid var(--line);border-radius:14px;padding:12px 13px;background:#fff;color:var(--ink);outline:none}.field textarea{min-height:140px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#111827;box-shadow:0 0 0 4px rgba(17,24,39,.08)}.hint{font-size:12px;color:var(--muted);line-height:1.65;white-space:pre-line}.photoBox{background:#f9fafb;border:1px dashed #cbd5e1;border-radius:16px;padding:12px}.actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:11px 16px;font-weight:900;cursor:pointer}.btn.primary{background:#111827;color:#ffd400;border-color:#111827}.msg{min-height:22px;font-size:13px;font-weight:850;margin-top:10px}.ok{color:var(--green)}.err{color:var(--red)}.successBox{display:none;background:#ecfdf3;border:1px solid #bbf7d0;color:#065f46;border-radius:18px;padding:16px;margin-top:14px;line-height:1.7}.successBox.show{display:block}@media(max-width:680px){.card{padding:18px;border-radius:22px}.grid{grid-template-columns:1fr}.actions{display:grid}.btn{width:100%}}
 
 
+
+/* ===== Mobile responsiveness patch | desktop layout and submission logic unchanged ===== */
+/* Shrinkable grid columns and flex children eliminate intrinsic-width overflow. */
+.card, .brand, .brand > div:last-child, .grid, .grid > .field, .photoBox { min-width:0; }
+.grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.field input, .field select, .field textarea {
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+.field span, .hint, .msg, .successBox, h1, .sub {
+  overflow-wrap:anywhere;
+}
+/* File inputs have long native labels; keep them within the form. */
+.field input[type="file"] { max-width:100%; }
+@media (max-width:680px) {
+  html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body { width:100%; max-width:100%; }
+  .page {
+    min-height:100vh;
+    min-height:100dvh;
+    display:block;
+    width:100%;
+    padding: max(12px, env(safe-area-inset-top))
+             max(10px, env(safe-area-inset-right))
+             calc(24px + env(safe-area-inset-bottom))
+             max(10px, env(safe-area-inset-left));
+  }
+  .card {
+    width:100%;
+    max-width:100%;
+    margin:0 auto;
+    padding:16px;
+    border-radius:20px;
+    box-shadow:0 12px 38px rgba(16,24,40,.10);
+  }
+  .brand { align-items:flex-start; gap:10px; margin-bottom:18px; }
+  .brand > div:last-child { flex:1 1 0%; }
+  .logo { width:54px; height:54px; border-radius:13px; }
+  h1 { font-size:20px; line-height:1.3; letter-spacing:-.025em; }
+  h1 .en { display:block; font-size:15px; line-height:1.35; margin-top:3px; font-weight:750; }
+  .sub { font-size:12.5px; line-height:1.6; margin-top:7px; }
+  .grid { grid-template-columns:minmax(0,1fr); gap:0; }
+  .field { min-width:0; gap:8px; margin-bottom:17px; }
+  .field.full { grid-column:auto; }
+  .field > span { font-size:14px; line-height:1.45; }
+  .field input, .field select, .field textarea {
+    min-height:48px;
+    padding:12px 13px;
+    border-radius:12px;
+    font-size:16px; /* Prevent iOS Safari zooming when focusing fields. */
+    line-height:1.35;
+  }
+  .field select { padding-right:30px; }
+  .field textarea { min-height:155px; resize:vertical; }
+  .field #remark { min-height:100px; }
+  .hint { font-size:12.5px; line-height:1.7; }
+  .photoBox { padding:13px; border-radius:14px; }
+  .field input[type="file"] {
+    font-size:14px;
+    line-height:1.3;
+    min-height:48px;
+    padding:9px;
+    overflow:hidden;
+  }
+  .field input[type="file"]::file-selector-button {
+    max-width:100%;
+    border:1px solid #d0d5dd;
+    border-radius:8px;
+    background:#fff;
+    padding:8px 10px;
+    margin-right:8px;
+    font-size:13px;
+    font-weight:700;
+  }
+  .actions { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin-top:6px; }
+  .btn {
+    display:block;
+    width:100%;
+    min-height:50px;
+    padding:12px 14px;
+    font-size:15px;
+    line-height:1.45;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    touch-action:manipulation;
+  }
+  .msg { font-size:13px; line-height:1.6; }
+  .successBox { font-size:13px; padding:14px; }
+}
+@media (max-width:360px) {
+  .page { padding-left:max(8px, env(safe-area-inset-left)); padding-right:max(8px, env(safe-area-inset-right)); }
+  .card { padding:14px; border-radius:17px; }
+  .logo { width:48px; height:48px; }
+  h1 { font-size:18px; }
+  h1 .en { font-size:14px; }
+  .brand { gap:9px; }
+  .photoBox { padding:11px; }
+}
 </style>
 </head>
 <body>
