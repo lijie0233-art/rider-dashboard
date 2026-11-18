@@ -9469,6 +9469,174 @@ function loadLiquorReviewModule(){
   }
 }
 </script>
+<!-- V4.9.12：数据趋势诊断指定指标表头三态数值排序 -->
+<style id="diagnosisHeaderSortStylesV4912">
+#diagnosisTable th.diagnosisSortHeader{white-space:nowrap}
+#diagnosisTable .diagnosisSortControl{appearance:none;display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:0;border-radius:6px;background:transparent;color:inherit;padding:4px 5px;margin:-4px -5px;font:inherit;font-weight:inherit;white-space:nowrap}
+#diagnosisTable .diagnosisSortControl:hover{background:#eff6ff;color:#1d4ed8}
+#diagnosisTable .diagnosisSortControl:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+#diagnosisTable .diagnosisSortControl[data-sort-direction="desc"]::after{content:"↓";color:#2563eb;font-size:14px;font-weight:950}
+#diagnosisTable .diagnosisSortControl[data-sort-direction="asc"]::after{content:"↑";color:#2563eb;font-size:14px;font-weight:950}
+</style>
+<script>
+(function(){
+  if(window.__diagnosisHeaderNumericSortV4912)return;
+  window.__diagnosisHeaderNumericSortV4912=true;
+  const SORT_KEYS=new Map([
+    ['接单率','acceptanceRate'],['骑手责尾单率','tailRate'],['周出勤天数','attendanceDays'],
+    ['首值','first'],['末值','last'],['变化率','pctChange'],['下滑次数','badMoves'],
+    ['异常次数','badMoves'],['窗口序列','values']
+  ]);
+  const RAW_FIELD_INDEX={orders:2,income:3,hourly:4,duration:5,periodAvg:6,acceptanceRate:8,tailRate:9,attendanceDays:11};
+  const sorting={key:null,direction:null};
+  let originalRows=[];
+
+  function validNumber(value){
+    if(value==null||String(value).trim()==='')return false;
+    const normalized=String(value).trim().replace(/[,%]/g,'');
+    return normalized!==''&&Number.isFinite(Number(normalized));
+  }
+  function numberOrNull(value,metric){
+    if(!validNumber(value))return null;
+    const n=Number(String(value).trim().replace(/[,%]/g,''));
+    // 数据源可能混用 0.95 和 95 表示 95%，按页面实际百分比口径比较精确数值。
+    return metric==='acceptanceRate'||metric==='tailRate'?(Math.abs(n)<=1?n*100:n):n;
+  }
+  function compareNumbers(a,b,direction){
+    if(a==null&&b==null)return 0;
+    if(a==null)return 1;
+    if(b==null)return -1;
+    return direction==='desc'?(b>a?1:b<a?-1:0):(a>b?1:a<b?-1:0);
+  }
+  function compareSequences(a,b,direction){
+    if(a==null||b==null)return compareNumbers(a==null?null:0,b==null?null:0,direction);
+    for(let i=0;i<Math.max(a.length,b.length);i++){
+      const order=compareNumbers(i<a.length?a[i]:null,i<b.length?b[i]:null,direction);
+      if(order)return order;
+    }
+    return 0;
+  }
+  function makeValuesForRows(){
+    const items=typeof diagnosisItems==='function'?diagnosisItems():[];
+    const itemIndex=new Map((items||[]).map(item=>[String(item.id),item]));
+    const originalIndex=new Map();
+    try{
+      (Array.isArray(raw)?raw:[]).forEach(row=>{
+        const id=String(row?.[0]??'').trim(),cycle=String(row?.[10]??'').trim();
+        if(id&&cycle)originalIndex.set(cycle+'|'+id,row);
+      });
+    }catch(_){}
+    const metric=state?.diagnosisMetric||state?.metric||'orders';
+    const windowCycles=typeof trendWindow==='function'?trendWindow():[];
+    const hasMetric=(id,cycle,key)=>{
+      const recValue=typeof rec==='function'?rec(cycle,id):null;
+      if(!recValue)return false;
+      const source=originalIndex.get(cycle+'|'+id),index=RAW_FIELD_INDEX[key];
+      return source&&index!=null?validNumber(source[index]):validNumber(recValue[key]);
+    };
+    const cache=new Map();
+    function calculateValue(id,key){
+      const item=itemIndex.get(id);
+      if(!item)return null;
+      if(key==='acceptanceRate'||key==='tailRate'||key==='attendanceDays'){
+        if(!hasMetric(id,state.cycle,key))return null;
+        return numberOrNull(rec(state.cycle,id)?.[key],key);
+      }
+      if(!windowCycles.some(cycle=>hasMetric(id,cycle,metric)))return null;
+      if(key==='first'||key==='last')return numberOrNull(item[key],metric);
+      if(key==='pctChange')return numberOrNull(item.pctChange);
+      if(key==='badMoves')return numberOrNull(item.badMoves??item.drops);
+      if(key==='values'){
+        const sequence=windowCycles.map((cycle,index)=>hasMetric(id,cycle,metric)?numberOrNull(item.values?.[index],metric):null);
+        return sequence.some(v=>v!=null)?sequence:null;
+      }
+      return null;
+    }
+    return (id,key)=>{
+      const cacheKey=key+'|'+id;
+      if(!cache.has(cacheKey))cache.set(cacheKey,calculateValue(id,key));
+      return cache.get(cacheKey);
+    };
+  }
+  function paintHeaders(table){
+    table.querySelectorAll('thead th[data-diagnosis-sort-key]').forEach(th=>{
+      const button=th.querySelector('.diagnosisSortControl');
+      if(!button)return;
+      const active=sorting.key===th.dataset.diagnosisSortKey?sorting.direction:null;
+      button.dataset.sortDirection=active||'none';
+      th.setAttribute('aria-sort',active==='desc'?'descending':active==='asc'?'ascending':'none');
+      const label=button.textContent.trim();
+      const next=active==='desc'?'升序':active==='asc'?'取消排序':'降序';
+      button.setAttribute('aria-label',label+'，点击'+next);
+      button.title='点击'+next;
+    });
+  }
+  function applySort(table){
+    const tbody=table?.tBodies?.[0];
+    if(!tbody||!originalRows.length)return;
+    const rows=[...originalRows];
+    if(sorting.key){
+      const value=makeValuesForRows();
+      const withIndex=rows.map((row,index)=>({
+        row,index,
+        id:String(row.querySelector('[data-track]')?.getAttribute('data-track')||'')
+      }));
+      const realRows=withIndex.filter(item=>item.id);
+      const placeholders=withIndex.filter(item=>!item.id);
+      realRows.sort((a,b)=>{
+        const left=value(a.id,sorting.key),right=value(b.id,sorting.key);
+        const result=sorting.key==='values'?compareSequences(left,right,sorting.direction):compareNumbers(left,right,sorting.direction);
+        return result||a.index-b.index;
+      });
+      rows.splice(0,rows.length,...realRows.map(item=>item.row),...placeholders.map(item=>item.row));
+    }
+    rows.forEach(row=>tbody.appendChild(row));
+    paintHeaders(table);
+  }
+  function enhanceHeaders(){
+    const table=document.getElementById('diagnosisTable');
+    if(!table)return;
+    originalRows=[...(table.tBodies?.[0]?.rows||[])];
+    table.querySelectorAll('thead th').forEach(th=>{
+      const label=String(th.textContent||'').trim();
+      const key=SORT_KEYS.get(label);
+      if(!key)return;
+      th.classList.add('diagnosisSortHeader');
+      th.dataset.diagnosisSortKey=key;
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='diagnosisSortControl';
+      button.dataset.diagnosisSort=key;
+      button.textContent=label;
+      th.replaceChildren(button);
+    });
+    if(!table.dataset.diagnosisSortBound){
+      table.dataset.diagnosisSortBound='1';
+      table.addEventListener('click',event=>{
+        const button=event.target.closest?.('button[data-diagnosis-sort]');
+        if(!button||!table.contains(button))return;
+        const key=button.dataset.diagnosisSort;
+        if(sorting.key!==key){sorting.key=key;sorting.direction='desc'}
+        else if(sorting.direction==='desc')sorting.direction='asc';
+        else {sorting.key=null;sorting.direction=null}
+        applySort(table);
+      });
+    }
+    applySort(table);
+  }
+  if(typeof renderDiagnosis==='function'){
+    const previousRender=renderDiagnosis;
+    renderDiagnosis=function(){
+      const result=previousRender.apply(this,arguments);
+      if(result&&typeof result.then==='function')return result.then(value=>{enhanceHeaders();return value});
+      enhanceHeaders();
+      return result;
+    };
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enhanceHeaders,{once:true});
+  else enhanceHeaders();
+})();
+</script>
 </body>
 </html>
 
